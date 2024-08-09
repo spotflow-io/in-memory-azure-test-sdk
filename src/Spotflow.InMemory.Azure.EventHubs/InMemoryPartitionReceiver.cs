@@ -28,7 +28,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     private LastEnqueuedEventProperties? _lastEnqueuedEventProperties;
 
-    private readonly ConsumerPartitionEventHubScope _scope;
+    private readonly PartitionConsumerEventHubScope _scope;
 
     #region Constructors
 
