@@ -169,11 +169,11 @@ public class InMemoryTableClient : TableClient
 
     private async Task<IReadOnlyList<T>> QueryCoreAsync<T>(Func<IEnumerable<InMemoryTableEntity>, IEnumerable<T>> filter, CancellationToken cancellationToken) where T : class, ITableEntity
     {
-        var table = GetTable();
-
         var beforeContext = new TableQueryBeforeHookContext(_scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var table = GetTable();
 
         var entities = table.GetEntities(filter);
 
