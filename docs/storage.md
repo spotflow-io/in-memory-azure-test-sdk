@@ -461,5 +461,6 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Upsert`
         -   All `Table` operations
             -   `Create`
+            -   `Query`
 
 For details about concept of hooks, please see the [Hooks](./hooks.md) page.
