@@ -28,6 +28,7 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
             throw new ArgumentException($"Namespace name cannot contain dots. Got '{namespaceName}'");
         }
 
+
         namespaceName ??= GenerateNamespaceName();
 
         namespaceName = namespaceName.ToLowerInvariant();

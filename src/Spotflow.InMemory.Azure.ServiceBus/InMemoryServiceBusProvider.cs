@@ -59,8 +59,6 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
     public InMemoryServiceBusNamespace GetNamespace(string namespaceName)
     {
-        namespaceName = namespaceName.ToLowerInvariant();
-
         if (!TryGetNamespace(namespaceName, out var serviceBusNamespace))
         {
             throw new InvalidOperationException($"Service bus namespace '{namespaceName}' not found.");
@@ -100,6 +98,8 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
     internal string GetNamespaceNameFromHostname(string hostname)
     {
+        hostname = hostname.ToLowerInvariant();
+
         if (!hostname.EndsWith(HostnameSuffix))
         {
             throw new FormatException($"Service Bus namespace host name is expected to end with '{HostnameSuffix}'. Got {hostname}.");
