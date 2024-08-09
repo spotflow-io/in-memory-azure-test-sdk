@@ -52,6 +52,29 @@ public class HooksTests
     }
 
     [TestMethod]
+    public void Table_Query_Hook_Should_Execute()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        TableQueryBeforeHookContext? capturedBeforeContext = null;
+        TableQueryAfterHookContext? capturedAfterContext = null;
+
+        provider.AddHook(hook => hook.ForTableService().ForTableOperations().BeforeQuery(ctx => { capturedBeforeContext = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForTableService().ForTableOperations().AfterQuery(ctx => { capturedAfterContext = ctx; return Task.CompletedTask; }));
+
+        var account = provider.AddAccount("test-account");
+
+        var tableClient = InMemoryTableClient.FromAccount(account, "test-table");
+
+        tableClient.Create();
+
+        tableClient.Query<TableEntity>().ToList().Should().BeEmpty();
+
+        capturedBeforeContext.Should().NotBeNull();
+        capturedAfterContext.Should().NotBeNull();
+    }
+
+    [TestMethod]
     public async Task Hooks_With_Different_Scope_Should_Not_Execute()
     {
         const string accountName = "test-account";

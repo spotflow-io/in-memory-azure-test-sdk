@@ -124,7 +124,7 @@ public class InMemoryTableClient : TableClient
     {
         var filterCompiled = filter.Compile();
 
-        var entities = QueryCore(filterCompiled);
+        var entities = QueryCoreAsync(filterCompiled, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
 
         return new InMemoryPageable.Sync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -133,7 +133,7 @@ public class InMemoryTableClient : TableClient
     {
         var filterCompiled = filter.Compile();
 
-        var entities = QueryCore(filterCompiled);
+        var entities = QueryCoreAsync(filterCompiled, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
 
         return new InMemoryPageable.YieldingAsync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -142,7 +142,7 @@ public class InMemoryTableClient : TableClient
     {
         var matcher = new TextQueryFilterMatcher(filter, Provider.LoggerFactory);
 
-        var entities = QueryCore<T>(matcher.IsMatch);
+        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
 
         return new InMemoryPageable.Sync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -152,26 +152,39 @@ public class InMemoryTableClient : TableClient
     {
         var matcher = new TextQueryFilterMatcher(filter, Provider.LoggerFactory);
 
-        var entities = QueryCore<T>(matcher.IsMatch);
+        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
 
         return new InMemoryPageable.YieldingAsync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
 
-    private IReadOnlyList<T> QueryCore<T>(Func<T, bool> typedFilter) where T : class, ITableEntity
+    private Task<IReadOnlyList<T>> QueryCoreAsync<T>(Func<T, bool> typedFilter, CancellationToken cancellationToken) where T : class, ITableEntity
     {
-        return QueryCore(entities => entities.Select(e => e.ToAzureTableEntity<T>()).Where(typedFilter));
+        return QueryCoreAsync(entities => entities.Select(e => e.ToAzureTableEntity<T>()).Where(typedFilter), cancellationToken);
     }
 
-    private IReadOnlyList<T> QueryCore<T>(Func<InMemoryTableEntity, bool> genericFilter) where T : class, ITableEntity
+    private Task<IReadOnlyList<T>> QueryCoreAsync<T>(Func<InMemoryTableEntity, bool> genericFilter, CancellationToken cancellationToken) where T : class, ITableEntity
     {
-        return QueryCore(e => e.Where(genericFilter).Select(e => e.ToAzureTableEntity<T>()));
+        return QueryCoreAsync(e => e.Where(genericFilter).Select(e => e.ToAzureTableEntity<T>()), cancellationToken);
     }
 
-    private IReadOnlyList<T> QueryCore<T>(Func<IEnumerable<InMemoryTableEntity>, IEnumerable<T>> filter) where T : class, ITableEntity
+    private async Task<IReadOnlyList<T>> QueryCoreAsync<T>(Func<IEnumerable<InMemoryTableEntity>, IEnumerable<T>> filter, CancellationToken cancellationToken) where T : class, ITableEntity
     {
         var table = GetTable();
 
-        return table.GetEntities(filter);
+        var beforeContext = new TableQueryBeforeHookContext(_scope, Provider, cancellationToken);
+
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var entities = table.GetEntities(filter);
+
+        var afterContext = new TableQueryAfterHookContext(beforeContext)
+        {
+            Entities = entities
+        };
+
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return entities;
     }
 
     #endregion
@@ -330,7 +343,14 @@ public class InMemoryTableClient : TableClient
 
     public override Response<T> GetEntity<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
     {
-        if (!TryGetEntityCore<T>(partitionKey, rowKey, out var entity))
+        return GetEntityAsync<T>(partitionKey, rowKey, select, cancellationToken).EnsureCompleted();
+    }
+
+    public override async Task<Response<T>> GetEntityAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
+    {
+        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+
+        if (entity is null)
         {
             throw TableExceptionFactory.EntityNotFound(AccountName, Name, partitionKey, rowKey);
         }
@@ -338,52 +358,41 @@ public class InMemoryTableClient : TableClient
         return InMemoryResponse.FromValue(entity, 200, eTag: entity.ETag);
     }
 
-    public override async Task<Response<T>> GetEntityAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
-    {
-        await Task.Yield();
-
-        return GetEntity<T>(partitionKey, rowKey, select, cancellationToken);
-    }
-
     public override NullableResponse<T> GetEntityIfExists<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
     {
-        if (TryGetEntityCore<T>(partitionKey, rowKey, out var entity))
-        {
-            return InMemoryNullableResponse<T>.FromValue(entity);
-        }
-        else
-        {
-            return InMemoryNullableResponse<T>.FromNull();
-        }
+        return GetEntityIfExistsAsync<T>(partitionKey, rowKey, select, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<NullableResponse<T>> GetEntityIfExistsAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
 
-        return GetEntityIfExists<T>(partitionKey, rowKey, select, cancellationToken);
+        if (entity is null)
+        {
+            return InMemoryNullableResponse<T>.FromNull();
+        }
+
+        return InMemoryNullableResponse<T>.FromValue(entity);
     }
 
-    private bool TryGetEntityCore<T>(string partitionKey, string rowKey, [NotNullWhen(true)] out T? result) where T : class, ITableEntity
+    private async Task<T?> FindEntityCoreAsync<T>(string partitionKey, string rowKey, CancellationToken cancellationToken) where T : class, ITableEntity
     {
         var table = GetTable();
 
-        var entities = QueryCore<T>(typedFilter: entity => filter(entity, partitionKey, rowKey));
+        var entities = await QueryCoreAsync<T>(typedFilter: entity => filter(entity, partitionKey, rowKey), cancellationToken);
 
         if (entities.Count == 0)
         {
-            result = default;
-            return false;
+            return null;
         }
 
         if (entities.Count == 1)
         {
-            result = entities[0];
-            return true;
+            return entities[0];
+
         }
 
         throw new InvalidOperationException("Multiple entities returned to point query.");
-
 
         static bool filter(T entity, string partitionKey, string rowKey)
         {

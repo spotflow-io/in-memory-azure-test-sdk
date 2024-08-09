@@ -58,6 +58,10 @@ public class TableServiceHookBuilder
         public StorageHook<TableCreateBeforeHookContext> BeforeCreate(HookFunc<TableCreateBeforeHookContext> hook) => new(hook, _filter);
 
         public StorageHook<TableCreateAfterHookContext> AfterCreate(HookFunc<TableCreateAfterHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<TableQueryBeforeHookContext> BeforeQuery(HookFunc<TableQueryBeforeHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<TableQueryAfterHookContext> AfterQuery(HookFunc<TableQueryAfterHookContext> hook) => new(hook, _filter);
     }
 
 
