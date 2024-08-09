@@ -4,7 +4,7 @@
         <Description>In-memory implementation of the Azure Service Bus clients for convenient testing.</Description>
         <PackageTags>$(PackageTags);ServiceBus</PackageTags>
         <IsPackable>true</IsPackable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,7 +14,8 @@
 
 
     <ItemGroup>
-        <None Include="../../docs/service-bus.md" Pack="true" PackagePath="README.md" />
+        <None Include="../../docs/service-bus.md" PackagePath="README.md" />
+        <None Include="../../docs/service-bus.nuget.md" Pack="true" PackagePath="README.nuget.md" />
     </ItemGroup>
 
 

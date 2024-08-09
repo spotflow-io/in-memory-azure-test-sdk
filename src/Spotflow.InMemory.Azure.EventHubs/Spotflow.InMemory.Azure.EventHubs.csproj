@@ -4,7 +4,7 @@
         <Description>In-memory implementation of the Azure Event Hubs clients for convenient testing.</Description>
         <PackageTags>$(PackageTags);EventHub</PackageTags>
         <IsPackable>true</IsPackable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../docs/event-hubs.md" Pack="true" PackagePath="README.md" />
+        <None Include="../../docs/event-hubs.md" PackagePath="README.md" />
+        <None Include="../../docs/event-hubs.nuget.md" Pack="true" PackagePath="README.nuget.md" />
     </ItemGroup>
 </Project>

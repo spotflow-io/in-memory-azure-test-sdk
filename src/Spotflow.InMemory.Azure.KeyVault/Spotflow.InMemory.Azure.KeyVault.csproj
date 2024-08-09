@@ -4,7 +4,7 @@
         <Description>In-memory implementation of the Azure Key Vault clients for convenient testing.</Description>
         <PackageTags>$(PackageTags);KeyVault;Secrets</PackageTags>
         <IsPackable>true</IsPackable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../docs/key-vault.md" Pack="true" PackagePath="README.md" />
+        <None Include="../../docs/key-vault.md" PackagePath="README.md" />
+        <None Include="../../docs/key-vault.nuget.md" Pack="true" PackagePath="README.nuget.md" />
     </ItemGroup>
 </Project>

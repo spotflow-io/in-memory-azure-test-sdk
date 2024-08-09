@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../docs/service-bus.md" Pack="true" PackagePath="README.md" />
+        <None Include="../../docs/service-bus.nuget.md" Pack="true" PackagePath="README.md" />
     </ItemGroup>
 
 </Project>
