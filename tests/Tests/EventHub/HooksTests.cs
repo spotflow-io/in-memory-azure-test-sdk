@@ -111,6 +111,36 @@ public class HooksTests
     }
 
     [TestMethod]
+    public async Task GetEventHubProperties_Hooks_For_Consumer_Should_Execute()
+    {
+        EventHubBeforeHookContext? capturedBeforeContextGeneric = null;
+        GetConsumerEventHubPropertiesBeforeHookContext? capturedBeforeContextSpecific = null;
+        EventHubAfterHookContext? capturedAfterContextGeneric = null;
+        GetConsumerEventHubPropertiesAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryEventHubProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().BeforeGetEventHubProperties(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().AfterGetEventHubProperties(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var eventHub = provider.AddNamespace().AddEventHub("test", 1);
+
+        var client = InMemoryEventHubConsumerClient.FromEventHub("$default", eventHub);
+
+        await client.GetEventHubPropertiesAsync();
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<GetConsumerEventHubPropertiesBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<GetConsumerEventHubPropertiesAfterHookContext>()
+            .Which.EventHubProperties.PartitionIds.Should().HaveCount(1);
+    }
+
+    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public async Task Hooks_With_Different_Scope_Should_Not_Execute()
     {

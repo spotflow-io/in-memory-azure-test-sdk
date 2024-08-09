@@ -5,6 +5,7 @@ public enum ConsumerOperations
 {
     None = 0,
     ReceiveBatch = 1,
-    All = ReceiveBatch
+    GetEventHubProperties = 2,
+    All = ReceiveBatch | GetEventHubProperties
 }
 

@@ -151,7 +151,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             SendEventOptions = sendEventOptions,
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var partition = ResolvePartitionToSend(sendEventOptions);
 
@@ -166,7 +166,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             PartitionId = partition.PartitionId
         };
 
-        await ExecuteAfterHooksAsync(afterContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
     private InMemoryPartition ResolvePartitionToSend(SendEventOptions? sendEventOptions)
@@ -198,14 +198,14 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
         return EventHubClientUtils.GetEventHub(Provider, FullyQualifiedNamespace, EventHubName);
     }
 
-    private Task ExecuteBeforeHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ProducerBeforeHookContext
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ProducerBeforeHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
-    private Task ExecuteAfterHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ProducerAfterHookContext
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ProducerAfterHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
 

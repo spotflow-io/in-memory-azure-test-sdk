@@ -28,7 +28,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     private LastEnqueuedEventProperties? _lastEnqueuedEventProperties;
 
-    private readonly ConsumerEventHubScope _scope;
+    private readonly ConsumerPartitionEventHubScope _scope;
 
     #region Constructors
 
@@ -149,7 +149,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     {
         var beforeContext = new ReceiveBatchBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var partition = GetPartition();
 
@@ -214,7 +214,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
             EventBatch = events
         };
 
-        await ExecuteAfterHooksAsync(afterContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         return events;
     }
@@ -291,14 +291,14 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     }
 
-    private Task ExecuteBeforeHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ConsumerBeforeHookContext
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ConsumerPartitionBeforeHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
-    private Task ExecuteAfterHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ConsumerAfterHookContext
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ConsumerPartitionAfterHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
 }

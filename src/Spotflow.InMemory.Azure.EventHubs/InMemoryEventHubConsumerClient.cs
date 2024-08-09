@@ -1,6 +1,8 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 
+using Spotflow.InMemory.Azure.EventHubs.Hooks;
+using Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.EventHubs.Internals;
 using Spotflow.InMemory.Azure.EventHubs.Resources;
 
@@ -8,6 +10,7 @@ namespace Spotflow.InMemory.Azure.EventHubs;
 
 public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 {
+    private readonly ConsumerEventHubScope _scope;
     #region Constructors
 
     public InMemoryEventHubConsumerClient(
@@ -31,6 +34,8 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
         : base(consumerGroup, connection)
     {
         Provider = provider;
+        var namespaceName = Provider.GetNamespaceNameFromHostname(FullyQualifiedNamespace);
+        _scope = new ConsumerEventHubScope(namespaceName, EventHubName, ConsumerGroup);
     }
 
     public static InMemoryEventHubConsumerClient FromEventHub(string consumerGroup, InMemoryEventHub eventHub)
@@ -51,11 +56,27 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
     public override async Task<EventHubProperties> GetEventHubPropertiesAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        return await GetEventHubPropertiesCoreAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+    }
+
+    private async Task<EventHubProperties> GetEventHubPropertiesCoreAsync(CancellationToken cancellationToken)
+    {
+        var beforeContext = new GetConsumerEventHubPropertiesBeforeHookContext(_scope, Provider, cancellationToken);
+
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var eventHub = GetEventHub();
 
-        return eventHub.Properties;
+        var properties = eventHub.Properties;
+
+        var afterContext = new GetConsumerEventHubPropertiesAfterHookContext(beforeContext)
+        {
+            EventHubProperties = properties
+        };
+
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return properties;
     }
 
     public override async Task<string[]> GetPartitionIdsAsync(CancellationToken cancellationToken = default)
@@ -96,6 +117,16 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
         EventHubClientUtils.HasConsumerGroupOrThrow(eventHub, ConsumerGroup);
 
         return eventHub;
+    }
+
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ConsumerBeforeHookContext
+    {
+        return Provider.ExecuteHooksAsync(context);
+    }
+
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ConsumerAfterHookContext
+    {
+        return Provider.ExecuteHooksAsync(context);
     }
 
 

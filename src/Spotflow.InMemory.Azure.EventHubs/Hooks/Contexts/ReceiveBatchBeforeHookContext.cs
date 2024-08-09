@@ -1,5 +1,4 @@
 namespace Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 
-public class ReceiveBatchBeforeHookContext(ConsumerEventHubScope scope, InMemoryEventHubProvider provider, CancellationToken cancellationToken)
-    : ConsumerBeforeHookContext(scope, ConsumerOperations.ReceiveBatch, provider, cancellationToken);
-
+public class ReceiveBatchBeforeHookContext(ConsumerPartitionEventHubScope scope, InMemoryEventHubProvider provider, CancellationToken cancellationToken)
+    : ConsumerPartitionBeforeHookContext(scope, ConsumerOperations.ReceiveBatch, provider, cancellationToken);

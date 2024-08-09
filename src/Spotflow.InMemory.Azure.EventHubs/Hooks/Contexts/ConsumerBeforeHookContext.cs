@@ -8,6 +8,4 @@ public abstract class ConsumerBeforeHookContext(ConsumerEventHubScope scope, Con
     public ConsumerOperations Operation => operation;
 
     public string ConsumerGroup => scope.ConsumerGroup;
-
-    public string PartitionId => scope.PartitionId;
 }

@@ -8,6 +8,4 @@ public abstract class ConsumerAfterHookContext(ConsumerBeforeHookContext before)
     public ConsumerOperations Operation => before.Operation;
 
     public string ConsumerGroup => before.ConsumerGroup;
-
-    public string PartitionId => before.PartitionId;
 }

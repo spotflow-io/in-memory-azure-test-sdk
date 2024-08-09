@@ -24,8 +24,12 @@ internal record ConsumerHookFilter : EventHubHookFilter
         if (context is IConsumerOperation consumer)
         {
             result &= ConsumerGroup is null || ConsumerGroup == consumer.ConsumerGroup;
-            result &= PartitionId is null || PartitionId == consumer.PartitionId;
             result &= Operations.HasFlag(consumer.Operation);
+
+            if (consumer is IConsumerPartitionOperation consumerPartition)
+            {
+                result &= PartitionId is null || PartitionId == consumerPartition.PartitionId;
+            }
 
             return result;
         }

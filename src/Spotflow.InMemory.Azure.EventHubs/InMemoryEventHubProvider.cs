@@ -89,7 +89,7 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
         return _hooksExecutor.AddHook(hook.HookFunction, hook.Filter);
     }
 
-    internal Task ExecuteHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : EventHubHookContext
+    internal Task ExecuteHooksAsync<TContext>(TContext context) where TContext : EventHubHookContext
     {
         return _hooksExecutor.ExecuteHooksAsync(context);
     }
