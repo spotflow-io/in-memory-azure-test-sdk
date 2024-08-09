@@ -68,10 +68,13 @@ public class HooksTests
 
         tableClient.Create();
 
-        tableClient.Query<TableEntity>().ToList().Should().BeEmpty();
+        tableClient.AddEntity(new TestEntity() { PartitionKey = "pk", RowKey = "rk" });
+
+        tableClient.Query<TableEntity>().ToList().Should().HaveCount(1);
 
         capturedBeforeContext.Should().NotBeNull();
         capturedAfterContext.Should().NotBeNull();
+        capturedAfterContext!.Entities.Should().HaveCount(1);
     }
 
     [TestMethod]
