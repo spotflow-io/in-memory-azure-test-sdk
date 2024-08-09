@@ -61,9 +61,9 @@ public class EventHubHookBuilder
             _filter = filter ?? new();
         }
 
-        public EventHubHook<ConsumerPartitionBeforeHookContext> Before(HookFunc<ConsumerPartitionBeforeHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
+        public EventHubHook<ConsumerBeforeHookContext> Before(HookFunc<ConsumerBeforeHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
 
-        public EventHubHook<ConsumerPartitionAfterHookContext> After(HookFunc<ConsumerPartitionAfterHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
+        public EventHubHook<ConsumerAfterHookContext> After(HookFunc<ConsumerAfterHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
 
         public EventHubHook<ReceiveBatchBeforeHookContext> BeforeReceiveBatch(HookFunc<ReceiveBatchBeforeHookContext> hook) => new(hook, _filter);
 
