@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>FluentAssertions extensions for in-memory implementation of the Azure Service Bus clients for convenient testing.</Description>
+        <PackageTags>$(PackageTags);ServiceBus;FluentAssertions</PackageTags>
+        <IsPackable>true</IsPackable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="FluentAssertions" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Spotflow.InMemory.Azure.ServiceBus\Spotflow.InMemory.Azure.ServiceBus.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../../docs/service-bus.md" Pack="true" PackagePath="README.md" />
+    </ItemGroup>
+
+</Project>

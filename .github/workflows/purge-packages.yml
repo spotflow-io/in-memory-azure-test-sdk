@@ -1,0 +1,56 @@
+name: Purge Packages
+
+on:
+  schedule:
+  - cron: "0 0 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/purge-packages.yml
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  list-packages:
+    runs-on: ubuntu-latest
+    outputs:
+      nugets: ${{ steps.nugets.outputs.packages }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+    - id: nugets
+      run: |
+        all_packages=$(gh api '/orgs/${{ github.repository_owner }}/packages?package_type=nuget' -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28')
+
+        echo $all_packages | jq
+
+        packages=$(echo $all_packages | jq -c '[.[].name]')
+
+        echo $packages | jq 
+        echo $packages | jq >> $GITHUB_STEP_SUMMARY
+        echo "packages=$packages" >> $GITHUB_OUTPUT
+
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  purge-nugets:
+    runs-on: ubuntu-latest
+    needs: list-packages
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.list-packages.outputs.nugets) }}
+    steps:
+    - uses: actions/delete-package-versions@v5
+      with:
+        owner: ${{ github.repository_owner }}
+        package-name: ${{ matrix.package }}
+        package-type: nuget
+        min-versions-to-keep: 10
+        delete-only-pre-release-versions: true

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>In-memory implementation of the Azure Key Vault clients for convenient testing.</Description>
+        <PackageTags>$(PackageTags);KeyVault;Secrets</PackageTags>
+        <IsPackable>true</IsPackable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Azure.Security.KeyVault.Secrets" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Spotflow.InMemory.Azure\Spotflow.InMemory.Azure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../../docs/key-vault.md" Pack="true" PackagePath="README.md" />
+    </ItemGroup>
+</Project>

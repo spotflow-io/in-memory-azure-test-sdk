@@ -1,0 +1,76 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34525.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2C6BE026-65BE-4D7A-8E4D-F8CF8E2C300E}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		LICENSE.md = LICENSE.md
+		nuget.config = nuget.config
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.EventHubs", "src\Spotflow.InMemory.Azure.EventHubs\Spotflow.InMemory.Azure.EventHubs.csproj", "{BA34B3BD-E616-4835-AEA8-6D6A97E637BC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure", "src\Spotflow.InMemory.Azure\Spotflow.InMemory.Azure.csproj", "{5B3ECEB4-0E24-4040-9429-BA63333C6B66}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.ServiceBus", "src\Spotflow.InMemory.Azure.ServiceBus\Spotflow.InMemory.Azure.ServiceBus.csproj", "{1C052B5D-CA36-4AF0-89B3-C563F62D1B6C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.Storage", "src\Spotflow.InMemory.Azure.Storage\Spotflow.InMemory.Azure.Storage.csproj", "{DB49720B-C0E5-42BB-A9C6-77D3DC065D09}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "tests\Tests\Tests.csproj", "{BFF0A04C-5057-4A05-9122-CBF98C25DA33}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.ServiceBus.FluentAssertions", "src\Spotflow.InMemory.Azure.ServiceBus.FluentAssertions\Spotflow.InMemory.Azure.ServiceBus.FluentAssertions.csproj", "{49091FD7-4936-42B3-9189-C18796B84269}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.Storage.FluentAssertions", "src\Spotflow.InMemory.Azure.Storage.FluentAssertions\Spotflow.InMemory.Azure.Storage.FluentAssertions.csproj", "{5D749882-6633-415A-9DC3-5C7C208B29CB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spotflow.InMemory.Azure.KeyVault", "src\Spotflow.InMemory.Azure.KeyVault\Spotflow.InMemory.Azure.KeyVault.csproj", "{BFC359F7-8FE7-4ABC-B192-8E9DE43460A5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA34B3BD-E616-4835-AEA8-6D6A97E637BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA34B3BD-E616-4835-AEA8-6D6A97E637BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA34B3BD-E616-4835-AEA8-6D6A97E637BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA34B3BD-E616-4835-AEA8-6D6A97E637BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B3ECEB4-0E24-4040-9429-BA63333C6B66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B3ECEB4-0E24-4040-9429-BA63333C6B66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B3ECEB4-0E24-4040-9429-BA63333C6B66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B3ECEB4-0E24-4040-9429-BA63333C6B66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C052B5D-CA36-4AF0-89B3-C563F62D1B6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C052B5D-CA36-4AF0-89B3-C563F62D1B6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C052B5D-CA36-4AF0-89B3-C563F62D1B6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C052B5D-CA36-4AF0-89B3-C563F62D1B6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB49720B-C0E5-42BB-A9C6-77D3DC065D09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB49720B-C0E5-42BB-A9C6-77D3DC065D09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB49720B-C0E5-42BB-A9C6-77D3DC065D09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB49720B-C0E5-42BB-A9C6-77D3DC065D09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFF0A04C-5057-4A05-9122-CBF98C25DA33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFF0A04C-5057-4A05-9122-CBF98C25DA33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFF0A04C-5057-4A05-9122-CBF98C25DA33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFF0A04C-5057-4A05-9122-CBF98C25DA33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49091FD7-4936-42B3-9189-C18796B84269}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49091FD7-4936-42B3-9189-C18796B84269}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49091FD7-4936-42B3-9189-C18796B84269}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49091FD7-4936-42B3-9189-C18796B84269}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D749882-6633-415A-9DC3-5C7C208B29CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D749882-6633-415A-9DC3-5C7C208B29CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D749882-6633-415A-9DC3-5C7C208B29CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D749882-6633-415A-9DC3-5C7C208B29CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFC359F7-8FE7-4ABC-B192-8E9DE43460A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFC359F7-8FE7-4ABC-B192-8E9DE43460A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFC359F7-8FE7-4ABC-B192-8E9DE43460A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFC359F7-8FE7-4ABC-B192-8E9DE43460A5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9CC5413C-0C78-4D2C-9945-97D4F28C9A40}
+	EndGlobalSection
+EndGlobal

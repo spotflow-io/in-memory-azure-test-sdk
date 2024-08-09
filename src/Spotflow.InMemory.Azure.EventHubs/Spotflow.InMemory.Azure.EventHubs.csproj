@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>In-memory implementation of the Azure Event Hubs clients for convenient testing.</Description>
+        <PackageTags>$(PackageTags);EventHub</PackageTags>
+        <IsPackable>true</IsPackable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Azure.Messaging.EventHubs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Spotflow.InMemory.Azure\Spotflow.InMemory.Azure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../../docs/event-hubs.md" Pack="true" PackagePath="README.md" />
+    </ItemGroup>
+</Project>

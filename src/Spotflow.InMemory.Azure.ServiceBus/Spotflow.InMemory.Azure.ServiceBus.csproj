@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>In-memory implementation of the Azure Service Bus clients for convenient testing.</Description>
+        <PackageTags>$(PackageTags);ServiceBus</PackageTags>
+        <IsPackable>true</IsPackable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Azure.Messaging.ServiceBus" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <None Include="../../docs/service-bus.md" Pack="true" PackagePath="README.md" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\Spotflow.InMemory.Azure\Spotflow.InMemory.Azure.csproj" />
+    </ItemGroup>
+
+</Project>
