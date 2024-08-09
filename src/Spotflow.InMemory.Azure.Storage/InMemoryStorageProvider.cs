@@ -27,6 +27,8 @@ public class InMemoryStorageProvider(string? hostnameSuffix = null, TimeProvider
     {
         accountName ??= GenerateAccountName();
 
+        accountName = accountName.ToLowerInvariant();
+
         var storageAccount = new InMemoryStorageAccount(accountName, this);
 
         if (!_storageAccounts.TryAdd(accountName, storageAccount))
@@ -39,6 +41,8 @@ public class InMemoryStorageProvider(string? hostnameSuffix = null, TimeProvider
 
     public bool TryGetAccount(string accountName, [NotNullWhen(true)] out InMemoryStorageAccount? result)
     {
+        accountName = accountName.ToLowerInvariant();
+
         return _storageAccounts.TryGetValue(accountName, out result);
     }
 

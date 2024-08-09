@@ -28,6 +28,8 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
         namespaceName ??= GenerateNamespaceName();
 
+        namespaceName = namespaceName.ToLowerInvariant();
+
         var ns = new InMemoryServiceBusNamespace(namespaceName, this);
 
         if (!_namespaces.TryAdd(ns.FullyQualifiedNamespace, ns))
@@ -40,6 +42,8 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
     public bool TryGetNamespace(string namespaceName, [NotNullWhen(true)] out InMemoryServiceBusNamespace? result)
     {
+        namespaceName = namespaceName.ToLowerInvariant();
+
         foreach (var (_, ns) in _namespaces)
         {
             if (ns.Name == namespaceName)
@@ -55,6 +59,8 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
     public InMemoryServiceBusNamespace GetNamespace(string namespaceName)
     {
+        namespaceName = namespaceName.ToLowerInvariant();
+
         if (!TryGetNamespace(namespaceName, out var serviceBusNamespace))
         {
             throw new InvalidOperationException($"Service bus namespace '{namespaceName}' not found.");
@@ -65,6 +71,8 @@ public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, strin
 
     public bool TryGetFullyQualifiedNamespace(string fullyQualifiedNamespace, [NotNullWhen(true)] out InMemoryServiceBusNamespace? result)
     {
+        fullyQualifiedNamespace = fullyQualifiedNamespace.ToLowerInvariant();
+
         return _namespaces.TryGetValue(fullyQualifiedNamespace, out result);
     }
 
