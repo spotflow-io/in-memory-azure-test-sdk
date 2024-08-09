@@ -11,6 +11,7 @@
         <EmbedAllSources>true</EmbedAllSources>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PackageProjectUrl>https://github.com/spotflow-io/in-memory-azure-test-sdk</PackageProjectUrl>
     </PropertyGroup>
 
     <ItemGroup>

@@ -4,7 +4,7 @@
         <Description>In-memory implementation of the Azure Storage Blobs and Tables clients for convenient testing.</Description>
         <PackageTags>$(PackageTags);Storage;Blobs;Tables</PackageTags>
         <IsPackable>true</IsPackable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,7 +22,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../docs/storage.md" Pack="true" PackagePath="README.md" />
+        <None Include="../../docs/storage.md" PackagePath="README.md" />
+        <None Include="../../docs/storage.nuget.md" Pack="true" PackagePath="README.nuget.md" />
     </ItemGroup>
     
 </Project>
