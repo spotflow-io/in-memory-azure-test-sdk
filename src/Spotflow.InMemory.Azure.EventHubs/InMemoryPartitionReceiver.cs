@@ -115,13 +115,13 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     private async Task<PartitionProperties> GetPartitionPropertiesCoreAsync(CancellationToken cancellationToken)
     {
-        var beforeContext = new GetConsumerPartitionPropertiesBeforeHookContext(_scope, Provider, cancellationToken);
+        var beforeContext = new GetPartitionPropertiesConsumerBeforeHookContext(_scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var properties = GetPartition().GetProperties();
 
-        var afterContext = new GetConsumerPartitionPropertiesAfterHookContext(beforeContext)
+        var afterContext = new GetPartitionPropertiesConsumerAfterHookContext(beforeContext)
         {
             PartitionProperties = properties
         };
@@ -305,12 +305,12 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     }
 
-    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ConsumerPartitionBeforeHookContext
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : PartitionConsumerBeforeHookContext
     {
         return Provider.ExecuteHooksAsync(context);
     }
 
-    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ConsumerPartitionAfterHookContext
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : PartitionConsumerAfterHookContext
     {
         return Provider.ExecuteHooksAsync(context);
     }

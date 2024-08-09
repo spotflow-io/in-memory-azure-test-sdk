@@ -264,5 +264,7 @@ Following hooks are supported in both `Before` and `After` variants:
         -   `Send`
     -   All `Consumer` operations
         -   `ReceiveBatch`
+        -   `GetEventHubProperties`
+        -   `GetPartitionProperties`
 
 For details about concept of hooks, please see the [Hooks](./hooks.md) page.

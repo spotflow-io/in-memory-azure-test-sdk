@@ -37,7 +37,8 @@ internal record ConsumerHookFilter : EventHubHookFilter
         throw new InvalidOperationException($"Unexpected context: {context}");
     }
 
-    public EventHubHookFilter With(ConsumerOperations? operations) => this with { Operations = operations ?? Operations };
+    public EventHubHookFilter With(ConsumerOperations? operations = null, string? partitionId = null)
+        => this with { Operations = operations ?? Operations, PartitionId = partitionId ?? PartitionId };
 
 }
 

@@ -43,6 +43,11 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
         return FromNamespace(consumerGroup, eventHub.Namespace, eventHub.Name);
     }
 
+    public static InMemoryEventHubConsumerClient FromEventHub(InMemoryEventHub eventHub)
+    {
+        return FromEventHub(DefaultConsumerGroupName, eventHub);
+    }
+
     public static InMemoryEventHubConsumerClient FromNamespace(string consumerGroup, InMemoryEventHubNamespace eventHubNamespace, string eventHubName)
     {
         return new(consumerGroup, eventHubNamespace.FullyQualifiedNamespace, eventHubName, eventHubNamespace.Provider);
@@ -61,7 +66,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
     private async Task<EventHubProperties> GetEventHubPropertiesCoreAsync(CancellationToken cancellationToken)
     {
-        var beforeContext = new GetConsumerEventHubPropertiesBeforeHookContext(_scope, Provider, cancellationToken);
+        var beforeContext = new GetEventHubPropertiesConsumerBeforeHookContext(_scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
@@ -69,7 +74,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
         var properties = eventHub.Properties;
 
-        var afterContext = new GetConsumerEventHubPropertiesAfterHookContext(beforeContext)
+        var afterContext = new GetEventHubPropertiesConsumerAfterHookContext(beforeContext)
         {
             EventHubProperties = properties
         };
@@ -97,7 +102,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
     {
         var scope = _scope.WithPartition(partitionId);
 
-        var beforeContext = new GetConsumerPartitionPropertiesBeforeHookContext(scope, Provider, cancellationToken);
+        var beforeContext = new GetPartitionPropertiesConsumerBeforeHookContext(scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
@@ -105,7 +110,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
         var properties = eventHub.GetPartition(partitionId).GetProperties();
 
-        var afterContext = new GetConsumerPartitionPropertiesAfterHookContext(beforeContext)
+        var afterContext = new GetPartitionPropertiesConsumerAfterHookContext(beforeContext)
         {
             PartitionProperties = properties
         };
