@@ -90,10 +90,29 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
     public override async Task<PartitionProperties> GetPartitionPropertiesAsync(string partitionId, CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        return await GetPartitionPropertiesCoreAsync(partitionId, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+    }
+
+    private async Task<PartitionProperties> GetPartitionPropertiesCoreAsync(string partitionId, CancellationToken cancellationToken)
+    {
+        var scope = _scope.WithPartition(partitionId);
+
+        var beforeContext = new GetConsumerPartitionPropertiesBeforeHookContext(scope, Provider, cancellationToken);
+
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var eventHub = GetEventHub();
-        return eventHub.GetPartition(partitionId).GetProperties();
+
+        var properties = eventHub.GetPartition(partitionId).GetProperties();
+
+        var afterContext = new GetConsumerPartitionPropertiesAfterHookContext(beforeContext)
+        {
+            PartitionProperties = properties
+        };
+
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return properties;
     }
 
     #endregion

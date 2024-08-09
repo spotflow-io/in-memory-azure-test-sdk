@@ -110,11 +110,25 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
     public override async Task<PartitionProperties> GetPartitionPropertiesAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        return await GetPartitionPropertiesCoreAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+    }
 
-        var partition = GetPartition();
+    private async Task<PartitionProperties> GetPartitionPropertiesCoreAsync(CancellationToken cancellationToken)
+    {
+        var beforeContext = new GetConsumerPartitionPropertiesBeforeHookContext(_scope, Provider, cancellationToken);
 
-        return partition.GetProperties();
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var properties = GetPartition().GetProperties();
+
+        var afterContext = new GetConsumerPartitionPropertiesAfterHookContext(beforeContext)
+        {
+            PartitionProperties = properties
+        };
+
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        return properties;
     }
 
     public override LastEnqueuedEventProperties ReadLastEnqueuedEventProperties()

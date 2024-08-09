@@ -6,6 +6,7 @@ public enum ConsumerOperations
     None = 0,
     ReceiveBatch = 1,
     GetEventHubProperties = 2,
-    All = ReceiveBatch | GetEventHubProperties
+    GetPartitionProperties = 4,
+    All = ReceiveBatch | GetEventHubProperties | GetPartitionProperties
 }
 

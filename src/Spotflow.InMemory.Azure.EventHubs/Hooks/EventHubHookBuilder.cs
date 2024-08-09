@@ -72,5 +72,9 @@ public class EventHubHookBuilder
         public EventHubHook<GetConsumerEventHubPropertiesBeforeHookContext> BeforeGetEventHubProperties(HookFunc<GetConsumerEventHubPropertiesBeforeHookContext> hook) => new(hook, _filter);
 
         public EventHubHook<GetConsumerEventHubPropertiesAfterHookContext> AfterGetEventHubProperties(HookFunc<GetConsumerEventHubPropertiesAfterHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetConsumerPartitionPropertiesBeforeHookContext> BeforeGetPartitionProperties(HookFunc<GetConsumerPartitionPropertiesBeforeHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetConsumerPartitionPropertiesAfterHookContext> AfterGetPartitionProperties(HookFunc<GetConsumerPartitionPropertiesAfterHookContext> hook) => new(hook, _filter);
     }
 }
