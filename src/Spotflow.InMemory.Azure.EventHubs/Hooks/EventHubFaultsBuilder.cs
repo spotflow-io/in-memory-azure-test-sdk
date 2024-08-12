@@ -10,7 +10,7 @@ public class EventHubFaultsBuilder(EventHubHookContext context)
     {
         string? partitionId = null;
 
-        if (context is IConsumerOperation consumer)
+        if (context is IConsumerPartitionOperation consumer)
         {
             partitionId = consumer.PartitionId;
         }

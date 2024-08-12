@@ -24,8 +24,12 @@ internal record ConsumerHookFilter : EventHubHookFilter
         if (context is IConsumerOperation consumer)
         {
             result &= ConsumerGroup is null || ConsumerGroup == consumer.ConsumerGroup;
-            result &= PartitionId is null || PartitionId == consumer.PartitionId;
             result &= Operations.HasFlag(consumer.Operation);
+
+            if (consumer is IConsumerPartitionOperation consumerPartition)
+            {
+                result &= PartitionId is null || PartitionId == consumerPartition.PartitionId;
+            }
 
             return result;
         }
@@ -33,7 +37,8 @@ internal record ConsumerHookFilter : EventHubHookFilter
         throw new InvalidOperationException($"Unexpected context: {context}");
     }
 
-    public EventHubHookFilter With(ConsumerOperations? operations) => this with { Operations = operations ?? Operations };
+    public EventHubHookFilter With(ConsumerOperations? operations = null, string? partitionId = null)
+        => this with { Operations = operations ?? Operations, PartitionId = partitionId ?? PartitionId };
 
 }
 

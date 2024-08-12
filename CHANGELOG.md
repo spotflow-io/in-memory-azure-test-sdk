@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Add `TableQuery` hook for `InMemoryStorageProvider`.
+* Add `GetEventHubProperties` and `GetPartitionProperties` hooks for `InMemoryEventHubProvider`.
 
 ### Fixed
 

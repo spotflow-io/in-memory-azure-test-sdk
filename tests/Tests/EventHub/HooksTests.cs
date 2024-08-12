@@ -111,6 +111,73 @@ public class HooksTests
     }
 
     [TestMethod]
+    public async Task GetEventHubProperties_Hooks_For_Consumer_Should_Execute()
+    {
+        EventHubBeforeHookContext? capturedBeforeContextGeneric = null;
+        GetEventHubPropertiesConsumerBeforeHookContext? capturedBeforeContextSpecific = null;
+        EventHubAfterHookContext? capturedAfterContextGeneric = null;
+        GetEventHubPropertiesConsumerAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryEventHubProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().BeforeGetEventHubProperties(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().AfterGetEventHubProperties(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var eventHub = provider.AddNamespace().AddEventHub("test", 1);
+
+        var client = InMemoryEventHubConsumerClient.FromEventHub("$default", eventHub);
+
+        await client.GetEventHubPropertiesAsync();
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<GetEventHubPropertiesConsumerBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<GetEventHubPropertiesConsumerAfterHookContext>()
+            .Which.EventHubProperties.PartitionIds.Should().HaveCount(1);
+    }
+
+    [TestMethod]
+    [DataRow("ConsumerClient")]
+    [DataRow("PartitionReceiver")]
+    public async Task GetPartitionProperties_Hooks_For_Consumer_Should_Execute(string callSite)
+    {
+        EventHubBeforeHookContext? capturedBeforeContextGeneric = null;
+        GetPartitionPropertiesConsumerBeforeHookContext? capturedBeforeContextSpecific = null;
+        EventHubAfterHookContext? capturedAfterContextGeneric = null;
+        GetPartitionPropertiesConsumerAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryEventHubProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().BeforeGetPartitionProperties(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForConsumer().AfterGetPartitionProperties(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var eventHub = provider.AddNamespace().AddEventHub("test", 1);
+
+        var task = callSite switch
+        {
+            "ConsumerClient" => InMemoryEventHubConsumerClient.FromEventHub(eventHub).GetPartitionPropertiesAsync("0"),
+            "PartitionReceiver" => InMemoryPartitionReceiver.FromEventHub("0", EventPosition.Latest, eventHub).GetPartitionPropertiesAsync(),
+            _ => throw new InvalidOperationException("Invalid call site.")
+        };
+
+        await task;
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<GetPartitionPropertiesConsumerBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<GetPartitionPropertiesConsumerAfterHookContext>()
+            .Which.PartitionProperties.Id.Should().Be("0");
+    }
+
+    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public async Task Hooks_With_Different_Scope_Should_Not_Execute()
     {

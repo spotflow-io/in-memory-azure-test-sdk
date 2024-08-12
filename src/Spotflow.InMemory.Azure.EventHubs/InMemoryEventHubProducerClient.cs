@@ -119,16 +119,22 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
 
     public override async Task SendAsync(IEnumerable<EventData> eventBatch, SendEventOptions sendEventOptions, CancellationToken cancellationToken = default)
     {
-        await SendCoreAsync(eventBatch, sendEventOptions, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        await SendCoreAsync(eventBatch, sendEventOptions, cancellationToken);
     }
 
     public override async Task SendAsync(IEnumerable<EventData> eventBatch, CancellationToken cancellationToken = default)
     {
-        await SendCoreAsync(eventBatch, null, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        await SendCoreAsync(eventBatch, null, cancellationToken);
     }
 
     public override async Task SendAsync(EventDataBatch eventBatch, CancellationToken cancellationToken = default)
     {
+        await Task.Yield();
+
         if (!_batches.TryRemove(eventBatch, out var data))
         {
             throw EventHubExceptionFactory.FeatureNotSupported($"Batches from different instance of '{GetType()}' cannot be sent.");
@@ -136,7 +142,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
 
         var (events, options) = data;
 
-        await SendCoreAsync(events, options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await SendCoreAsync(events, options, cancellationToken);
     }
 
     private async Task SendCoreAsync(IEnumerable<EventData> eventBatch, SendEventOptions? sendEventOptions, CancellationToken cancellationToken)
@@ -151,7 +157,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             SendEventOptions = sendEventOptions,
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var partition = ResolvePartitionToSend(sendEventOptions);
 
@@ -166,7 +172,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             PartitionId = partition.PartitionId
         };
 
-        await ExecuteAfterHooksAsync(afterContext, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
     }
 
     private InMemoryPartition ResolvePartitionToSend(SendEventOptions? sendEventOptions)
@@ -198,14 +204,14 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
         return EventHubClientUtils.GetEventHub(Provider, FullyQualifiedNamespace, EventHubName);
     }
 
-    private Task ExecuteBeforeHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ProducerBeforeHookContext
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ProducerBeforeHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
-    private Task ExecuteAfterHooksAsync<TContext>(TContext context, CancellationToken cancellationToken) where TContext : ProducerAfterHookContext
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ProducerAfterHookContext
     {
-        return Provider.ExecuteHooksAsync(context, cancellationToken);
+        return Provider.ExecuteHooksAsync(context);
     }
 
 

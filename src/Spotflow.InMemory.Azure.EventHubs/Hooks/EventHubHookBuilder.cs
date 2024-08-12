@@ -68,5 +68,13 @@ public class EventHubHookBuilder
         public EventHubHook<ReceiveBatchBeforeHookContext> BeforeReceiveBatch(HookFunc<ReceiveBatchBeforeHookContext> hook) => new(hook, _filter);
 
         public EventHubHook<ReceiveBatchAfterHookContext> AfterReceiveBatch(HookFunc<ReceiveBatchAfterHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetEventHubPropertiesConsumerBeforeHookContext> BeforeGetEventHubProperties(HookFunc<GetEventHubPropertiesConsumerBeforeHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetEventHubPropertiesConsumerAfterHookContext> AfterGetEventHubProperties(HookFunc<GetEventHubPropertiesConsumerAfterHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetPartitionPropertiesConsumerBeforeHookContext> BeforeGetPartitionProperties(HookFunc<GetPartitionPropertiesConsumerBeforeHookContext> hook) => new(hook, _filter);
+
+        public EventHubHook<GetPartitionPropertiesConsumerAfterHookContext> AfterGetPartitionProperties(HookFunc<GetPartitionPropertiesConsumerAfterHookContext> hook) => new(hook, _filter);
     }
 }
