@@ -52,7 +52,7 @@ All new features and changes must be reflected in the documentation [README.md](
 
 #### Supported client methods & properties
 
-* If a supported method accepts a parameter that is related to a unsupported feature, the parameter should be ignored and the should not fail because of it. Such unsupported feature should be explicitly documented in the table of supported and unsupported features.
+* If a supported method accepts a parameter that is related to a unsupported feature, the parameter should be ignored and the method call should not fail because of it. Such unsupported feature should be explicitly documented in the table of supported and unsupported features.
 * No supported method should not return dummy constant value. Instead, they should return a value that reflects the current state of the in-memory provider.
 
 ##### Async methods
