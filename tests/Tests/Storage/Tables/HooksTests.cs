@@ -3,6 +3,7 @@ using Azure.Data.Tables;
 
 using Spotflow.InMemory.Azure.Hooks;
 using Spotflow.InMemory.Azure.Storage;
+using Spotflow.InMemory.Azure.Storage.Hooks.Contexts;
 using Spotflow.InMemory.Azure.Storage.Tables;
 using Spotflow.InMemory.Azure.Storage.Tables.Hooks;
 using Spotflow.InMemory.Azure.Storage.Tables.Hooks.Contexts;
@@ -49,6 +50,36 @@ public class HooksTests
         capturedAfterContext?.StorageAccountName.Should().Be(accountName);
         capturedAfterContext?.TableName.Should().Be(tableName);
         capturedAfterContext?.Operation.Should().Be(TableOperations.Create);
+    }
+
+    [TestMethod]
+    public void Table_Query_Hooks_Should_Execute()
+    {
+        var provider = new InMemoryStorageProvider();
+        var account = provider.AddAccount("test-account");
+
+        var tableClient = InMemoryTableClient.FromAccount(account, "test-table");
+
+        tableClient.Create();
+
+        tableClient.AddEntity(new TestEntity() { PartitionKey = "pk", RowKey = "rk" });
+
+        StorageBeforeHookContext? capturedBeforeContextGeneric = null;
+        TableQueryBeforeHookContext? capturedBeforeContextSpecific = null;
+        StorageAfterHookContext? capturedAfterContextGeneric = null;
+        TableQueryAfterHookContext? capturedAfterContextSpecific = null;
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForTableService().ForTableOperations().BeforeQuery(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForTableService().ForTableOperations().AfterQuery(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+
+        tableClient.Query<TableEntity>().ToList().Should().HaveCount(1);
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<TableQueryBeforeHookContext>();
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should().BeOfType<TableQueryAfterHookContext>().Which.Entities.Should().HaveCount(1);
     }
 
     [TestMethod]

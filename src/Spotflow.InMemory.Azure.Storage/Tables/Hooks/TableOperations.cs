@@ -5,5 +5,6 @@ public enum TableOperations
 {
     None = 0,
     Create = 1,
-    All = Create
+    Query = 2,
+    All = Create | Query
 }
