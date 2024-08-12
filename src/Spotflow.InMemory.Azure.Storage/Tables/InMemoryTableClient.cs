@@ -71,11 +71,21 @@ public class InMemoryTableClient : TableClient
     public override async Task<Response<TableItem>> CreateIfNotExistsAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+
         return CreateIfNotExists(cancellationToken);
     }
 
-    private async Task<TableItem> CreateCoreAsync(CancellationToken cancellationToken)
+    public override Response<TableItem> Create(CancellationToken cancellationToken = default)
     {
+        var item = CreateAsync(cancellationToken).EnsureCompleted();
+
+        return InMemoryResponse.FromValue(item, 201);
+    }
+
+    public override async Task<Response<TableItem>> CreateAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+
         var beforeContext = new TableCreateBeforeHookContext(_scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -91,19 +101,9 @@ public class InMemoryTableClient : TableClient
 
         await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        return table.AsItem();
-    }
+        var tableItem = table.AsItem();
 
-    public override Response<TableItem> Create(CancellationToken cancellationToken = default)
-    {
-        var item = CreateCoreAsync(cancellationToken).EnsureCompleted();
-        return InMemoryResponse.FromValue(item, 201);
-    }
-
-    public override async Task<Response<TableItem>> CreateAsync(CancellationToken cancellationToken = default)
-    {
-        var item = await CreateCoreAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        return InMemoryResponse.FromValue(item, 201);
+        return InMemoryResponse.FromValue(tableItem, 201);
     }
 
     private (TableItem, bool) CreateIfNotExistsCore()
@@ -124,7 +124,7 @@ public class InMemoryTableClient : TableClient
     {
         var filterCompiled = filter.Compile();
 
-        var entities = QueryCoreAsync(filterCompiled, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
+        var entities = QueryCoreAsync(filterCompiled, cancellationToken).EnsureCompleted();
 
         return new InMemoryPageable.Sync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -133,7 +133,7 @@ public class InMemoryTableClient : TableClient
     {
         var filterCompiled = filter.Compile();
 
-        var entities = QueryCoreAsync(filterCompiled, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
+        var entities = QueryCoreAsync(filterCompiled, cancellationToken).EnsureCompleted();
 
         return new InMemoryPageable.YieldingAsync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -142,7 +142,7 @@ public class InMemoryTableClient : TableClient
     {
         var matcher = new TextQueryFilterMatcher(filter, Provider.LoggerFactory);
 
-        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
+        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).EnsureCompleted();
 
         return new InMemoryPageable.Sync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -152,7 +152,7 @@ public class InMemoryTableClient : TableClient
     {
         var matcher = new TextQueryFilterMatcher(filter, Provider.LoggerFactory);
 
-        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding).EnsureCompleted();
+        var entities = QueryCoreAsync<T>(matcher.IsMatch, cancellationToken).EnsureCompleted();
 
         return new InMemoryPageable.YieldingAsync<T>(entities, maxPerPage ?? _defaultMaxPerPage);
     }
@@ -169,6 +169,8 @@ public class InMemoryTableClient : TableClient
 
     private async Task<IReadOnlyList<T>> QueryCoreAsync<T>(Func<IEnumerable<InMemoryTableEntity>, IEnumerable<T>> filter, CancellationToken cancellationToken) where T : class, ITableEntity
     {
+        await Task.Yield();
+
         var beforeContext = new TableQueryBeforeHookContext(_scope, Provider, cancellationToken);
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -198,7 +200,9 @@ public class InMemoryTableClient : TableClient
 
     public override async Task<Response> UpsertEntityAsync<T>(T entity, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
     {
-        return await UpsertCoreAsync(entity, ETag.All, mode, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        return await UpsertCoreAsync(entity, ETag.All, mode, cancellationToken);
     }
 
     public override Response UpdateEntity<T>(T entity, ETag ifMatch, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
@@ -209,6 +213,7 @@ public class InMemoryTableClient : TableClient
     public override async Task<Response> UpdateEntityAsync<T>(T entity, ETag ifMatch, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+
         return UpdateCore(entity, ifMatch, mode);
     }
 
@@ -300,7 +305,9 @@ public class InMemoryTableClient : TableClient
 
     public override async Task<Response> AddEntityAsync<T>(T entity, CancellationToken cancellationToken = default)
     {
-        return await AddEntityCoreAsync(entity, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        return await AddEntityCoreAsync(entity, cancellationToken);
     }
 
     private async Task<Response> AddEntityCoreAsync<T>(T entity, CancellationToken cancellationToken) where T : ITableEntity
@@ -348,7 +355,9 @@ public class InMemoryTableClient : TableClient
 
     public override async Task<Response<T>> GetEntityAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
     {
-        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken);
 
         if (entity is null)
         {
@@ -365,7 +374,9 @@ public class InMemoryTableClient : TableClient
 
     public override async Task<NullableResponse<T>> GetEntityIfExistsAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? select = null, CancellationToken cancellationToken = default)
     {
-        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        var entity = await FindEntityCoreAsync<T>(partitionKey, rowKey, cancellationToken);
 
         if (entity is null)
         {
