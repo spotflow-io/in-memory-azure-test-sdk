@@ -52,10 +52,16 @@ All new features and changes must be reflected in the documentation [README.md](
 
 #### Supported client methods & properties
 
-* All supported methods must also support their async counterparts if they exist in the real client.
-* All supported methods must be truly async (currently, this is mostly ensured by calling `Task.Yield()` at the start of each method).
-* If a supported method accepts a parameter that is related to a unsupported feature, the parameter should be ignored and the should not fail because of it.
+* If a supported method accepts a parameter that is related to a unsupported feature, the parameter should be ignored and the should not fail because of it. Such unsupported feature should be explicitly documented in the table of supported and unsupported features.
 * No supported method should not return dummy constant value. Instead, they should return a value that reflects the current state of the in-memory provider.
+
+##### Async methods
+
+* All supported methods must also support their async counterparts if they exist in the real client.  
+* All supported methods must be truly async (currently, this is mostly ensured by calling `Task.Yield()` at the start of each method).
+  * The `Task.Yield()` should be present as soon as in the callstack as possible.
+  * Do not use `ConfigureAwait(ConfigureAwaitOptions.ForceYielding)` instead for consistency sake.
+* `ConfigureAwait(false)` or `ConfigureAwait(ConfigureAwaitOptions)` are not used. The problems associated with this decision are not considered to be insignificant for this library.
 
 #### Unsupported client methods & properties
 
