@@ -23,6 +23,8 @@ public class InMemoryKeyVaultProvider(TimeProvider? timeProvider = null, string?
     {
         vaultName ??= GenerateVaultName();
 
+        vaultName = vaultName.ToLowerInvariant();
+
         var vault = new InMemoryKeyVault(vaultName, this);
 
         if (!_keyVaults.TryAdd(vault.VaultUri, vault))
@@ -35,6 +37,8 @@ public class InMemoryKeyVaultProvider(TimeProvider? timeProvider = null, string?
 
     public bool TryGetVault(string vaultName, [NotNullWhen(true)] out InMemoryKeyVault? result)
     {
+        vaultName = vaultName.ToLowerInvariant();
+
         foreach (var (_, vault) in _keyVaults)
         {
             if (vault.Name == vaultName)
