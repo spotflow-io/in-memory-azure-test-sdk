@@ -1,0 +1,4 @@
+changelog:
+  exclude:
+    labels:
+      - contributing-documentation
