@@ -57,7 +57,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
         await Task.Yield();
         IsClosed = true;
     }
-    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync().ConfigureAwait(false);
+    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync();
 
     #endregion
 
@@ -121,14 +121,14 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
     {
         await Task.Yield();
 
-        await SendCoreAsync(eventBatch, sendEventOptions, cancellationToken).ConfigureAwait(false);
+        await SendCoreAsync(eventBatch, sendEventOptions, cancellationToken);
     }
 
     public override async Task SendAsync(IEnumerable<EventData> eventBatch, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
-        await SendCoreAsync(eventBatch, null, cancellationToken).ConfigureAwait(false);
+        await SendCoreAsync(eventBatch, null, cancellationToken);
     }
 
     public override async Task SendAsync(EventDataBatch eventBatch, CancellationToken cancellationToken = default)
@@ -142,7 +142,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
 
         var (events, options) = data;
 
-        await SendCoreAsync(events, options, cancellationToken).ConfigureAwait(false);
+        await SendCoreAsync(events, options, cancellationToken);
     }
 
     private async Task SendCoreAsync(IEnumerable<EventData> eventBatch, SendEventOptions? sendEventOptions, CancellationToken cancellationToken)
@@ -157,7 +157,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             SendEventOptions = sendEventOptions,
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var partition = ResolvePartitionToSend(sendEventOptions);
 
@@ -172,7 +172,7 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
             PartitionId = partition.PartitionId
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
     }
 
     private InMemoryPartition ResolvePartitionToSend(SendEventOptions? sendEventOptions)

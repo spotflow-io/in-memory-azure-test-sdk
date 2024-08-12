@@ -102,7 +102,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
         IsClosed = true;
     }
 
-    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync().ConfigureAwait(false);
+    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync();
 
     #endregion
 
@@ -112,14 +112,14 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     {
         await Task.Yield();
 
-        return await GetPartitionPropertiesCoreAsync(cancellationToken).ConfigureAwait(false);
+        return await GetPartitionPropertiesCoreAsync(cancellationToken);
     }
 
     private async Task<PartitionProperties> GetPartitionPropertiesCoreAsync(CancellationToken cancellationToken)
     {
         var beforeContext = new GetPartitionPropertiesConsumerBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var properties = GetPartition().GetProperties();
 
@@ -128,7 +128,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
             PartitionProperties = properties
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return properties;
     }
@@ -155,21 +155,21 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     {
         await Task.Yield();
 
-        return await ReceiveBatchCoreAsync(maximumEventCount, maximumWaitTime, cancellationToken).ConfigureAwait(false);
+        return await ReceiveBatchCoreAsync(maximumEventCount, maximumWaitTime, cancellationToken);
     }
 
     public override async Task<IEnumerable<EventData>> ReceiveBatchAsync(int maximumEventCount, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
-        return await ReceiveBatchCoreAsync(maximumEventCount, TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
+        return await ReceiveBatchCoreAsync(maximumEventCount, TimeSpan.FromSeconds(60), cancellationToken);
     }
 
     private async Task<IEnumerable<EventData>> ReceiveBatchCoreAsync(int maximumEventCount, TimeSpan maximumWaitTime, CancellationToken cancellationToken = default)
     {
         var beforeContext = new ReceiveBatchBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var partition = GetPartition();
 
@@ -234,7 +234,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
             EventBatch = events
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return events;
     }

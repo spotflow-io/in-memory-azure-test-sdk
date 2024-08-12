@@ -9,8 +9,4 @@ internal static class TaskExtensions
         return task.GetAwaiter().GetResult();
     }
 
-    public static T EnsureCompleted<T>(this ConfiguredTaskAwaitable<T> task)
-    {
-        return task.GetAwaiter().GetResult();
-    }
 }

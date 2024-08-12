@@ -65,7 +65,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
         var beforeContext = new GetEventHubPropertiesConsumerBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var eventHub = GetEventHub();
 
@@ -76,7 +76,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
             EventHubProperties = properties
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return properties;
     }
@@ -98,7 +98,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
 
         var beforeContext = new GetPartitionPropertiesConsumerBeforeHookContext(scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var eventHub = GetEventHub();
 
@@ -109,7 +109,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
             PartitionProperties = properties
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return properties;
     }
@@ -124,7 +124,7 @@ public class InMemoryEventHubConsumerClient : EventHubConsumerClient
         IsClosed = true;
     }
 
-    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync().ConfigureAwait(false);
+    public override async Task CloseAsync(CancellationToken cancellationToken = default) => await DisposeAsync();
 
     #endregion
 
