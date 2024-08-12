@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Add `TableQuery` hook for `InMemoryStorageProvider`.
 
+### Fixed
+
+* Make names of Storage Accounts, Event Hub & Service Bus Namespaces and Key Vaults case-insensitive.
+
 ## [0.1.0] - 2024-08-09
 
 ### Added

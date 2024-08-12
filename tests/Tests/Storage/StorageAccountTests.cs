@@ -16,4 +16,18 @@ public class StorageAccountTests
             .Should()
             .Be($"AccountName={account.Name};AccountKey={account.PrimaryAccessKey};DefaultEndpointsProtocol=https;TableEndpoint={account.TableServiceUri};BlobEndpoint={account.BlobServiceUri}");
     }
+
+
+    [TestMethod]
+    public void Account_Should_Be_Case_Insensitive()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var account = provider.AddAccount("TestAccount");
+
+        provider.GetAccount("testaccount").Should().BeSameAs(account);
+        provider.GetAccount("TESTACCOUNT").Should().BeSameAs(account);
+
+    }
+
 }

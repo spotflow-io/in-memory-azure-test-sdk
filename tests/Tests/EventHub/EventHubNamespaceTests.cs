@@ -10,12 +10,28 @@ public class EventHubNamespaceTests
     [TestMethod]
     public void ConnectionString_ShouldBeReturned()
     {
-        var eventHubNamespace = new InMemoryEventHubProvider().AddNamespace();
-        var connectionString = eventHubNamespace.CreateConnectionString();
+        var ns = new InMemoryEventHubProvider().AddNamespace();
+        var connectionString = ns.CreateConnectionString();
 
         var connection = new EventHubConnection(connectionString, "test-eh");
 
-        connection.FullyQualifiedNamespace.Should().Be(eventHubNamespace.FullyQualifiedNamespace);
+        connection.FullyQualifiedNamespace.Should().Be(ns.FullyQualifiedNamespace);
         connection.EventHubName.Should().Be("test-eh");
+    }
+
+    [TestMethod]
+    public void Namespace_Should_Be_Case_Insensitive()
+    {
+        var provider = new InMemoryEventHubProvider();
+
+        var ns = provider.AddNamespace("TestNamespace");
+
+        provider.GetNamespace("testnamespace").Should().BeSameAs(ns);
+        provider.GetNamespace("TESTNAMESPACE").Should().BeSameAs(ns);
+        provider
+            .GetFullyQualifiedNamespace("testnamespace.eventhub.in-memory.example.com")
+            .Should()
+            .BeSameAs(ns);
+
     }
 }
