@@ -88,7 +88,7 @@ public class InMemoryTableClient : TableClient
 
         var beforeContext = new TableCreateBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
 
         var service = GetService();
 
@@ -99,7 +99,7 @@ public class InMemoryTableClient : TableClient
 
         var afterContext = new TableCreateAfterHookContext(beforeContext);
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
 
         var tableItem = table.AsItem();
 
@@ -173,7 +173,7 @@ public class InMemoryTableClient : TableClient
 
         var beforeContext = new TableQueryBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
 
         var table = GetTable();
 
@@ -184,7 +184,7 @@ public class InMemoryTableClient : TableClient
             Entities = entities
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
 
         return entities;
     }
@@ -241,7 +241,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
 
         if (ifMatch.IsEmpty())
         {
@@ -260,7 +260,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity,
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
 
         return new(204, eTag: eTag.Value);
     }
@@ -317,7 +317,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
 
         var table = GetTable();
 
@@ -333,7 +333,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
 
         return response;
     }
