@@ -31,6 +31,8 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
 
         namespaceName ??= GenerateNamespaceName();
 
+        namespaceName = namespaceName.ToLowerInvariant();
+
         var ns = new InMemoryEventHubNamespace(namespaceName, this);
 
         if (!_namespaces.TryAdd(ns.FullyQualifiedNamespace, ns))
@@ -43,6 +45,8 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
 
     public bool TryGetNamespace(string name, [NotNullWhen(true)] out InMemoryEventHubNamespace? result)
     {
+        name = name.ToLowerInvariant();
+
         foreach (var (_, ns) in _namespaces)
         {
             if (ns.Name == name)
@@ -68,6 +72,8 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
 
     public bool TryGetFullyQualifiedNamespace(string fullyQualifiedNamespace, [NotNullWhen(true)] out InMemoryEventHubNamespace? result)
     {
+        fullyQualifiedNamespace = fullyQualifiedNamespace.ToLowerInvariant();
+
         return _namespaces.TryGetValue(fullyQualifiedNamespace, out result);
     }
 
@@ -96,6 +102,8 @@ public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string?
 
     internal string GetNamespaceNameFromHostname(string hostname)
     {
+        hostname = hostname.ToLowerInvariant();
+
         if (!hostname.EndsWith(HostnameSuffix))
         {
             throw new FormatException($"Event Hub namespace host name is expected to end with '{HostnameSuffix}'. Got {hostname}.");
