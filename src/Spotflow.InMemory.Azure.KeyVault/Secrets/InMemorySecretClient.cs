@@ -118,23 +118,18 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override Pageable<SecretProperties> GetPropertiesOfSecrets(CancellationToken cancellationToken = default)
     {
-        var pages = GetPropertiesOfSecretsCoreAsync()
-            .ConfigureAwait(ConfigureAwaitOptions.ForceYielding)
-            .EnsureCompleted();
+        var items = GetPropertiesOfSecretsCore();
 
-        return new InMemoryPageable.Sync<SecretProperties>(pages, _defaultMaxPageSize);
+        return new InMemoryPageable.Sync<SecretProperties>(items, _defaultMaxPageSize);
     }
 
     public override AsyncPageable<SecretProperties> GetPropertiesOfSecretsAsync(CancellationToken cancellationToken = default)
     {
-        var pages = GetPropertiesOfSecretsCoreAsync()
-            .ConfigureAwait(ConfigureAwaitOptions.ForceYielding)
-            .EnsureCompleted();
-
-        return new InMemoryPageable.YieldingAsync<SecretProperties>(pages, _defaultMaxPageSize);
+        var items = GetPropertiesOfSecretsCore();
+        return new InMemoryPageable.YieldingAsync<SecretProperties>(items, _defaultMaxPageSize);
     }
 
-    private Task<IReadOnlyList<SecretProperties>> GetPropertiesOfSecretsCoreAsync()
+    private IReadOnlyList<SecretProperties> GetPropertiesOfSecretsCore()
     {
         var vault = GetVault();
 
@@ -143,7 +138,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             throw error.GetClientException();
         }
 
-        return Task.FromResult(secrets);
+        return secrets;
     }
 
     #endregion
@@ -152,23 +147,17 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override AsyncPageable<SecretProperties> GetPropertiesOfSecretVersionsAsync(string name, CancellationToken cancellationToken = default)
     {
-        var secrets = GetPropertiesOfSecretVersionsCoreAsync(name, cancellationToken)
-            .ConfigureAwait(ConfigureAwaitOptions.ForceYielding)
-            .EnsureCompleted();
-
-        return new InMemoryPageable.YieldingAsync<SecretProperties>(secrets, _defaultMaxPageSize);
+        var items = GetPropertiesOfSecretVersionsCoreAsync(name);
+        return new InMemoryPageable.YieldingAsync<SecretProperties>(items, _defaultMaxPageSize);
     }
 
     public override Pageable<SecretProperties> GetPropertiesOfSecretVersions(string name, CancellationToken cancellationToken = default)
     {
-        var secrets = GetPropertiesOfSecretVersionsCoreAsync(name, cancellationToken)
-            .ConfigureAwait(ConfigureAwaitOptions.ForceYielding)
-            .EnsureCompleted();
-
-        return new InMemoryPageable.Sync<SecretProperties>(secrets, _defaultMaxPageSize);
+        var items = GetPropertiesOfSecretVersionsCoreAsync(name);
+        return new InMemoryPageable.Sync<SecretProperties>(items, _defaultMaxPageSize);
     }
 
-    private Task<IReadOnlyList<SecretProperties>> GetPropertiesOfSecretVersionsCoreAsync(string name, CancellationToken cancellationToken)
+    private IReadOnlyList<SecretProperties> GetPropertiesOfSecretVersionsCoreAsync(string name)
     {
         var vault = GetVault();
 
@@ -177,7 +166,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             throw error.GetClientException();
         }
 
-        return Task.FromResult(versions);
+        return versions;
     }
 
     #endregion
