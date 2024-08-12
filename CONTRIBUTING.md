@@ -61,7 +61,7 @@ All new features and changes must be reflected in the documentation [README.md](
 * All supported methods must be truly async (currently, this is mostly ensured by calling `Task.Yield()` at the start of each method).
   * The `Task.Yield()` should be present as soon as in the callstack as possible.
   * Do not use `ConfigureAwait(ConfigureAwaitOptions.ForceYielding)` instead for consistency sake.
-* `ConfigureAwait(false)` or `ConfigureAwait(ConfigureAwaitOptions)` are not used. The problems associated with this decision are not considered to be insignificant for this library.
+* `ConfigureAwait(false)` or `ConfigureAwait(ConfigureAwaitOptions.None)` are not used. The problems associated with this decision are considered insignificant for this library.
 
 #### Unsupported client methods & properties
 
