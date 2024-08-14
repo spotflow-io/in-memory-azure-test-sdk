@@ -6,8 +6,6 @@ using Spotflow.InMemory.Azure.EventHubs.Hooks;
 using Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.Hooks;
 
-using Tests.Utils;
-
 namespace Tests.EventHub;
 
 [TestClass]

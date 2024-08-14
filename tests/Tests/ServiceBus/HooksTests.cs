@@ -3,8 +3,6 @@ using Spotflow.InMemory.Azure.ServiceBus;
 using Spotflow.InMemory.Azure.ServiceBus.Hooks;
 using Spotflow.InMemory.Azure.ServiceBus.Hooks.Contexts;
 
-using Tests.Utils;
-
 namespace Tests.ServiceBus;
 
 [TestClass]
