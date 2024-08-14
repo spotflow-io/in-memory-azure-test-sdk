@@ -454,7 +454,7 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Download`
             -   `Upload`
         -   All `Container` operations
-            -   `Create`
+            -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations
         -   All `Entity` operations
             -   `Add`
