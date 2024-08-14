@@ -3,6 +3,7 @@ using Azure.Storage.Blobs.Models;
 
 namespace Spotflow.InMemory.Azure.Storage.Blobs.Internals;
 
+
 internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, long? bufferSize) : Stream
 {
     private const int _defaultBufferSize = 4 * 1024 * 1024;
