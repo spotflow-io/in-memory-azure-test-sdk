@@ -12,7 +12,6 @@ public class HooksTests
 {
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Send_Batch_Hooks_Should_Execute()
     {
         const string namespaceName = "test-namespace";
@@ -60,7 +59,6 @@ public class HooksTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Receive_Batch_Hooks_Should_Execute()
     {
         const string namespaceName = "test-namespace";
@@ -106,7 +104,6 @@ public class HooksTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Hooks_With_Different_Scope_Should_Not_Execute()
     {
         const string namespaceName = "test-namespace";
@@ -135,7 +132,6 @@ public class HooksTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Parent_Hook_Should_Execute()
     {
         const string namespaceName = "test-namespace";
@@ -185,7 +181,6 @@ public class HooksTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Targeted_Hooks_Should_Execute()
     {
         const string namespaceName = "test-namespace";
@@ -232,7 +227,6 @@ public class HooksTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     public async Task Hooks_With_Different_Target_Should_Not_Execute()
     {
         const string namespaceName = "test-namespace";
