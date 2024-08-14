@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Spotflow.InMemory.Azure.Internals;
 
 internal static class TaskExtensions

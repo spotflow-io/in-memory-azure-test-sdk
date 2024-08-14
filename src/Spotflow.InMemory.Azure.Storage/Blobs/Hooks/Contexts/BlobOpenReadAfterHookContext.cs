@@ -7,8 +7,4 @@ public class BlobOpenReadAfterHookContext(BlobOpenReadBeforeHookContext before) 
     public required BinaryData Content { get; init; }
     public required BlobProperties BlobProperties { get; init; }
     public BlobOpenReadBeforeHookContext BeforeContext => before;
-
-
 }
-
-

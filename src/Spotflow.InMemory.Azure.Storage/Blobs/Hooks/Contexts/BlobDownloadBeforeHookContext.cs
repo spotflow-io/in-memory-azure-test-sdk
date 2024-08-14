@@ -7,4 +7,3 @@ public class BlobDownloadBeforeHookContext(BlobScope scope, InMemoryStorageProvi
 {
     public required BlobDownloadOptions? Options { get; init; }
 }
-
