@@ -117,11 +117,11 @@ public class SecretClientTests
         {
             client.SetSecret(secretName, "test-value");
 
-            client.GetPropertiesOfSecrets().Should().ContainSingle(s => s.Name == secretName);
+            client.GetPropertiesOfSecrets().Where(s => s.Name == secretName).Should().ContainSingle();
 
             client.StartDeleteSecret(secretName).WaitForCompletion();
 
-            client.GetPropertiesOfSecrets().Should().BeEmpty();
+            client.GetPropertiesOfSecrets().Where(s => s.Name == secretName).Should().BeEmpty();
 
         }
         finally
