@@ -27,7 +27,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
     public async Task<BlobDownloadStreamingResult> DownloadStreamingAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var info = await DownloadStreamingAsync(options, cancellationToken);
+        var info = await DownloadAsync(options, cancellationToken);
         return BlobsModelFactory.BlobDownloadStreamingResult(info.Content, info.Details);
     }
 
