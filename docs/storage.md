@@ -247,6 +247,7 @@ Clients are thread-safe.
 | `GetBlobClient`              |                                                                                                |
 | `GetBlockBlobClient`         |                                                                                                |
 | `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
+| `GetBlobsByHierarchy`        | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
 | `GetParentBlobServiceClient` |                                                                                                |
 | `GetProperties`              |                                                                                                |
 | `UploadBlob`                 |                                                                                                |
