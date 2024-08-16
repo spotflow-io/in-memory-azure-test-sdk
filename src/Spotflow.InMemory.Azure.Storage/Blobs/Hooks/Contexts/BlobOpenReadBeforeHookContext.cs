@@ -7,4 +7,3 @@ public class BlobOpenReadBeforeHookContext(BlobScope scope, InMemoryStorageProvi
 {
     public required BlobOpenReadOptions? Options { get; init; }
 }
-

@@ -173,8 +173,15 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return block.GetInfo();
     }
 
-    public Stream OpenWrite(bool overwrite, BlobRequestConditions? conditions, long? bufferSize, CancellationToken cancellationToken)
+    public async Task<Stream> OpenWriteAsync(bool overwrite, BlobOpenWriteOptions? options, CancellationToken cancellationToken)
     {
+        var beforeContext = new BlobOpenWriteBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            Options = options
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+
         if (!overwrite)
         {
             throw new ArgumentException("BlockBlobClient.OpenWrite only supports overwriting");
@@ -182,10 +189,14 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         using var blob = AcquireBlob(cancellationToken);
 
-        if (!blob.Value.TryOpenWrite(conditions, bufferSize, out var stream, out var error))
+        if (!blob.Value.TryOpenWrite(options?.OpenConditions, options?.BufferSize, out var stream, out var error))
         {
             throw error.GetClientException();
         }
+
+        var afterContext = new BlobOpenWriteAfterHookContext(beforeContext);
+
+        await ExecuteAfterHooksAsync(afterContext);
 
         return stream;
     }

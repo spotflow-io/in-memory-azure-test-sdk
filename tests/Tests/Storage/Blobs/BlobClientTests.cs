@@ -24,7 +24,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -44,7 +44,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         blobClient.Exists().Value.Should().BeFalse();
 
@@ -62,7 +62,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var options = new BlobUploadOptions
         {
@@ -93,7 +93,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var options = new BlobUploadOptions
         {
@@ -126,7 +126,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         using (var stream = OpenWrite(blobClient, true))
         using (var streamWriter = new StreamWriter(stream))
@@ -155,7 +155,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var act = () => OpenWrite(blobClient, false);
 
@@ -177,7 +177,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var act = () => blobClient.DownloadStreaming();
 
@@ -200,7 +200,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -229,7 +229,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var ifExistsResponse = blobClient.DeleteIfExists();
 
@@ -258,7 +258,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -279,7 +279,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -300,7 +300,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
 
@@ -321,7 +321,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var act = () => blobClient.OpenRead();
 
@@ -345,7 +345,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var random = new Random(42);
         var data = new byte[1024];
@@ -392,15 +392,6 @@ public class BlobClientTests
     {
         Generic,
         Block
-    }
-
-    private static BlobBaseClient GetClient(BlobContainerClient containerClient, string blobName, BlobClientType type)
-    {
-        return type switch
-        {
-            BlobClientType.Generic => containerClient.GetBlobClient(blobName),
-            BlobClientType.Block => containerClient.GetBlockBlobClient(blobName),
-        };
     }
 
     private static void Upload(BlobBaseClient blobClient, string content, BlobUploadOptions? options = null)

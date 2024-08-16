@@ -1,5 +1,7 @@
 using Azure;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 
 using Spotflow.InMemory.Azure.Hooks;
 using Spotflow.InMemory.Azure.Storage;
@@ -8,13 +10,19 @@ using Spotflow.InMemory.Azure.Storage.Blobs.Hooks;
 using Spotflow.InMemory.Azure.Storage.Blobs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.Storage.Hooks.Contexts;
 
+using Tests.Utils;
+
+using static Tests.Storage.Blobs.BlobClientTests;
+
 namespace Tests.Storage.Blobs;
 
 [TestClass]
 public class HooksTests
 {
     [TestMethod]
-    public async Task Blob_Download_Hooks_Should_Execute()
+    [DataRow(BlobClientType.Block)]
+    [DataRow(BlobClientType.Generic)]
+    public async Task Blob_Download_Hooks_Should_Execute(BlobClientType clientType)
     {
         const string accountName = "test-account";
         const string containerName = "test-container";
@@ -39,13 +47,14 @@ public class HooksTests
         var account = provider.AddAccount(accountName);
         var containerClient = InMemoryBlobContainerClient.FromAccount(account, containerName);
         await containerClient.CreateIfNotExistsAsync();
-        var client = InMemoryBlobClient.FromAccount(account, containerName, blobName);
 
-        var blobData = new BinaryData("test");
-        await client.UploadAsync(blobData);
+        var data = new BinaryData("test");
+
+        containerClient.UploadBlob(blobName, data);
+
+        var client = containerClient.GetBlobBaseClient(blobName, clientType);
 
         await client.DownloadContentAsync(new BlobRequestConditions() { IfMatch = ETag.All }, default);
-
 
         capturedBeforeContext.Should().NotBeNull();
         capturedBeforeContext?.StorageAccountName.Should().BeEquivalentTo(accountName);
@@ -60,12 +69,14 @@ public class HooksTests
         capturedAfterContext?.BlobName.Should().BeEquivalentTo(blobName);
         capturedAfterContext?.Operation.Should().Be(BlobOperations.Download);
         capturedAfterContext?.BlobProperties.Should().NotBeNull();
-        capturedAfterContext?.Content.ToString().Should().Be(blobData.ToString());
+        capturedAfterContext?.Content.ToString().Should().Be(data.ToString());
     }
 
 
     [TestMethod]
-    public void Blob_OpenRead_Hooks_Should_Execute()
+    [DataRow(BlobClientType.Block)]
+    [DataRow(BlobClientType.Generic)]
+    public void Blob_OpenRead_Hooks_Should_Execute(BlobClientType clientType)
     {
         StorageBeforeHookContext? capturedBeforeContextGeneric = null;
         BlobOpenReadBeforeHookContext? capturedBeforeContextSpecific = null;
@@ -85,11 +96,13 @@ public class HooksTests
 
         containerClient.Create();
 
-        var blobClient = containerClient.GetBlobClient("test-blob");
-
         var data = new BinaryData("test");
 
-        blobClient.Upload(data);
+        var blobName = "test-blob";
+
+        containerClient.UploadBlob(blobName, data);
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         using var stream = blobClient.OpenRead();
 
@@ -100,6 +113,47 @@ public class HooksTests
         capturedAfterContextGeneric.Should()
             .BeOfType<BlobOpenReadAfterHookContext>()
             .Which.Content.ToString().Should().Be(data.ToString());
+    }
+
+    [TestMethod]
+    [DataRow(BlobClientType.Block)]
+    [DataRow(BlobClientType.Generic)]
+    public void Blob_OpenWrite_Hooks_Should_Execute(BlobClientType clientType)
+    {
+        StorageBeforeHookContext? capturedBeforeContextGeneric = null;
+        BlobOpenWriteBeforeHookContext? capturedBeforeContextSpecific = null;
+        StorageAfterHookContext? capturedAfterContextGeneric = null;
+        BlobOpenWriteAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryStorageProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().BeforeOpenWrite(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().AfterOpenWrite(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var account = provider.AddAccount();
+
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test-container");
+
+        containerClient.Create();
+
+        var blobName = "test-blob";
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using var stream = blobClient switch
+        {
+            BlockBlobClient blockClient => blockClient.OpenWrite(true),
+            BlobClient genericClient => genericClient.OpenWrite(true),
+            _ => throw new InvalidOperationException()
+        };
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<BlobOpenWriteBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should().BeOfType<BlobOpenWriteAfterHookContext>();
     }
 
 

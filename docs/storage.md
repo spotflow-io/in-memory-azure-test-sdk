@@ -457,6 +457,7 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Download`
             -   `Upload`
             -   `OpenRead`
+            -   `OpenWrite`
         -   All `Container` operations
             -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations

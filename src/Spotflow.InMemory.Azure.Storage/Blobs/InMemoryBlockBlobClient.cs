@@ -300,13 +300,25 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     public override Stream OpenWrite(bool overwrite, BlockBlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return _core.OpenWrite(overwrite, options?.OpenConditions, options?.BufferSize, cancellationToken);
+        return OpenWriteAsync(overwrite, options, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Stream> OpenWriteAsync(bool overwrite, BlockBlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return OpenWrite(overwrite, options, cancellationToken);
+
+        var unifiedOptions = new BlobOpenWriteOptions
+        {
+            BufferSize = options?.BufferSize,
+            OpenConditions = options?.OpenConditions,
+            HttpHeaders = options?.HttpHeaders,
+            Metadata = options?.Metadata,
+            ProgressHandler = options?.ProgressHandler,
+            TransferValidation = options?.TransferValidation,
+            Tags = options?.Tags
+        };
+
+        return await _core.OpenWriteAsync(overwrite, unifiedOptions, cancellationToken);
     }
 
     #endregion
