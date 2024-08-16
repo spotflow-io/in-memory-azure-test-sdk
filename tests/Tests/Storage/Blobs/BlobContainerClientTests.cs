@@ -1,6 +1,7 @@
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -142,7 +143,9 @@ public class BlobContainerClientTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    public void GetBlobs_Should_Return_Existing_Blobs()
+    [DataRow(10, 1, BlobStates.None, 10)]
+    [DataRow(10, 1, BlobStates.Uncommitted, 11)]
+    public void GetBlobs_Should_Return_Existing_Relevant_Blobs(int commitedCount, int uncommitedCount, BlobStates states, int expectedTotalCount)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 
@@ -150,15 +153,21 @@ public class BlobContainerClientTests
 
         var blobNamePrefix = Guid.NewGuid().ToString();
 
-        var count = ImplementationProvider.IsAzureConfigAvailable ? 10 : 100_000;
-
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < commitedCount; i++)
         {
-            var blobClient = containerClient.GetBlobClient($"{blobNamePrefix}_test-blob-{i:D10}");
+            var blobClient = containerClient.GetBlobClient($"{blobNamePrefix}_test-blob-commited-{i:D10}");
             blobClient.Upload(BinaryData.FromString("test"));
         }
 
-        containerClient.GetBlobs(prefix: blobNamePrefix).Should().HaveCount(count);
+        for (var i = 0; i < uncommitedCount; i++)
+        {
+            var blockBlobClient = containerClient.GetBlockBlobClient($"{blobNamePrefix}_test-blob-uncommited-{i:D10}");
+            blockBlobClient.StageBlock(Convert.ToBase64String([1]), BinaryData.FromString("test").ToStream());
+        }
+
+        containerClient.GetBlobs(prefix: blobNamePrefix, states: states)
+            .Should()
+            .HaveCount(expectedTotalCount);
     }
 
     [TestMethod]

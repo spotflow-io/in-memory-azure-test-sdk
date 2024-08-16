@@ -30,17 +30,27 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     public override string? ToString() => $"{Service} / {Name}";
 
-    public IReadOnlyList<BlobItem> GetBlobs(string? prefix)
+    public IReadOnlyList<BlobItem> GetBlobs(string? prefix, BlobStates? states)
     {
         lock (_lock)
         {
             return _blobEntries
                 .Values
-                .Where(entry => entry.Blob.Exists)
-                .Where(entry => prefix is null ? true : entry.Blob.Name.StartsWith(prefix))
+                .Where(entry => filter(entry.Blob))
                 .Select(entry => BlobsModelFactory.BlobItem(entry.Blob.Name))
                 .ToList();
         }
+
+        bool filter(InMemoryBlockBlob blob)
+        {
+            var result = true;
+
+            result &= blob.Exists || (states?.HasFlag(BlobStates.Uncommitted) is true && blob.HasUncommittedBlocks);
+            result &= prefix is null || blob.Name.StartsWith(prefix);
+
+            return result;
+        }
+
     }
 
     public AcquiredBlob AcquireBlob(string blobName, CancellationToken cancellationToken)

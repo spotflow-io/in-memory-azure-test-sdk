@@ -237,19 +237,19 @@ Clients are thread-safe.
 | `Name`              |                         |
 | `Uri`               |                         |
 
-| Method group                 | Note |
-| ---------------------------- | ---- |
-| `Create`                     |      |
-| `CreateIfNotExists`          |      |
-| `DeleteBlob`                 |      |
-| `DeleteBlobIfExists`         |      |
-| `Exists`                     |      |
-| `GetBlobs`                   |      |
-| `GetBlobClient`              |      |
-| `GetBlockBlobClient`         |      |
-| `GetParentBlobServiceClient` |      |
-| `GetProperties`              |      |
-| `UploadBlob`                 |      |
+| Method group                 | Note                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Create`                     |                                                                                                |
+| `CreateIfNotExists`          |                                                                                                |
+| `DeleteBlob`                 |                                                                                                |
+| `DeleteBlobIfExists`         |                                                                                                |
+| `Exists`                     |                                                                                                |
+| `GetBlobClient`              |                                                                                                |
+| `GetBlockBlobClient`         |                                                                                                |
+| `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
+| `GetParentBlobServiceClient` |                                                                                                |
+| `GetProperties`              |                                                                                                |
+| `UploadBlob`                 |                                                                                                |
 
 | Constructors & factory methods                                          | Note                          |
 | ----------------------------------------------------------------------- | ----------------------------- |
@@ -457,7 +457,7 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Upload`
             -   `OpenRead`
         -   All `Container` operations
-            -   `Create`
+            -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations
         -   All `Entity` operations
             -   `Add`
