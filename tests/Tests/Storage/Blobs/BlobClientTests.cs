@@ -267,6 +267,127 @@ public class BlobClientTests
         properties.BlobType.Should().Be(BlobType.Block);
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = GetClient(containerClient, blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        new StreamReader(stream).ReadToEnd().Should().Be("Hello, World!");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Existing_Blob_With_Position_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = GetClient(containerClient, blobName, clientType);
+
+        Upload(blobClient, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+
+        using var stream = blobClient.OpenRead(position: 3);
+
+        new StreamReader(stream, bufferSize: 5).ReadToEnd().Should().Be("em ipsum dolor sit amet, consectetur adipiscing elit");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Missing_Blob_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = GetClient(containerClient, blobName, clientType);
+
+        var act = () => blobClient.OpenRead();
+
+        act.Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 404)
+            .Where(e => e.ErrorCode == "BlobNotFound");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic, true)]
+    [DataRow(BlobClientType.Generic, false)]
+    [DataRow(BlobClientType.Block, true)]
+    [DataRow(BlobClientType.Block, false)]
+    public void OpenRead_For_Blob_Changed_In_Progress_Should_Respect_AllowBlobModifications_Flag(BlobClientType clientType, bool allowBlobModifications)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = GetClient(containerClient, blobName, clientType);
+
+        var random = new Random(42);
+        var data = new byte[1024];
+
+        random.NextBytes(data);
+        Upload(blobClient, data);
+        var eTag1 = blobClient.GetProperties().Value.ETag;
+
+        var clientBufferSize = 128;
+
+        var options = new BlobOpenReadOptions(allowModifications: allowBlobModifications)
+        {
+            BufferSize = clientBufferSize
+        };
+
+        using var stream = blobClient.OpenRead(options);
+
+        var dataBuffer = new byte[clientBufferSize * 10];
+
+        stream.Read(dataBuffer, 0, clientBufferSize + 1).Should().Be(clientBufferSize);
+
+        random.NextBytes(data);
+        Upload(blobClient, data);
+        var eTag2 = blobClient.GetProperties().Value.ETag;
+
+        eTag1.Should().NotBe(eTag2);
+
+        var act = () => stream.Read(dataBuffer, 0, 1);
+
+        if (allowBlobModifications)
+        {
+            act.Should().NotThrow().Which.Should().Be(1);
+        }
+        else
+        {
+            act.Should()
+                .Throw<RequestFailedException>()
+                .Where(e => e.Status == 412)
+                .Where(e => e.ErrorCode == "ConditionNotMet");
+        }
+    }
+
     public enum BlobClientType
     {
         Generic,
@@ -284,7 +405,13 @@ public class BlobClientTests
 
     private static void Upload(BlobBaseClient blobClient, string content, BlobUploadOptions? options = null)
     {
-        var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var bytes = Encoding.UTF8.GetBytes(content);
+        Upload(blobClient, bytes, options);
+    }
+
+    private static void Upload(BlobBaseClient blobClient, byte[] content, BlobUploadOptions? options = null)
+    {
+        var stream = new MemoryStream(content);
 
         if (blobClient is BlobClient genericClient)
         {

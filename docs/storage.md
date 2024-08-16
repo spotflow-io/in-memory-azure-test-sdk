@@ -278,6 +278,7 @@ Clients are thread-safe.
 | `Exists`                       |                                                             |
 | `GetParentBlobContainerClient` |                                                             |
 | `GetProperties`                |                                                             |
+| `OpenRead`                     | Seeking on the returned stream is not supported.            |
 | `OpenWrite`                    |                                                             |
 | `Upload`                       | Overloads accepting path to a local file are not supported. |
 
@@ -314,6 +315,7 @@ Clients are thread-safe.
 | `GetBlockList`                 |                                                         |
 | `GetParentBlobContainerClient` |                                                         |
 | `GetProperties`                |                                                         |
+| `OpenRead`                     | Seeking on the returned stream is not supported.        |
 | `OpenWrite`                    |                                                         |
 | `StageBlock`                   |                                                         |
 | `Upload`                       |                                                         |
@@ -454,6 +456,7 @@ Following hooks are supported in both `Before` and `After` variants:
         -   All `Blob` operations
             -   `Download`
             -   `Upload`
+            -   `OpenRead`
         -   All `Container` operations
             -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations

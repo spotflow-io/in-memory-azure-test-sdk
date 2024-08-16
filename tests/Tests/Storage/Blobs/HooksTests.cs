@@ -6,6 +6,7 @@ using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
 using Spotflow.InMemory.Azure.Storage.Blobs.Hooks;
 using Spotflow.InMemory.Azure.Storage.Blobs.Hooks.Contexts;
+using Spotflow.InMemory.Azure.Storage.Hooks.Contexts;
 
 namespace Tests.Storage.Blobs;
 
@@ -58,9 +59,49 @@ public class HooksTests
         capturedAfterContext?.ContainerName.Should().BeEquivalentTo(containerName);
         capturedAfterContext?.BlobName.Should().BeEquivalentTo(blobName);
         capturedAfterContext?.Operation.Should().Be(BlobOperations.Download);
-        capturedAfterContext?.BlobDownloadDetails.Should().NotBeNull();
+        capturedAfterContext?.BlobProperties.Should().NotBeNull();
         capturedAfterContext?.Content.ToString().Should().Be(blobData.ToString());
     }
+
+
+    [TestMethod]
+    public void Blob_OpenRead_Hooks_Should_Execute()
+    {
+        StorageBeforeHookContext? capturedBeforeContextGeneric = null;
+        BlobOpenReadBeforeHookContext? capturedBeforeContextSpecific = null;
+        StorageAfterHookContext? capturedAfterContextGeneric = null;
+        BlobOpenReadAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryStorageProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().BeforeOpenRead(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().AfterOpenRead(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var account = provider.AddAccount();
+
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test-container");
+
+        containerClient.Create();
+
+        var blobClient = containerClient.GetBlobClient("test-blob");
+
+        var data = new BinaryData("test");
+
+        blobClient.Upload(data);
+
+        using var stream = blobClient.OpenRead();
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<BlobOpenReadBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<BlobOpenReadAfterHookContext>()
+            .Which.Content.ToString().Should().Be(data.ToString());
+    }
+
 
     [TestMethod]
     public async Task Hooks_With_Different_Scope_Should_Not_Execute()
@@ -204,4 +245,7 @@ public class HooksTests
 
         await client.UploadAsync(blobData);
     }
+
+
+
 }

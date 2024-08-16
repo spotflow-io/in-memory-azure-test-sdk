@@ -186,7 +186,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
     }
 
     public bool TryDownload(
-        BlobDownloadOptions? options,
+        RequestConditions? conditions,
         [NotNullWhen(true)] out BinaryData? content,
         [NotNullWhen(true)] out BlobProperties? properties,
         [NotNullWhen(false)] out DownloadError? error)
@@ -199,7 +199,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             return false;
         }
 
-        if (!ConditionChecker.CheckConditions(_properties.ETag, options?.Conditions?.IfMatch, options?.Conditions?.IfNoneMatch, out var conditionError))
+        if (!ConditionChecker.CheckConditions(_properties.ETag, conditions?.IfMatch, conditions?.IfNoneMatch, out var conditionError))
         {
             error = new DownloadError.ConditionNotMet(this, conditionError);
             content = null;
@@ -226,7 +226,6 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             blockList = null;
             return false;
         }
-
 
         if (!ConditionChecker.CheckConditions(_properties?.ETag, conditions?.IfMatch, conditions?.IfNoneMatch, out var conditionError))
         {
@@ -273,6 +272,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         return true;
 
     }
+
 
     public bool TryDeleteIfExists(BlobRequestConditions? conditions, [NotNullWhen(true)] out bool? deleted, [NotNullWhen(false)] out DeleteError? error)
     {
