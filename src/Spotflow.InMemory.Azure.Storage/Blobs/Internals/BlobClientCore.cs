@@ -194,7 +194,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             throw error.GetClientException();
         }
 
-        var afterContext = new BlobOpenWriteAfterHookContext(beforeContext);
+        var afterContext = new BlobOpenWriteAfterHookContext(beforeContext, stream);
 
         await ExecuteAfterHooksAsync(afterContext);
 
