@@ -19,7 +19,7 @@ internal static class StorageConnectionStringUtils
         {
             KeyValuePair<string, string>? kv = pair.Split('=', options) switch
             {
-            [var k, var v] => new(k, v),
+                [var k, var v] => new(k, v),
                 _ => null
             };
 
