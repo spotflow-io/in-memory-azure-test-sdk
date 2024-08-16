@@ -159,13 +159,13 @@ public class BlobClientTests
 
         blobClient.Exists().Value.Should().BeFalse();
 
-        var metadata = new Dictionary<string, string> { { "test-key", "test-value" } };
+        var metadata = new Dictionary<string, string> { { "TestKey", "test-value" } };
 
         using var stream = OpenWrite(blobClient, true, metadata);
 
         stream.Dispose();
 
-        blobClient.GetProperties().Value.Metadata.Should().Contain("test-key", "test-value");
+        blobClient.GetProperties().Value.Metadata.Should().Contain("TestKey", "test-value");
     }
 
     [TestMethod]
