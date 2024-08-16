@@ -195,6 +195,36 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Return_Stream_Supporting_Position(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using var stream = OpenWrite(blobClient, true);
+
+        stream.Position.Should().Be(0);
+
+        stream.WriteByte(42);
+
+        stream.Position.Should().Be(1);
+
+        var data = new byte[1 * 1024 * 1024];
+
+        stream.Write(data);
+
+        stream.Position.Should().Be((1 * 1024 * 1024) + 1);
+    }
+
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void Download_Streaming_For_Non_Existing_Blob_Should_Fail(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
