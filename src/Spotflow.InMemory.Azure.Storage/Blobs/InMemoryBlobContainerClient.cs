@@ -207,7 +207,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix);
+        var blobs = GetBlobsCore(prefix, states);
         return new InMemoryPageable.YieldingAsync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
@@ -217,16 +217,16 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix);
+        var blobs = GetBlobsCore(prefix, states);
         return new InMemoryPageable.Sync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
 
-    private IReadOnlyList<BlobItem> GetBlobsCore(string? prefix)
+    private IReadOnlyList<BlobItem> GetBlobsCore(string? prefix, BlobStates? states)
     {
         var container = GetContainer();
 
-        return container.GetBlobs(prefix);
+        return container.GetBlobs(prefix, states);
     }
 
     #endregion

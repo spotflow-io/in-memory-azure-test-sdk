@@ -28,6 +28,8 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
 
     public bool Exists => _properties is not null;
 
+    public bool HasUncommittedBlocks => _uncommittedBlocks is not null;
+
     public bool TryGetProperties(
         BlobRequestConditions? conditions,
         [NotNullWhen(true)] out BlobProperties? properties,

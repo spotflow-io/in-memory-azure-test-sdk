@@ -237,19 +237,19 @@ Clients are thread-safe.
 | `Name`              |                         |
 | `Uri`               |                         |
 
-| Method group                 | Note |
-| ---------------------------- | ---- |
-| `Create`                     |      |
-| `CreateIfNotExists`          |      |
-| `DeleteBlob`                 |      |
-| `DeleteBlobIfExists`         |      |
-| `Exists`                     |      |
-| `GetBlobs`                   |      |
-| `GetBlobClient`              |      |
-| `GetBlockBlobClient`         |      |
-| `GetParentBlobServiceClient` |      |
-| `GetProperties`              |      |
-| `UploadBlob`                 |      |
+| Method group                 | Note                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Create`                     |                                                                                                |
+| `CreateIfNotExists`          |                                                                                                |
+| `DeleteBlob`                 |                                                                                                |
+| `DeleteBlobIfExists`         |                                                                                                |
+| `Exists`                     |                                                                                                |
+| `GetBlobClient`              |                                                                                                |
+| `GetBlockBlobClient`         |                                                                                                |
+| `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
+| `GetParentBlobServiceClient` |                                                                                                |
+| `GetProperties`              |                                                                                                |
+| `UploadBlob`                 |                                                                                                |
 
 | Constructors & factory methods                                          | Note                          |
 | ----------------------------------------------------------------------- | ----------------------------- |
