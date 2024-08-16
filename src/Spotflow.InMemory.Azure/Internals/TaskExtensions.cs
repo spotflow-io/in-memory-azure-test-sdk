@@ -7,4 +7,14 @@ internal static class TaskExtensions
         return task.GetAwaiter().GetResult();
     }
 
+    public static void EnsureCompleted(this Task task)
+    {
+        task.GetAwaiter().GetResult();
+    }
+
+    public static void EnsureCompleted(this ValueTask task)
+    {
+        task.GetAwaiter().GetResult();
+    }
+
 }

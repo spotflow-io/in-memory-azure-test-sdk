@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Security.Cryptography;
+
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -154,6 +157,75 @@ public class HooksTests
 
         capturedAfterContextSpecific.Should().NotBeNull();
         capturedAfterContextGeneric.Should().BeOfType<BlobOpenWriteAfterHookContext>();
+    }
+
+
+    [TestMethod]
+    public void Blob_OpenWrite_Hooks_With_Interceptor_Should_Execute()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var interceptor = new TestBlobWriteStreamInterceptor();
+
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().AfterOpenWrite(ctx =>
+        {
+            ctx.AddStreamInterceptor(interceptor);
+            return Task.CompletedTask;
+        }));
+
+        var account = provider.AddAccount();
+
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test-container");
+
+        containerClient.Create();
+
+        var blobClient = containerClient.GetBlockBlobClient("test-blob");
+
+        using var stream = blobClient.OpenWrite(true);
+
+        var data = new byte[1024 * 1024 * 8];
+
+        RandomNumberGenerator.Fill(data);
+
+        stream.Write(data);
+
+        stream.Flush();
+
+        stream.Dispose();
+
+        interceptor.WriteCount.Should().Be(1);
+        interceptor.Buffer.Length.Should().Be(data.Length);
+        interceptor.FlushCount.Should().Be(4);
+        interceptor.DisposeCount.Should().Be(1);
+
+    }
+
+    private class TestBlobWriteStreamInterceptor : IBlobWriteStreamInterceptor
+    {
+        public int DisposeCount { get; private set; }
+        public int FlushCount { get; private set; }
+        public int WriteCount { get; private set; }
+        private readonly ArrayBufferWriter<byte> _buffer = new();
+        public ReadOnlyMemory<byte> Buffer => _buffer.WrittenMemory;
+
+        public ValueTask DisposeAsync()
+        {
+            DisposeCount++;
+            return ValueTask.CompletedTask;
+        }
+
+        public Task FlushAsync()
+        {
+            FlushCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        {
+            WriteCount++;
+            _buffer.Write(buffer.Span);
+            return Task.CompletedTask;
+        }
     }
 
 
