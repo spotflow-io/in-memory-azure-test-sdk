@@ -272,13 +272,13 @@ public class InMemoryBlobClient : BlobClient
 
     public override Stream OpenWrite(bool overwrite, BlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return _core.OpenWrite(overwrite, options?.OpenConditions, options?.BufferSize, cancellationToken);
+        return OpenWriteAsync(overwrite, options, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Stream> OpenWriteAsync(bool overwrite, BlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return OpenWrite(overwrite, options, cancellationToken);
+        return await _core.OpenWriteAsync(overwrite, options, cancellationToken);
     }
 
     #endregion
