@@ -63,7 +63,15 @@ public class FaultInjectionTests
 
             var sasUri = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
 
-            var invalidSasUri = new Uri(Regex.Replace(sasUri.ToString(), "sig=[^&]([^&]+)", "sig=x$1")); // Change one letter of the signature.
+            var signature = Regex.Match(sasUri.ToString(), "sig=([^&]+)").Groups[1].Value;
+            var signatureUrlDecoded = Uri.UnescapeDataString(signature);
+            var signatureBytes = Convert.FromBase64String(signatureUrlDecoded);
+
+            var invalidSignatureBytes = signatureBytes.Select(b => (byte) ~b).ToArray();
+            var invalidSignatureUrlDecoded = Convert.ToBase64String(invalidSignatureBytes);
+            var invalidSignature = Uri.EscapeDataString(invalidSignatureUrlDecoded);
+
+            var invalidSasUri = new Uri(sasUri.ToString().Replace($"sig={signature}", $"sig={invalidSignature}"));
 
             act = () => new BlobClient(invalidSasUri).DownloadContent();
         }
