@@ -80,9 +80,9 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             return false;
         }
 
-        if (_properties is not null && conditions?.IfNoneMatch == ETag.All)
+        if (ShouldThrowBlobAlreadyExistsError(conditions))
         {
-            error = new BlobAlreadyExist(this);
+            error = new BlobAlreadyExists(this);
             result = null;
             return false;
         }
@@ -254,8 +254,15 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         return true;
     }
 
-    public bool TryOpenWrite(RequestConditions? conditions, long? bufferSize, [NotNullWhen(true)] out Stream? stream, [NotNullWhen(false)] out OpenWriteError? error)
+    public bool TryOpenWrite(RequestConditions? conditions, long? bufferSize, IDictionary<string, string>? metadata, [NotNullWhen(true)] out BlobWriteStream? stream, [NotNullWhen(false)] out OpenWriteError? error)
     {
+        if (ShouldThrowBlobAlreadyExistsError(conditions))
+        {
+            error = new OpenWriteError.BlobAlreadyExists(this);
+            stream = null;
+            return false;
+        }
+
         if (!ConditionChecker.CheckConditions(_properties?.ETag, conditions?.IfMatch, conditions?.IfNoneMatch, out var conditionError))
         {
             stream = null;
@@ -263,7 +270,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             return false;
         }
 
-        SetCommitedState(null, null, []);
+        SetCommitedState(null, metadata, []);
 
         var client = InMemoryBlockBlobClient.FromAccount(Container.Service.Account, ContainerName, Name);
 
@@ -355,6 +362,16 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
     public record Block(string Id, BinaryData Content)
     {
         public BlockInfo GetInfo() => BlobsModelFactory.BlockInfo(null, null, null);
+    }
+
+    private bool ShouldThrowBlobAlreadyExistsError(RequestConditions? conditions)
+    {
+        if (_properties is not null && conditions?.IfNoneMatch == ETag.All)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public abstract class CommitBlockListError()
@@ -454,13 +471,21 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         {
             public override RequestFailedException GetClientException() => BlobExceptionFactory.ConditionNotMet(blob.AccountName, blob.ContainerName, blob.Name, error);
         }
+
+        public class BlobAlreadyExists(InMemoryBlockBlob blob) : OpenWriteError
+        {
+            public override RequestFailedException GetClientException()
+            {
+                return BlobExceptionFactory.BlobAlreadyExists(blob.AccountName, blob.ContainerName, blob.Name);
+            }
+        }
     }
 
     public abstract class StageBlockError
     {
         public abstract RequestFailedException GetClientException();
 
-        public class BlobAlreadyExist(InMemoryBlockBlob blob) : StageBlockError
+        public class BlobAlreadyExists(InMemoryBlockBlob blob) : StageBlockError
         {
             public override RequestFailedException GetClientException()
             {

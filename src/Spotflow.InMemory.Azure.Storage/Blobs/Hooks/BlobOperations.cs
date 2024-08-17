@@ -7,5 +7,6 @@ public enum BlobOperations
     Download = 1,
     Upload = 2,
     OpenRead = 4,
-    All = Download | Upload | OpenRead
+    OpenWrite = 8,
+    All = Download | Upload | OpenRead | OpenWrite
 }

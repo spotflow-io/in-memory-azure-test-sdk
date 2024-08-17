@@ -231,6 +231,63 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     #endregion
 
+    #region Get Blobs By Hierarchy
+    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
+    {
+        var items = GetBlobsByHierarchyCoreAsync(states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        return new InMemoryPageable.Sync<BlobHierarchyItem>(items, _defaultMaxPageSize);
+    }
+
+    public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
+    {
+        var items = GetBlobsByHierarchyCoreAsync(states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        return new InMemoryPageable.YieldingAsync<BlobHierarchyItem>(items, _defaultMaxPageSize);
+    }
+
+    private async Task<IReadOnlyList<BlobHierarchyItem>> GetBlobsByHierarchyCoreAsync(BlobStates states, string? delimiter, string? prefix, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+
+        var blobs = GetBlobsCore(prefix, states);
+
+        if (delimiter is null)
+        {
+            return blobs.Select(i => BlobsModelFactory.BlobHierarchyItem(null, i)).ToArray();
+        }
+
+        var rootDirectories = new List<BlobHierarchyItem>();
+        var rootBlobs = new List<BlobHierarchyItem>();
+
+        string? previousDirectory = null;
+
+        foreach (var blob in blobs)
+        {
+            var name = blob.Name[(prefix?.Length ?? 0)..];
+
+            var delimiterIndex = name.IndexOf(delimiter, StringComparison.Ordinal);
+
+            if (delimiterIndex is -1)
+            {
+                rootBlobs.Add(BlobsModelFactory.BlobHierarchyItem(null, blob));
+            }
+            else
+            {
+                var currentDirectory = name[..delimiterIndex];
+
+                if (previousDirectory != currentDirectory)
+                {
+                    rootDirectories.Add(BlobsModelFactory.BlobHierarchyItem($"{prefix}{currentDirectory}{delimiter}", null));
+                    previousDirectory = currentDirectory;
+                }
+
+            }
+        }
+
+        return [.. rootDirectories, .. rootBlobs];
+    }
+
+    #endregion
+
     #region Exists
 
     public override Response<bool> Exists(CancellationToken cancellationToken = default)
@@ -428,16 +485,6 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     }
 
     public override Task<Response<BlobContainerInfo>> SetAccessPolicyAsync(PublicAccessType accessType = PublicAccessType.None, IEnumerable<BlobSignedIdentifier>? permissions = null, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

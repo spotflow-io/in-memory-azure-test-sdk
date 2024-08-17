@@ -247,6 +247,7 @@ Clients are thread-safe.
 | `GetBlobClient`              |                                                                                                |
 | `GetBlockBlobClient`         |                                                                                                |
 | `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
+| `GetBlobsByHierarchy`        | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
 | `GetParentBlobServiceClient` |                                                                                                |
 | `GetProperties`              |                                                                                                |
 | `UploadBlob`                 |                                                                                                |
@@ -456,6 +457,7 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Download`
             -   `Upload`
             -   `OpenRead`
+            -   `OpenWrite`
         -   All `Container` operations
             -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations

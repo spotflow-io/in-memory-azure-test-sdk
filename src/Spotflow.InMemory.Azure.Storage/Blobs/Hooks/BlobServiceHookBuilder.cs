@@ -78,6 +78,10 @@ public class BlobServiceHookBuilder
 
         public StorageHook<BlobOpenReadAfterHookContext> AfterOpenRead(HookFunc<BlobOpenReadAfterHookContext> hook) => new(hook, _filter);
 
+        public StorageHook<BlobOpenWriteBeforeHookContext> BeforeOpenWrite(HookFunc<BlobOpenWriteBeforeHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<BlobOpenWriteAfterHookContext> AfterOpenWrite(HookFunc<BlobOpenWriteAfterHookContext> hook) => new(hook, _filter);
+
         public StorageHook<BlobUploadBeforeHookContext> BeforeBlobUpload(HookFunc<BlobUploadBeforeHookContext> hook) => new(hook, _filter);
 
         public StorageHook<BlobUploadAfterHookContext> AfterBlobUpload(HookFunc<BlobUploadAfterHookContext> hook) => new(hook, _filter);
