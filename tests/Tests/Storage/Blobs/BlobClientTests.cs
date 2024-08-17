@@ -147,6 +147,31 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Set_Blob_Metadata(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        blobClient.Exists().Value.Should().BeFalse();
+
+        var metadata = new Dictionary<string, string> { { "TestKey", "test-value" } };
+
+        using var stream = OpenWrite(blobClient, true, metadata);
+
+        stream.Dispose();
+
+        blobClient.GetProperties().Value.Metadata.Should().Contain("TestKey", "test-value");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void OpenWrite_Without_Overwrite_Option_Should_Be_Unsupported(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -164,6 +189,67 @@ public class BlobClientTests
             .WithMessage("BlockBlobClient.OpenWrite only supports overwriting");
 
     }
+
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Return_Stream_Supporting_Position(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using var stream = OpenWrite(blobClient, true);
+
+        stream.Position.Should().Be(0);
+
+        stream.WriteByte(42);
+
+        stream.Position.Should().Be(1);
+
+        var data = new byte[1 * 1024 * 1024];
+
+        stream.Write(data);
+
+        stream.Position.Should().Be((1 * 1024 * 1024) + 1);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_For_Existing_Blob_With_Conditions_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World");
+
+        var conditions = new BlobRequestConditions
+        {
+            IfNoneMatch = ETag.All
+        };
+
+        var act = () => OpenWrite(blobClient, true, conditions: conditions);
+
+        act.Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 409)
+            .Where(e => e.ErrorCode == "BlobAlreadyExists");
+
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
@@ -418,14 +504,48 @@ public class BlobClientTests
         }
     }
 
-    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite)
+    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null)
     {
-        return blobClient switch
+        if (blobClient is BlobClient genericClient)
         {
-            BlobClient genericClient => genericClient.OpenWrite(overwrite),
-            BlockBlobClient blockClient => blockClient.OpenWrite(overwrite),
-            _ => throw new InvalidOperationException()
-        };
+            BlobOpenWriteOptions? options = null;
+
+            if (metadata is not null)
+            {
+                options ??= new();
+                options.Metadata = metadata;
+            }
+
+            if (conditions is not null)
+            {
+                options ??= new();
+                options.OpenConditions = conditions;
+            }
+
+            return genericClient.OpenWrite(overwrite, options);
+        }
+
+        if (blobClient is BlockBlobClient blockClient)
+        {
+            BlockBlobOpenWriteOptions? options = null;
+
+            if (metadata is not null)
+            {
+                options ??= new();
+                options.Metadata = metadata;
+            }
+
+            if (conditions is not null)
+            {
+                options ??= new();
+                options.OpenConditions = conditions;
+            }
+
+            return blockClient.OpenWrite(overwrite, options);
+        }
+
+        throw new InvalidOperationException("Unexpected client type.");
+
     }
 
 
