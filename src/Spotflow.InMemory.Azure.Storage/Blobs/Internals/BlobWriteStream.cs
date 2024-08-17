@@ -18,6 +18,9 @@ internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, lo
     private readonly List<IBlobWriteStreamInterceptor> _interceptors = [];
 
     private int _bufferPosition = 0;
+    private long _absolutePosition = 0;
+
+
     private bool _isDisposed;
 
     public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
@@ -39,6 +42,8 @@ internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, lo
                 remainingBuffer[..bytesToCopy].CopyTo(_buffer.AsMemory(_bufferPosition));
 
                 _bufferPosition += bytesToCopy;
+
+                Interlocked.Add(ref _absolutePosition, bytesToCopy);
 
                 remainingBuffer = remainingBuffer[bytesToCopy..];
 
@@ -165,7 +170,11 @@ internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, lo
 
     public override long Length => throw new NotSupportedException();
 
-    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    public override long Position
+    {
+        get => Interlocked.Read(ref _absolutePosition);
+        set => throw new NotSupportedException();
+    }
 
     public void AddInterceptor(IBlobWriteStreamInterceptor interceptor)
     {
