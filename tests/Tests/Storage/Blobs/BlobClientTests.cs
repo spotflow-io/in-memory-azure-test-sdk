@@ -24,7 +24,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -44,7 +44,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         blobClient.Exists().Value.Should().BeFalse();
 
@@ -62,7 +62,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var options = new BlobUploadOptions
         {
@@ -93,7 +93,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var options = new BlobUploadOptions
         {
@@ -126,7 +126,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         using (var stream = OpenWrite(blobClient, true))
         using (var streamWriter = new StreamWriter(stream))
@@ -147,6 +147,31 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Set_Blob_Metadata(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        blobClient.Exists().Value.Should().BeFalse();
+
+        var metadata = new Dictionary<string, string> { { "TestKey", "test-value" } };
+
+        using var stream = OpenWrite(blobClient, true, metadata);
+
+        stream.Dispose();
+
+        blobClient.GetProperties().Value.Metadata.Should().Contain("TestKey", "test-value");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void OpenWrite_Without_Overwrite_Option_Should_Be_Unsupported(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -155,7 +180,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var act = () => OpenWrite(blobClient, false);
 
@@ -164,6 +189,67 @@ public class BlobClientTests
             .WithMessage("BlockBlobClient.OpenWrite only supports overwriting");
 
     }
+
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Return_Stream_Supporting_Position(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using var stream = OpenWrite(blobClient, true);
+
+        stream.Position.Should().Be(0);
+
+        stream.WriteByte(42);
+
+        stream.Position.Should().Be(1);
+
+        var data = new byte[1 * 1024 * 1024];
+
+        stream.Write(data);
+
+        stream.Position.Should().Be((1 * 1024 * 1024) + 1);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_For_Existing_Blob_With_Conditions_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World");
+
+        var conditions = new BlobRequestConditions
+        {
+            IfNoneMatch = ETag.All
+        };
+
+        var act = () => OpenWrite(blobClient, true, conditions: conditions);
+
+        act.Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 409)
+            .Where(e => e.ErrorCode == "BlobAlreadyExists");
+
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
@@ -177,7 +263,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var act = () => blobClient.DownloadStreaming();
 
@@ -200,7 +286,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -229,7 +315,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         var ifExistsResponse = blobClient.DeleteIfExists();
 
@@ -258,7 +344,7 @@ public class BlobClientTests
 
         var blobName = Guid.NewGuid().ToString();
 
-        var blobClient = GetClient(containerClient, blobName, clientType);
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
 
         Upload(blobClient, "Hello, World!");
 
@@ -267,24 +353,142 @@ public class BlobClientTests
         properties.BlobType.Should().Be(BlobType.Block);
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        new StreamReader(stream).ReadToEnd().Should().Be("Hello, World!");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Existing_Blob_With_Position_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+
+        using var stream = blobClient.OpenRead(position: 3);
+
+        new StreamReader(stream, bufferSize: 5).ReadToEnd().Should().Be("em ipsum dolor sit amet, consectetur adipiscing elit");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Missing_Blob_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var act = () => blobClient.OpenRead();
+
+        act.Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 404)
+            .Where(e => e.ErrorCode == "BlobNotFound");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic, true)]
+    [DataRow(BlobClientType.Generic, false)]
+    [DataRow(BlobClientType.Block, true)]
+    [DataRow(BlobClientType.Block, false)]
+    public void OpenRead_For_Blob_Changed_In_Progress_Should_Respect_AllowBlobModifications_Flag(BlobClientType clientType, bool allowBlobModifications)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var random = new Random(42);
+        var data = new byte[1024];
+
+        random.NextBytes(data);
+        Upload(blobClient, data);
+        var eTag1 = blobClient.GetProperties().Value.ETag;
+
+        var clientBufferSize = 128;
+
+        var options = new BlobOpenReadOptions(allowModifications: allowBlobModifications)
+        {
+            BufferSize = clientBufferSize
+        };
+
+        using var stream = blobClient.OpenRead(options);
+
+        var dataBuffer = new byte[clientBufferSize * 10];
+
+        stream.Read(dataBuffer, 0, clientBufferSize + 1).Should().Be(clientBufferSize);
+
+        random.NextBytes(data);
+        Upload(blobClient, data);
+        var eTag2 = blobClient.GetProperties().Value.ETag;
+
+        eTag1.Should().NotBe(eTag2);
+
+        var act = () => stream.Read(dataBuffer, 0, 1);
+
+        if (allowBlobModifications)
+        {
+            act.Should().NotThrow().Which.Should().Be(1);
+        }
+        else
+        {
+            act.Should()
+                .Throw<RequestFailedException>()
+                .Where(e => e.Status == 412)
+                .Where(e => e.ErrorCode == "ConditionNotMet");
+        }
+    }
+
     public enum BlobClientType
     {
         Generic,
         Block
     }
 
-    private static BlobBaseClient GetClient(BlobContainerClient containerClient, string blobName, BlobClientType type)
-    {
-        return type switch
-        {
-            BlobClientType.Generic => containerClient.GetBlobClient(blobName),
-            BlobClientType.Block => containerClient.GetBlockBlobClient(blobName),
-        };
-    }
-
     private static void Upload(BlobBaseClient blobClient, string content, BlobUploadOptions? options = null)
     {
-        var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var bytes = Encoding.UTF8.GetBytes(content);
+        Upload(blobClient, bytes, options);
+    }
+
+    private static void Upload(BlobBaseClient blobClient, byte[] content, BlobUploadOptions? options = null)
+    {
+        var stream = new MemoryStream(content);
 
         if (blobClient is BlobClient genericClient)
         {
@@ -300,14 +504,48 @@ public class BlobClientTests
         }
     }
 
-    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite)
+    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null)
     {
-        return blobClient switch
+        if (blobClient is BlobClient genericClient)
         {
-            BlobClient genericClient => genericClient.OpenWrite(overwrite),
-            BlockBlobClient blockClient => blockClient.OpenWrite(overwrite),
-            _ => throw new InvalidOperationException()
-        };
+            BlobOpenWriteOptions? options = null;
+
+            if (metadata is not null)
+            {
+                options ??= new();
+                options.Metadata = metadata;
+            }
+
+            if (conditions is not null)
+            {
+                options ??= new();
+                options.OpenConditions = conditions;
+            }
+
+            return genericClient.OpenWrite(overwrite, options);
+        }
+
+        if (blobClient is BlockBlobClient blockClient)
+        {
+            BlockBlobOpenWriteOptions? options = null;
+
+            if (metadata is not null)
+            {
+                options ??= new();
+                options.Metadata = metadata;
+            }
+
+            if (conditions is not null)
+            {
+                options ??= new();
+                options.OpenConditions = conditions;
+            }
+
+            return blockClient.OpenWrite(overwrite, options);
+        }
+
+        throw new InvalidOperationException("Unexpected client type.");
+
     }
 
 

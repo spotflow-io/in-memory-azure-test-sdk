@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Reflection;
 
 using Azure.Core;
 using Azure.Messaging.EventHubs;
@@ -12,6 +11,7 @@ using Spotflow.InMemory.Azure.EventHubs.Hooks;
 using Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.EventHubs.Internals;
 using Spotflow.InMemory.Azure.EventHubs.Resources;
+using Spotflow.InMemory.Azure.Internals;
 
 namespace Spotflow.InMemory.Azure.EventHubs;
 
@@ -253,47 +253,31 @@ public class InMemoryPartitionReceiver : PartitionReceiver
             return StartingPosition.Latest;
         }
 
-        long? sequencenceNumber = null;
-        bool? isInclusive = null;
+        var sequenceNumberObj = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "SequenceNumber");
 
-        foreach (var property in position.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Instance))
+        long? sequencenceNumber = sequenceNumberObj switch
         {
-            if (property.Name == "SequenceNumber")
-            {
-                var sequencenceNumberObj = property.GetValue(position);
-
-                sequencenceNumber = sequencenceNumberObj switch
-                {
-                    long l => l,
-                    null => null,
-                    string s => long.Parse(s, CultureInfo.InvariantCulture),
-                    _ => throw new InvalidOperationException($"SequenceNumber property with value '{sequencenceNumberObj}' has unexpected type: {sequencenceNumberObj?.GetType()}.")
-                };
-            }
-
-            if (property.Name == "IsInclusive")
-            {
-                isInclusive = (bool?) property.GetValue(position);
-            }
-
-            if (property.Name == "Offset" && property.GetValue(position) is not null)
-            {
-                throw new NotSupportedException("EventPosition with offset is not supported.");
-            }
-        }
+            long l => l,
+            null => null,
+            string s => long.Parse(s, CultureInfo.InvariantCulture),
+            _ => throw new InvalidOperationException($"SequenceNumber property with value '{sequenceNumberObj}' has unexpected type: {sequenceNumberObj?.GetType()}.")
+        };
 
         if (sequencenceNumber is null)
         {
             throw new InvalidOperationException("SequenceNumber property not available.");
         }
 
-        if (isInclusive is null)
+        var isInclusive = ReflectionUtils.ReadInternalValueProperty<bool>(position, "IsInclusive");
+
+        var offset = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "Offset");
+
+        if (offset is not null)
         {
-            throw new InvalidOperationException("IsInclusive property not available.");
+            throw new NotSupportedException("EventPosition with offset is not supported.");
         }
 
-
-        return StartingPosition.FromSequenceNumber(sequencenceNumber.Value, isInclusive.Value);
+        return StartingPosition.FromSequenceNumber(sequencenceNumber.Value, isInclusive);
     }
 
     private InMemoryPartition GetPartition()

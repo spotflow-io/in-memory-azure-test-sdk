@@ -1,6 +1,7 @@
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -142,7 +143,9 @@ public class BlobContainerClientTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    public void GetBlobs_Should_Return_Existing_Blobs()
+    [DataRow(10, 1, BlobStates.None, 10)]
+    [DataRow(10, 1, BlobStates.Uncommitted, 11)]
+    public void GetBlobs_Should_Return_Existing_Relevant_Blobs(int commitedCount, int uncommitedCount, BlobStates states, int expectedTotalCount)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 
@@ -150,15 +153,21 @@ public class BlobContainerClientTests
 
         var blobNamePrefix = Guid.NewGuid().ToString();
 
-        var count = ImplementationProvider.IsAzureConfigAvailable ? 10 : 100_000;
-
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < commitedCount; i++)
         {
-            var blobClient = containerClient.GetBlobClient($"{blobNamePrefix}_test-blob-{i:D10}");
+            var blobClient = containerClient.GetBlobClient($"{blobNamePrefix}_test-blob-commited-{i:D10}");
             blobClient.Upload(BinaryData.FromString("test"));
         }
 
-        containerClient.GetBlobs(prefix: blobNamePrefix).Should().HaveCount(count);
+        for (var i = 0; i < uncommitedCount; i++)
+        {
+            var blockBlobClient = containerClient.GetBlockBlobClient($"{blobNamePrefix}_test-blob-uncommited-{i:D10}");
+            blockBlobClient.StageBlock(Convert.ToBase64String([1]), BinaryData.FromString("test").ToStream());
+        }
+
+        containerClient.GetBlobs(prefix: blobNamePrefix, states: states)
+            .Should()
+            .HaveCount(expectedTotalCount);
     }
 
     [TestMethod]
@@ -296,4 +305,171 @@ public class BlobContainerClientTests
 
         containerClient.GetBlobs(prefix: blobName).Should().BeEmpty();
     }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GetBlobsByHierarchy_For_Empty_Container_Should_Succeed()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient(containerName: "empty");
+
+        containerClient.CreateIfNotExists();
+
+        containerClient.GetBlobsByHierarchy().Should().BeEmpty();
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_Without_Delimiter_Should_Succeed()
+    {
+        var blobs = new[] { "A/B/C", "A/B/D", "A/C", "B/C" };
+
+        var expectedItems = new[]
+        {
+            (false, "A/B/C"),
+            (false, "A/B/D"),
+            (false, "A/C"),
+            (false, "B/C")
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: null, prefix: null);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_Without_Prefix_Should_Return_Only_Top_Level_Directories_And_Blobs()
+    {
+        var blobs = new[] { "A", "A/B/C", "A/B/D", "A/C", "file.pdf", "B/C" };
+
+        var expectedItems = new[]
+        {
+            (true, "A/"),
+            (true, "B/"),
+            (false, "A"),
+            (false, "file.pdf")
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: null);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_With_Directory_Prefix_Without_Delimiter_Should_Succeeed()
+    {
+        var blobs = new[] { "A", "A/B/C", "A/B/D", "A/C", "file.pdf", "B/C" };
+
+        var expectedItems = new[]
+        {
+            (true, "A/"),
+            (false, "A")
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: "A");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_With_Directory_Prefix_Should_Succeed()
+    {
+        var blobs = new[] { "A", "A/B/C", "A/B/D", "A/C", "file.pdf", "B/C" };
+
+        var expectedItems = new[]
+        {
+            (true, "A/B/"),
+            (false, "A/C")
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: "A/");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_Targeting_Specific_Blob_Should_Succeed()
+    {
+        var blobs = new[] { "A", "A/B/C", "A/B/D", "A/C", "file.pdf", "B/C" };
+
+        var expectedItems = new[]
+        {
+            (false, "file.pdf")
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: "file.pdf");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_With_Blobs_Starting_With_Slash_Should_Succeed()
+    {
+        var blobs = new[] { "A", "A//B/C", "A/B/D" };
+
+        var expectedItems = new[]
+        {
+            (true, "A//"),
+            (true, "A/B/"),
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: "A/");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobsByHierarchy_With_Blobs_Starting_With_Slash_Without_Prefix_Should_Succeed()
+    {
+        var blobs = new[] { "/A" };
+
+        var expectedItems = new[]
+        {
+            (true, "/"),
+        };
+
+        await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: null);
+    }
+
+
+
+    private static async Task ShouldHaveBlobsHierarchyAsync(IReadOnlyList<string> blobs, IReadOnlyList<(bool IsPrefix, string Value)> expectedItems, string? delimiter, string? prefix)
+    {
+        var client = ImplementationProvider.GetBlobContainerClient();
+
+        var testPrefix = Guid.NewGuid().ToString() + "/";
+
+        client.CreateIfNotExists();
+
+        var data = BinaryData.FromString("test");
+
+        var uploadTasks = blobs.Select(name => client.UploadBlobAsync($"{testPrefix}{name}", data));
+
+        await Task.WhenAll(uploadTasks);
+
+        var queryPrefix = $"{testPrefix}{prefix}";
+
+        var actualItems = client.GetBlobsByHierarchy(prefix: queryPrefix, delimiter: delimiter).ToList();
+
+        ShouldHaveBlobsHierarchy(actualItems, expectedItems, testPrefix);
+    }
+
+    private static void ShouldHaveBlobsHierarchy(IReadOnlyList<BlobHierarchyItem> actual, IReadOnlyList<(bool IsDirectoryPrefix, string Value)> expected, string prefix)
+    {
+        var actualItems = actual.Select(i => new
+        {
+            DirectoryPrefix = (string?) i.Prefix,
+            BlobName = i.Blob?.Name
+        });
+
+        var expectedItems = expected.Select(i =>
+        {
+            var value = $"{prefix}{i.Value}";
+
+            return new
+            {
+                DirectoryPrefix = i.IsDirectoryPrefix ? value : null,
+                BlobName = i.IsDirectoryPrefix ? null : value
+            };
+        });
+
+        actualItems.Should().Equal(expectedItems);
+
+    }
+
+
+
 }

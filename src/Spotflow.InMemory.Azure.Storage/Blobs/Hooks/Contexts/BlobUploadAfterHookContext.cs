@@ -6,5 +6,5 @@ public class BlobUploadAfterHookContext(BlobUploadBeforeHookContext beforeContex
 {
     public required BinaryData Content { get; init; }
     public required BlobContentInfo BlobContentInfo { get; init; }
-    public BlobUploadBeforeHookContext beforeContext { get; } = beforeContext;
+    public BlobUploadBeforeHookContext BeforeContext { get; } = beforeContext;
 }
