@@ -20,22 +20,27 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
     public async Task<BlobDownloadInfo> DownloadAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        return (await DownloadCoreAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None)).Info;
+        var (content, properties) = await DownloadCoreAsync(options, cancellationToken);
+        var stream = new BlobReadStream(options?.Conditions, 0, content, properties, GetContent, allowModifications: false);
+        return GetDownloadInfo(content, properties, stream);
     }
 
     public async Task<BlobDownloadStreamingResult> DownloadStreamingAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var (info, content) = await DownloadCoreAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
-        return BlobsModelFactory.BlobDownloadStreamingResult(content.ToStream(), info.Details);
+        var info = await DownloadAsync(options, cancellationToken);
+        return BlobsModelFactory.BlobDownloadStreamingResult(info.Content, info.Details);
     }
 
     public async Task<BlobDownloadResult> DownloadContentAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var (info, content) = await DownloadCoreAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
-        return BlobsModelFactory.BlobDownloadResult(content, info.Details);
+        var (content, properties) = await DownloadCoreAsync(options, cancellationToken);
+
+        var details = GetDownloadInfo(content, properties, null).Details;
+
+        return BlobsModelFactory.BlobDownloadResult(content, details);
     }
 
-    private async Task<(BlobDownloadInfo Info, BinaryData Content)> DownloadCoreAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    private async Task<BlobContentWithProperties> DownloadCoreAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
         var beforeContext = new BlobDownloadBeforeHookContext(_scope, Provider, cancellationToken)
         {
@@ -44,30 +49,17 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        using var blob = AcquireBlob(cancellationToken);
-
-        if (!blob.Value.TryDownload(options, out var content, out var properties, out var error))
-        {
-            throw error.GetClientException();
-        }
-
-        var info = BlobsModelFactory.BlobDownloadInfo(
-            blobType: blob.Value.BlobType,
-            contentLength: content.GetLenght(),
-            eTag: properties.ETag,
-            lastModified: properties.LastModified,
-            content: content.ToStream()
-            );
+        var (content, properties) = GetContentWithProperties(options?.Conditions, cancellationToken);
 
         var afterContext = new BlobDownloadAfterHookContext(beforeContext)
         {
-            BlobDownloadDetails = info.Details,
+            BlobProperties = properties,
             Content = content
         };
 
         await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        return (info, content);
+        return new(content, properties);
     }
 
     public BlobProperties GetProperties(BlobRequestConditions? conditions, CancellationToken cancellationToken)
@@ -181,8 +173,15 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return block.GetInfo();
     }
 
-    public Stream OpenWrite(bool overwrite, BlobRequestConditions? conditions, long? bufferSize, CancellationToken cancellationToken)
+    public async Task<Stream> OpenWriteAsync(bool overwrite, BlobOpenWriteOptions? options, CancellationToken cancellationToken)
     {
+        var beforeContext = new BlobOpenWriteBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            Options = options
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+
         if (!overwrite)
         {
             throw new ArgumentException("BlockBlobClient.OpenWrite only supports overwriting");
@@ -190,10 +189,14 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         using var blob = AcquireBlob(cancellationToken);
 
-        if (!blob.Value.TryOpenWrite(conditions, bufferSize, out var stream, out var error))
+        if (!blob.Value.TryOpenWrite(options?.OpenConditions, options?.BufferSize, options?.Metadata, out var stream, out var error))
         {
             throw error.GetClientException();
         }
+
+        var afterContext = new BlobOpenWriteAfterHookContext(beforeContext, stream);
+
+        await ExecuteAfterHooksAsync(afterContext);
 
         return stream;
     }
@@ -257,6 +260,62 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return new InMemoryBlobContainerClient(containerUriBuilder.ToUri(), Provider);
     }
 
+
+    public async Task<Stream> OpenReadAsync(BlobOpenReadOptions options, CancellationToken cancellationToken)
+    {
+        var beforeContext = new BlobOpenReadBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            Options = options
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+
+        var (content, properties) = GetContentWithProperties(options.Conditions, cancellationToken);
+
+        var allowModifications = ReflectionUtils.ReadInternalValueProperty<bool>(options, "AllowModifications");
+
+        var stream = new BlobReadStream(options.Conditions, options.Position, content, properties, GetContent, allowModifications, options.BufferSize);
+
+        var afterContext = new BlobOpenReadAfterHookContext(beforeContext)
+        {
+            BlobProperties = properties,
+            Content = content
+        };
+
+        await ExecuteAfterHooksAsync(afterContext);
+
+        return stream;
+    }
+
+    private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, CancellationToken cancellationToken)
+    {
+        using var blob = AcquireBlob(cancellationToken);
+
+        if (!blob.Value.TryDownload(conditions, out var content, out var properties, out var error))
+        {
+            throw error.GetClientException();
+        }
+
+        return new(content, properties);
+    }
+
+    private BinaryData GetContent(RequestConditions? conditions, CancellationToken cancellationToken)
+    {
+        return GetContentWithProperties(conditions, cancellationToken).Content;
+    }
+
+    private static BlobDownloadInfo GetDownloadInfo(BinaryData content, BlobProperties properties, Stream? contentStream)
+    {
+        return BlobsModelFactory.BlobDownloadInfo(
+            blobType: BlobType.Block,
+            contentLength: content.ToMemory().Length,
+            eTag: properties.ETag,
+            lastModified: properties.LastModified,
+            content: contentStream
+            );
+    }
+
+
     private static BlobContentInfo CommitBlockListCoreUnsafe(
         IEnumerable<string> blockIds,
         InMemoryBlockBlob blob,
@@ -297,6 +356,8 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
     {
         return Provider.ExecuteHooksAsync(context);
     }
+
+
 }
 
 

@@ -272,16 +272,70 @@ public class InMemoryBlobClient : BlobClient
 
     public override Stream OpenWrite(bool overwrite, BlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return _core.OpenWrite(overwrite, options?.OpenConditions, options?.BufferSize, cancellationToken);
+        return OpenWriteAsync(overwrite, options, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Stream> OpenWriteAsync(bool overwrite, BlobOpenWriteOptions? options = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return OpenWrite(overwrite, options, cancellationToken);
+        return await _core.OpenWriteAsync(overwrite, options, cancellationToken);
     }
 
     #endregion
+
+    #region OpenRead
+
+    public override async Task<Stream> OpenReadAsync(BlobOpenReadOptions options, CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return await _core.OpenReadAsync(options, cancellationToken);
+    }
+
+    public override Stream OpenRead(BlobOpenReadOptions options, CancellationToken cancellationToken = default)
+    {
+        return OpenReadAsync(options, cancellationToken).EnsureCompleted();
+    }
+
+    public override async Task<Stream> OpenReadAsync(long position = 0, int? bufferSize = null, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+
+        var options = new BlobOpenReadOptions(allowModifications: false)
+        {
+            Position = position,
+            BufferSize = bufferSize,
+            Conditions = conditions
+        };
+
+        return await _core.OpenReadAsync(options, cancellationToken);
+    }
+
+    public override Stream OpenRead(long position = 0, int? bufferSize = null, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        return OpenReadAsync(position, bufferSize, conditions, cancellationToken).EnsureCompleted();
+    }
+
+
+    public override async Task<Stream> OpenReadAsync(bool allowBlobModifications, long position = 0, int? bufferSize = null, CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+
+        var options = new BlobOpenReadOptions(allowBlobModifications)
+        {
+            Position = position,
+            BufferSize = bufferSize
+        };
+
+        return await _core.OpenReadAsync(options, cancellationToken);
+    }
+
+    public override Stream OpenRead(bool allowBlobModifications, long position = 0, int? bufferSize = null, CancellationToken cancellationToken = default)
+    {
+        return OpenReadAsync(allowBlobModifications, position, bufferSize, cancellationToken).EnsureCompleted();
+    }
+
+    #endregion
+
 
     #region Unsupported
 
@@ -411,36 +465,6 @@ public class InMemoryBlobClient : BlobClient
     }
 
     public override Task<Response> DownloadToAsync(string path, BlobRequestConditions? conditions = null, StorageTransferOptions transferOptions = default, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Stream OpenRead(BlobOpenReadOptions options, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Stream> OpenReadAsync(BlobOpenReadOptions options, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Stream OpenRead(long position = 0, int? bufferSize = null, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Stream OpenRead(bool allowBlobModifications, long position = 0, int? bufferSize = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Stream> OpenReadAsync(long position = 0, int? bufferSize = null, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Stream> OpenReadAsync(bool allowBlobModifications, long position = 0, int? bufferSize = null, CancellationToken cancellationToken = default)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }
