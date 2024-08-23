@@ -5,6 +5,7 @@ namespace Spotflow.InMemory.Azure.Storage.Blobs.Internals;
 
 internal class InMemoryBlobContainer(string name, IDictionary<string, string>? metadata, InMemoryBlobService service)
 {
+    private readonly TimeProvider _timeProvider = service.Account.Provider.TimeProvider;
 
     private readonly object _lock = new();
     private readonly Dictionary<string, BlobEntry> _blobEntries = [];
@@ -70,7 +71,7 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
         {
             if (!_blobEntries.TryGetValue(blobName, out entry))
             {
-                var blob = new InMemoryBlockBlob(blobName, this);
+                var blob = new InMemoryBlockBlob(blobName, this, _timeProvider);
                 entry = new(blob, new(1, 1));
                 _blobEntries.Add(blobName, entry);
             }

@@ -9,7 +9,7 @@ using static Spotflow.InMemory.Azure.Storage.Blobs.Internals.InMemoryBlockBlob.S
 
 namespace Spotflow.InMemory.Azure.Storage.Blobs.Internals;
 
-internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer container)
+internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer container, TimeProvider timeProvider)
 {
     private Dictionary<string, Block>? _uncommittedBlocks = null;
     private List<Block>? _committedBlocks = null;
@@ -336,19 +336,24 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
     [MemberNotNull(nameof(_committedBlocks))]
     private void SetCommitedState(BlobHttpHeaders? headers, IDictionary<string, string>? metadata, List<Block> committedBlocks)
     {
-        var newProperties = BlobsModelFactory.BlobProperties(
-            contentLength: _committedBlocks is null ? 0 : GetContent().ToMemory().Length,
-            metadata: metadata ?? _properties?.Metadata,
-            eTag: new ETag(Guid.NewGuid().ToString()),
-            lastModified: DateTimeOffset.UtcNow,
-            contentType: headers?.ContentType ?? _properties?.ContentType,
-            contentEncoding: headers?.ContentEncoding ?? _properties?.ContentEncoding
-            );
-
-        _properties = newProperties;
         _cachedContent = null;
         _uncommittedBlocks = null;
         _committedBlocks = committedBlocks;
+
+        var now = timeProvider.GetUtcNow();
+
+
+        var createdOn = _properties?.CreatedOn ?? now;
+
+        _properties = BlobsModelFactory.BlobProperties(
+            contentLength: GetContent().ToMemory().Length,
+            metadata: metadata ?? _properties?.Metadata,
+            eTag: new ETag(Guid.NewGuid().ToString()),
+            lastModified: now,
+            contentType: headers?.ContentType ?? _properties?.ContentType,
+            contentEncoding: headers?.ContentEncoding ?? _properties?.ContentEncoding,
+            createdOn: createdOn
+            );
     }
 
     private void DeleteCore()

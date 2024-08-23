@@ -85,7 +85,8 @@ public class InMemoryEventHubProducerClient : EventHubProducerClient
 
     #region  Get properties & IDs
 
-    public override async Task<EventHubProperties> GetEventHubPropertiesAsync(CancellationToken cancellationToken = default)
+    public override async Task<EventHubProperties> GetEventHubPropertiesAsync
+        (CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
