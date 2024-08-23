@@ -342,7 +342,6 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
 
         var now = timeProvider.GetUtcNow();
 
-
         var createdOn = _properties?.CreatedOn ?? now;
 
         _properties = BlobsModelFactory.BlobProperties(
