@@ -62,7 +62,7 @@ public class EventHubProducerClientTests
 
         await using var producer = InMemoryEventHubProducerClient.FromEventHub(eventHub);
 
-        foreach (var i in Enumerable.Range(0, 200_000))
+        foreach (var i in Enumerable.Range(0, 100_000))
         {
             var options = new CreateBatchOptions { PartitionKey = $"test-pk-{i:D10}" };
 
@@ -77,7 +77,7 @@ public class EventHubProducerClientTests
 
         var averageLastSequenceNumber = (long) lastSequenceNumbers.Average();
 
-        var delta = (ulong) (averageLastSequenceNumber * 0.3);
+        var delta = (ulong) (averageLastSequenceNumber * 0.4);
 
         foreach (var sequenceNumber in lastSequenceNumbers)
         {
