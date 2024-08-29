@@ -70,7 +70,7 @@ internal class InMemoryPartition
             lastEnqueuedTime = _lastEnqueuedTime;
         }
 
-        var beginningSequenceNumber = currentSegment.Count > 0 ? currentSegment[0].SequenceNumber : -1;
+        var beginningSequenceNumber = currentSegment.Count > 0 ? currentSegment[0].SequenceNumber : lastSequenceNumber;
 
         return EventHubsModelFactory.PartitionProperties(
               eventHubName: name,
@@ -93,11 +93,6 @@ internal class InMemoryPartition
                 Array.Copy(_events, newEvents, _events.Length); // Do not zero or reuse old array because it might be still in use.
 
                 _events = newEvents;
-            }
-
-            if (_lastOffset == -1)
-            {
-                _lastOffset = 0;
             }
 
             var eventBodyMemory = eventData.EventBody.ToMemory();
@@ -162,25 +157,7 @@ internal class InMemoryPartition
             lastSequenceNumber = _lastSequenceNumber;
         }
 
-        if (currentEventsSegment.Count is 0)
-        {
-            if (position == InMemoryEventPosition.Earliest || position == InMemoryEventPosition.Latest || position.IsWaitingForNewEvents)
-            {
-                events = [];
-                nextPosition = InMemoryEventPosition.FromSequenceNumber(lastSequenceNumber, isInclusive: false, isWaitingForNewEvents: true);
-                error = null;
-                return true;
-            }
-            else
-            {
-                events = null;
-                nextPosition = null;
-                error = new TryGetEventsError.InvalidStartingSequenceNumber(position.SequenceNumber, lastSequenceNumber);
-                return false;
-            }
-        }
-
-        var beginningSequenceNumber = currentEventsSegment[0].SequenceNumber;
+        var beginningSequenceNumber = currentEventsSegment.Count > 0 ? currentEventsSegment[0].SequenceNumber : lastSequenceNumber;
 
         long startSequenceNumber;
 
@@ -218,12 +195,17 @@ internal class InMemoryPartition
             }
         }
 
+        if (currentEventsSegment.Count is 0)
+        {
+            events = [];
+            nextPosition = InMemoryEventPosition.FromSequenceNumber(lastSequenceNumber, isInclusive: false, isWaitingForNewEvents: true);
+            error = null;
+            return true;
+        }
+
         if (startSequenceNumber < beginningSequenceNumber)
         {
-            events = null;
-            nextPosition = null;
-            error = new TryGetEventsError.InvalidStartingSequenceNumber(position.SequenceNumber, beginningSequenceNumber);
-            return false;
+            startSequenceNumber = beginningSequenceNumber;
         }
 
         var startSequenceNumberNormalized = startSequenceNumber - _initialSequenceNumber - 1 - trimCount;
@@ -274,6 +256,14 @@ internal class InMemoryPartition
     private static long CalculateEventSize(EventData eventData)
     {
         long size = eventData.EventBody.ToMemory().Length;
+
+        size += 8; // SequenceNumber
+        size += 8; // Offset
+        size += 10; // EnqueuedTime
+        size += eventData.MessageId?.Length ?? 0;
+        size += eventData.ContentType?.Length ?? 0;
+        size += eventData.CorrelationId?.Length ?? 0;
+        size += eventData.PartitionKey?.Length ?? 0;
 
         size += sizeOfProperties(eventData.Properties);
         size += sizeOfProperties(eventData.SystemProperties);

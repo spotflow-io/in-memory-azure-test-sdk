@@ -5,7 +5,6 @@ using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.Time.Testing;
 
 using Spotflow.InMemory.Azure.EventHubs;
-using Spotflow.InMemory.Azure.Storage.Blobs.Internals;
 
 using Tests.Utils;
 
@@ -253,7 +252,7 @@ public class PartitionReceiverTests
         var properties3 = receiver.ReadLastEnqueuedEventProperties();
 
         properties3.SequenceNumber.Should().Be(1);
-        properties3.Offset.Should().Be(data.GetLenght());
+        properties3.Offset.Should().Be(37);
 
     }
 
@@ -331,8 +330,7 @@ public class PartitionReceiverTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    [Ignore]
-    public async Task Starting_Position_Lower_Than_Beginning_Event_Should_Fail()
+    public async Task Starting_Position_Lower_Than_Beginning_Event_Should_Return_First_Available_Event()
     {
         var inMemoryProvider = new InMemoryEventHubProvider();
         var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("previously-used-active", 1);
@@ -363,22 +361,15 @@ public class PartitionReceiverTests
 
         await using var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPosition, inMemoryEventHub);
 
-        var act = () => receiver.ReceiveBatchAsync(100);
+        var batch = await receiver.ReceiveBatchAsync(1);
 
-        var expectedMessage = $"" +
-            $"The supplied sequence number '{startingPositionSequenceNumber}' is invalid. " +
-            $"The last sequence number in the system is '{lastEnqueuedSequenceNumber}'";
-
-        await act
-            .Should()
-            .ThrowAsync<ArgumentException>()
-            .Where(e => e.Message.StartsWith(expectedMessage));
+        batch.Should().HaveCount(1);
+        batch.Single().SequenceNumber.Should().Be(beginningSequenceNumber);
     }
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    [Ignore]
-    public async Task Non_Initial_Starting_Position_For_Previously_Used_But_Currently_Empty_Event_Hub_Should_Fail()
+    public async Task Non_Initial_Starting_Position_For_Previously_Used_But_Currently_Empty_Event_Hub_Should_Succeed_For_Earlier_Or_Equal_Position_And_Fail_For_Later_Position()
     {
         var inMemoryProvider = new InMemoryEventHubProvider();
         var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("previously-used-empty", 1);
@@ -400,23 +391,32 @@ public class PartitionReceiverTests
 
         partitionProperties.IsEmpty.Should().BeTrue("otherwise test is not meaningful");
         lastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(64, "otherwise test is not meaningful");
-        beginningSequenceNumber.Should().Be(-1, "otherwise test is not meaningful");
+        beginningSequenceNumber.Should().Be(lastEnqueuedSequenceNumber);
 
-        var startingPositionSequenceNumber = beginningSequenceNumber - 10;
+        var earlyStartingPosition = EventPosition.FromSequenceNumber(beginningSequenceNumber - 10);
+        var equalStartingPosition = EventPosition.FromSequenceNumber(beginningSequenceNumber);
+        var laterStartingPosition = EventPosition.FromSequenceNumber(lastEnqueuedSequenceNumber + 10);
 
-        var startingPosition = EventPosition.FromSequenceNumber(startingPositionSequenceNumber);
+        await using var earlyReceiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", earlyStartingPosition, inMemoryEventHub);
+        var earlyBatch = await earlyReceiver.ReceiveBatchAsync(100, TimeSpan.FromSeconds(1));
+        earlyBatch.Should().BeEmpty();
 
-        await using var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPosition, inMemoryEventHub);
+        await using var equalReceiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", equalStartingPosition, inMemoryEventHub);
+        var equalBatch = await equalReceiver.ReceiveBatchAsync(100, TimeSpan.FromSeconds(1));
+        equalBatch.Should().BeEmpty();
 
-        var act = () => receiver.ReceiveBatchAsync(100);
+        await using var laterReceiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", laterStartingPosition, inMemoryEventHub);
+
+        var act = () => laterReceiver.ReceiveBatchAsync(100, TimeSpan.FromSeconds(1));
 
         var expectedMessage = $"" +
-            $"The supplied sequence number '{startingPositionSequenceNumber}' is invalid. " +
+            $"The supplied sequence number '{lastEnqueuedSequenceNumber + 10}' is invalid. " +
             $"The last sequence number in the system is '{lastEnqueuedSequenceNumber}'";
 
         await act
             .Should()
             .ThrowAsync<ArgumentException>()
             .Where(e => e.Message.StartsWith(expectedMessage));
+
     }
 }

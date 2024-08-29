@@ -65,13 +65,13 @@ public class EventHubTests
         batch0.ElementAt(0).Offset.Should().Be(43);
         batch0.ElementAt(0).EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         batch0.ElementAt(1).SequenceNumber.Should().Be(44);
-        batch0.ElementAt(1).Offset.Should().Be(43 + content.ToMemory().Length);
+        batch0.ElementAt(1).Offset.Should().Be(72);
 
         batch1.ElementAt(0).SequenceNumber.Should().Be(43);
         batch1.ElementAt(0).Offset.Should().Be(43);
         batch1.ElementAt(0).EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         batch1.ElementAt(1).SequenceNumber.Should().Be(44);
-        batch1.ElementAt(1).Offset.Should().Be(43 + content.ToMemory().Length);
+        batch1.ElementAt(1).Offset.Should().Be(72);
 
     }
 
