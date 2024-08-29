@@ -25,7 +25,7 @@ public class InMemoryEventHubNamespace
 
     public string CreateConnectionString() => EventHubConnectionStringUtils.ForNamespace(this);
 
-    public InMemoryEventHub AddEventHub(string eventHubName, int numberOfPartitions, Action<InMemoryEventHubOptions>? optionsAction = null)
+    public InMemoryEventHub AddEventHub(string eventHubName, int numberOfPartitions, InMemoryPartitionInitialState? partitionInitialState = null)
     {
         if (numberOfPartitions <= 0)
         {
@@ -37,9 +37,8 @@ public class InMemoryEventHubNamespace
 
         var options = new InMemoryEventHubOptions();
 
-        optionsAction?.Invoke(options);
 
-        var eventHub = new InMemoryEventHub(eventHubName, properties, options, this);
+        var eventHub = new InMemoryEventHub(eventHubName, properties, partitionInitialState, this);
 
         if (!_eventHubs.TryAdd(eventHubName, eventHub))
         {

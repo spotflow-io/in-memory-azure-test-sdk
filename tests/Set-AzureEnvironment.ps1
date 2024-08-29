@@ -6,7 +6,8 @@ param (
     [Parameter(Mandatory = $true)][string] $ResourceGroupName,
     [Parameter(Mandatory = $true)][string] $StorageAccountName,
     [Parameter(Mandatory = $true)][string] $ServiceBusNamespaceName,
-    [Parameter(Mandatory = $true)][string] $KeyVaultName
+    [Parameter(Mandatory = $true)][string] $KeyVaultName,
+    [Parameter(Mandatory = $true)][string] $EventHubNamespaceName
     )
 
 $env:SPOTFLOW_USE_AZURE = $UseAzure
@@ -15,6 +16,7 @@ $env:AZURE_SUBSCRIPTION_ID = $SubscriptionId
 $env:AZURE_RESOURCE_GROUP_NAME = $ResourceGroupName
 $env:AZURE_STORAGE_ACCOUNT_NAME = $StorageAccountName
 $env:AZURE_SERVICE_BUS_NAMESPACE_NAME = $ServiceBusNamespaceName
+$env:AZURE_EVENT_HUB_NAMESPACE_NAME = $EventHubNamespaceName
 $env:AZURE_KEY_VAULT_NAME = $KeyVaultName
 
 Write-Host "Azure environment set."
