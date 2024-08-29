@@ -248,12 +248,16 @@ If the given feature is not supported, than the method will just ignore any para
 | Event System Property - Content Type                                         | ✅           |
 | Event System Property - Correlation Id                                       | ✅           |
 | Event System Property - Message Id                                           | ✅           |
+| Event System Property - Offset (\*)                                          | ✅           |
+| Event System Property - Sequence Number                                      | ✅           |
 | Offset-based starting positions                                              | ❌           |
 | Partition keys                                                               | ✅           |
 | Properties - Event Hub                                                       | ✅           |
 | Properties - Partition                                                       | ✅           |
 | Randomization of initial sequence numbers for event hub partitions           | ✅           |
 | Sequence number based starting positions (including `Earliest` and `Latest`) | ✅           |
+
+(\*) The value of `Offset` system property is based on event data size. Calculation of the the event data size is not exactly the same as for real Azure Event Hubs but should be good enough for testing purposes. 
 
 ## Hooks
 

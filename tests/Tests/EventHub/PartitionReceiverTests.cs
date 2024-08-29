@@ -57,6 +57,29 @@ public class PartitionReceiverTests
     }
 
     [TestMethod]
+    public async Task Subsequent_Receive_Should_Return_Empty_Batch_If_All_Existing_Events_Are_Received()
+    {
+        var eventHub = new InMemoryEventHubProvider()
+            .AddNamespace()
+            .AddEventHub("test-eh", 1)
+            .AddConsumerGroup("test-cg");
+
+        await using var producer = InMemoryEventHubProducerClient.FromEventHub(eventHub);
+        await using var receiver = InMemoryPartitionReceiver.FromEventHub("test-cg", "0", EventPosition.Earliest, eventHub);
+
+        await producer.SendAsync([new EventData(BinaryData.FromString("test-data-0"))]);
+
+        var batch1 = await receiver.ReceiveBatchAsync(100);
+
+        batch1.Select(e => e.EventBody.ToString()).Should().Equal(["test-data-0"]);
+
+        var batch2 = await receiver.ReceiveBatchAsync(1, TimeSpan.FromSeconds(1));
+
+        batch2.Should().BeEmpty();
+
+    }
+
+    [TestMethod]
     public async Task SpecificStartingPosition_Exclusive_ShouldReturnOnlySpecificEvents()
     {
         var eventHub = new InMemoryEventHubProvider()

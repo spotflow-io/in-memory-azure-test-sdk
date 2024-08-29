@@ -116,8 +116,6 @@ internal class InMemoryPartition
                 _lastOffset += _previousEventBodyLenght;
             }
 
-            _previousEventBodyLenght = eventBodyCopy.Length;
-
             var eventDataPropertiesCopy = new Dictionary<string, object>(eventData.Properties);
             var eventDataSystemPropertiesCopy = new Dictionary<string, object>(eventData.SystemProperties);
 
@@ -136,6 +134,8 @@ internal class InMemoryPartition
             eventWithSystemProperties.ContentType = eventData.ContentType;
 
             _events[_eventCount++] = eventWithSystemProperties;
+
+            _previousEventBodyLenght = CalculateEventSize(eventWithSystemProperties);
 
         }
 
@@ -200,12 +200,22 @@ internal class InMemoryPartition
             startSequenceNumber = position.IsInclusive ? position.SequenceNumber : position.SequenceNumber + 1;
         }
 
-        if (startSequenceNumber > lastSequenceNumber && !position.IsWaitingForNewEvents)
+        if (startSequenceNumber > lastSequenceNumber)
         {
-            events = null;
-            nextPosition = null;
-            error = new TryGetEventsError.InvalidStartingSequenceNumber(position.SequenceNumber, lastSequenceNumber);
-            return false;
+            if (position.IsWaitingForNewEvents)
+            {
+                events = [];
+                nextPosition = InMemoryEventPosition.FromSequenceNumber(lastSequenceNumber, isInclusive: false, isWaitingForNewEvents: true);
+                error = null;
+                return true;
+            }
+            else
+            {
+                events = null;
+                nextPosition = null;
+                error = new TryGetEventsError.InvalidStartingSequenceNumber(position.SequenceNumber, lastSequenceNumber);
+                return false;
+            }
         }
 
         if (startSequenceNumber < beginningSequenceNumber)
@@ -258,6 +268,44 @@ internal class InMemoryPartition
             {
                 return EventHubExceptionFactory.InvalidStartingSequenceNumber(requested, last);
             }
+        }
+    }
+
+    private static long CalculateEventSize(EventData eventData)
+    {
+        long size = eventData.EventBody.ToMemory().Length;
+
+        size += sizeOfProperties(eventData.Properties);
+        size += sizeOfProperties(eventData.SystemProperties);
+
+        return size;
+
+        static long sizeOfProperties(IEnumerable<KeyValuePair<string, object>> properties)
+        {
+            var size = 0L;
+
+            foreach (var (key, value) in properties)
+            {
+                var valueSize = value switch
+                {
+                    string s => s.Length,
+                    byte[] b => b.Length,
+                    int => sizeof(int),
+                    long => sizeof(long),
+                    float => sizeof(float),
+                    double => sizeof(double),
+                    decimal => sizeof(decimal),
+                    bool => sizeof(bool),
+                    DateTimeOffset => 10,
+                    DateTime => 10,
+                    Guid g => 16,
+                    var obj => obj.ToString()?.Length ?? 0
+                };
+
+                size += key.Length + valueSize;
+            }
+
+            return size;
         }
     }
 
