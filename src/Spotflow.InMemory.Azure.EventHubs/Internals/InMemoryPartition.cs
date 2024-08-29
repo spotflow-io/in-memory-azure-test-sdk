@@ -220,7 +220,7 @@ internal class InMemoryPartition
 
         if (startSequenceNumberNormalized >= currentEventsSegment.Count)
         {
-            throw new InvalidOperationException("Start sequence number is larger or equal to count.");
+            throw new InvalidOperationException($"Start sequence number ({startSequenceNumber}) is larger or equal to count {currentEventsSegment.Count}.");
         }
 
         // Number is surely less than int.MaxValue so the conversaion is safe.
