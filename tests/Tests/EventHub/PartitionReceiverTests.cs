@@ -5,7 +5,6 @@ using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.Time.Testing;
 
 using Spotflow.InMemory.Azure.EventHubs;
-using Spotflow.InMemory.Azure.EventHubs.Resources;
 using Spotflow.InMemory.Azure.Storage.Blobs.Internals;
 
 using Tests.Utils;

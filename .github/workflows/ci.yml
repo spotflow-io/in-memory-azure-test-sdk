@@ -101,7 +101,8 @@ jobs:
           AZURE_RESOURCE_GROUP_NAME: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
           AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
           AZURE_SERVICE_BUS_NAMESPACE_NAME: ${{ secrets.AZURE_SERVICE_BUS_NAMESPACE_NAME }}
-          AZURE_KEY_VAULT_NAME: ${{ secrets.AZURE_KEY_VAULT_NAME }}     
+          AZURE_KEY_VAULT_NAME: ${{ secrets.AZURE_KEY_VAULT_NAME }}
+          AZURE_EVENT_HUB_NAMESPACE_NAME: ${{ secrets.AZURE_EVENT_HUB_NAMESPACE_NAME }}     
 
   publish-nuget-org:
     runs-on: ubuntu-latest

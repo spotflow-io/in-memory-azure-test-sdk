@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 
 using Azure.Core;
 using Azure.Messaging.EventHubs;
@@ -11,7 +10,6 @@ using Spotflow.InMemory.Azure.EventHubs.Hooks;
 using Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.EventHubs.Internals;
 using Spotflow.InMemory.Azure.EventHubs.Resources;
-using Spotflow.InMemory.Azure.Internals;
 
 namespace Spotflow.InMemory.Azure.EventHubs;
 

@@ -1,8 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-using Azure;
 using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Consumer;
 
 using Spotflow.InMemory.Azure.EventHubs.Resources;
 
