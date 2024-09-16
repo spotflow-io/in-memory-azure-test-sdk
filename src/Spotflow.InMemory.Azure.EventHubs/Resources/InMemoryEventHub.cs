@@ -130,7 +130,7 @@ public class InMemoryEventHub
     {
         var hashBytes = SHA384.HashData(Encoding.UTF8.GetBytes(partitionKey));
 
-        var hashCode = BinaryPrimitives.ReadInt32BigEndian(hashBytes.AsSpan(0, 8));
+        var hashCode = BinaryPrimitives.ReadInt32BigEndian(hashBytes.AsSpan(0, 4));
 
         var mod = Properties.PartitionIds.Length;
 
