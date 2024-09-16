@@ -350,6 +350,9 @@ public class BlobClientTests
 
         var properties = blobClient.GetProperties().Value;
 
+        properties.ContentLength.Should().Be(13);
+        properties.CreatedOn.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromHours(1));
+        properties.LastModified.Should().Be(properties.CreatedOn);
         properties.BlobType.Should().Be(BlobType.Block);
     }
 
