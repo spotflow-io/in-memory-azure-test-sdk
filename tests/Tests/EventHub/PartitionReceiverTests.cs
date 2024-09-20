@@ -464,4 +464,38 @@ public class PartitionReceiverTests
 
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Starting_Position_For_New_Event_Hub_Should_Be_Minus1_Both_Inclusive_And_Exlusive_Position_Should_Succeed()
+    {
+        var inMemoryProvider = new InMemoryEventHubProvider();
+        var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("not-used", 1);
+
+        await using var consumerClient = await ImplementationProvider.GetEventHubConsumerClientAsync(inMemoryEventHub);
+
+        var partitionProperties = await consumerClient.GetPartitionPropertiesAsync("0");
+
+        var lastEnqueuedSequenceNumber = partitionProperties.LastEnqueuedSequenceNumber;
+
+        lastEnqueuedSequenceNumber.Should().Be(-1, "othewise test is not meaningful.");
+
+        var startingPositionInclusive = EventPosition.FromSequenceNumber(-1, isInclusive: true);
+
+        await using (var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionInclusive, inMemoryEventHub))
+        {
+            var batch = await receiver.ReceiveBatchAsync(1, TimeSpan.Zero);
+
+            batch.Should().BeEmpty();
+        }
+
+        var startingPositionExclusive = EventPosition.FromSequenceNumber(-1, isInclusive: false);
+
+        await using (var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionExclusive, inMemoryEventHub))
+        {
+            var batch = await receiver.ReceiveBatchAsync(1, TimeSpan.Zero);
+
+            batch.Should().BeEmpty();
+        }
+    }
+
 }

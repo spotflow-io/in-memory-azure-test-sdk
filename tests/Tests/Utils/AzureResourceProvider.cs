@@ -155,14 +155,27 @@ internal class AzureResourceProvider
             .GetEventHubs()
             .CreateOrUpdateAsync(WaitUntil.Completed, "previously-used-active", eventHubData);
 
+        var ehNotUsedTask = eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "not-used", eventHubData);
+
         var ehPreviouslyUsedEmpty = await ehPreviouslyUsedEmptyTask;
         var ehPreviouslyUsedActive = await ehPreviouslyUsedActiveTask;
+        var ehNotUsed = await ehNotUsedTask;
+
+        eventHubData.Status = EventHubEntityStatus.SendDisabled;
+
+        await eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "not-used", eventHubData);
+
 
         return new()
         {
             Namespace = eventHubNamespace,
             EventHubPreviouslyUsedEmpty = ehPreviouslyUsedEmpty.Value,
-            EventHubPreviouslyUsedActive = ehPreviouslyUsedActive.Value
+            EventHubPreviouslyUsedActive = ehPreviouslyUsedActive.Value,
+            EventHubNotUsed = ehNotUsed.Value
         };
     }
 
@@ -233,5 +246,7 @@ internal class AzureResourceProvider
         public required EventHubsNamespaceResource Namespace { get; init; }
         public required EventHubResource EventHubPreviouslyUsedEmpty { get; init; }
         public required EventHubResource EventHubPreviouslyUsedActive { get; init; }
+
+        public required EventHubResource EventHubNotUsed { get; init; }
     }
 }
