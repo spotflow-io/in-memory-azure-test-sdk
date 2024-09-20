@@ -179,7 +179,7 @@ internal class InMemoryPartition
 
         if (startSequenceNumber > lastSequenceNumber)
         {
-            if (position.IsWaitingForNewEvents)
+            if (position.IsWaitingForNewEvents || !position.IsInclusive)
             {
                 events = [];
                 nextPosition = InMemoryEventPosition.FromSequenceNumber(lastSequenceNumber, isInclusive: false, isWaitingForNewEvents: true);
@@ -190,7 +190,7 @@ internal class InMemoryPartition
             {
                 events = null;
                 nextPosition = null;
-                error = new TryGetEventsError.InvalidStartingSequenceNumber(position.SequenceNumber, lastSequenceNumber);
+                error = new TryGetEventsError.InvalidStartingSequenceNumber(position, lastSequenceNumber);
                 return false;
             }
         }
@@ -244,7 +244,7 @@ internal class InMemoryPartition
     {
         public abstract Exception GetClientException();
 
-        public class InvalidStartingSequenceNumber(long requested, long last) : TryGetEventsError
+        public class InvalidStartingSequenceNumber(InMemoryEventPosition requested, long last) : TryGetEventsError
         {
             public override Exception GetClientException()
             {

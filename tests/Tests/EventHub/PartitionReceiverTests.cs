@@ -292,7 +292,7 @@ public class PartitionReceiverTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    public async Task Starting_Position_Higher_Than_Latest_Event_Should_Fail()
+    public async Task Starting_Position_Higher_Than_Latest_Event_Should_Fail_When_Inclusive_And_Succeed_When_Exclusive()
     {
         var inMemoryProvider = new InMemoryEventHubProvider();
         var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("previously-used-active", 1);
@@ -312,21 +312,32 @@ public class PartitionReceiverTests
         lastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(64, "otherwise test is not meaningful");
 
         var startingPositionSequenceNumber = lastEnqueuedSequenceNumber + 10_000;
-        var startingPosition = EventPosition.FromSequenceNumber(startingPositionSequenceNumber);
 
-        await using var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPosition, inMemoryEventHub);
+        var startingPositionInclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: true);
+        var startingPositionExclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: false);
 
-        var act = () => receiver.ReceiveBatchAsync(100);
+        await using var receiverInclusive = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionInclusive, inMemoryEventHub);
+        await using var receiverExclusive = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionExclusive, inMemoryEventHub);
+
+        var actInclusive = () => receiverInclusive.ReceiveBatchAsync(100);
 
         var expectedMessage = $"" +
             $"The supplied sequence number '{startingPositionSequenceNumber}' is invalid. " +
             $"The last sequence number in the system is '{lastEnqueuedSequenceNumber}'";
 
-        await act
+        await actInclusive
             .Should()
             .ThrowAsync<ArgumentException>()
             .Where(e => e.Message.StartsWith(expectedMessage));
+
+        var exlusiveBatch = await receiverExclusive.ReceiveBatchAsync(100, TimeSpan.Zero);
+
+        exlusiveBatch.Should().BeEmpty();
+
     }
+
+
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
@@ -419,4 +430,5 @@ public class PartitionReceiverTests
             .Where(e => e.Message.StartsWith(expectedMessage));
 
     }
+
 }

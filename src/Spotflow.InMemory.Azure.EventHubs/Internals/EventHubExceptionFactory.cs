@@ -65,11 +65,12 @@ internal static class EventHubExceptionFactory
         }
     }
 
-    public static ArgumentException InvalidStartingSequenceNumber(long supplied, long last)
+    public static ArgumentException InvalidStartingSequenceNumber(InMemoryEventPosition supplied, long last)
     {
         var message = $"" +
-            $"The supplied sequence number '{supplied}' is invalid. " +
-            $"The last sequence number in the system is '{last}'";
+            $"The supplied sequence number '{supplied.SequenceNumber}' is invalid. " +
+            $"The last sequence number in the system is '{last}'. " +
+            $"Is supplied sequence number inclusive = {supplied.IsInclusive}.";
 
         return new(message);
     }
