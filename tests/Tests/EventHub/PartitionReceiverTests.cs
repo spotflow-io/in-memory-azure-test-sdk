@@ -292,7 +292,7 @@ public class PartitionReceiverTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
-    public async Task Starting_Position_Higher_Than_Latest_Event_Should_Fail_When_Inclusive_And_Succeed_When_Exclusive()
+    public async Task Starting_Position_Higher_Than_Latest_Event_Should_Fail()
     {
         var inMemoryProvider = new InMemoryEventHubProvider();
         var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("previously-used-active", 1);
@@ -311,32 +311,65 @@ public class PartitionReceiverTests
 
         lastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(64, "otherwise test is not meaningful");
 
-        var startingPositionSequenceNumber = lastEnqueuedSequenceNumber + 1;
+        var startingPositionSequenceNumber = lastEnqueuedSequenceNumber + 10_000;
 
-        var startingPositionInclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: true);
-        var startingPositionExclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: false);
+        var startingPosition = EventPosition.FromSequenceNumber(startingPositionSequenceNumber);
 
-        await using var receiverInclusive = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionInclusive, inMemoryEventHub);
-        await using var receiverExclusive = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionExclusive, inMemoryEventHub);
+        await using var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPosition, inMemoryEventHub);
 
-        var actInclusive = () => receiverInclusive.ReceiveBatchAsync(100);
+        var act = () => receiver.ReceiveBatchAsync(100);
 
         var expectedMessage = $"" +
             $"The supplied sequence number '{startingPositionSequenceNumber}' is invalid. " +
             $"The last sequence number in the system is '{lastEnqueuedSequenceNumber}'";
 
-        await actInclusive
+        await act
             .Should()
             .ThrowAsync<ArgumentException>()
             .Where(e => e.Message.StartsWith(expectedMessage));
-
-        var exlusiveBatch = await receiverExclusive.ReceiveBatchAsync(100, TimeSpan.Zero);
-
-        exlusiveBatch.Should().BeEmpty();
-
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Starting_Position_As_Last_Sequence_Number_Should_Succeed_As_Inclusive_And_Exclusive()
+    {
+        var inMemoryProvider = new InMemoryEventHubProvider();
+        var inMemoryEventHub = inMemoryProvider.AddNamespace().AddEventHub("previously-used-active", 1);
 
+        var events = Enumerable.Range(0, 128).Select(i => new EventData());
+
+        await using (var producerClient = await ImplementationProvider.GetEventHubProducerClientAsync(inMemoryEventHub))
+        {
+            await producerClient.SendAsync(events);
+        }
+
+        await using var consumerClient = await ImplementationProvider.GetEventHubConsumerClientAsync(inMemoryEventHub);
+
+        var partitionProperties = await consumerClient.GetPartitionPropertiesAsync("0");
+
+        var lastEnqueuedSequenceNumber = partitionProperties.LastEnqueuedSequenceNumber;
+
+        lastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(64, "otherwise test is not meaningful");
+
+        var startingPositionSequenceNumber = lastEnqueuedSequenceNumber;
+
+        var startingPositionInclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: true);
+
+        await using (var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionInclusive, inMemoryEventHub))
+        {
+            var batch = await receiver.ReceiveBatchAsync(100, TimeSpan.FromMilliseconds(100));
+            batch.Should().ContainSingle(e => e.SequenceNumber == lastEnqueuedSequenceNumber);
+        }
+
+        var startingPositionExclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: false);
+
+        await using (var receiver = await ImplementationProvider.GetEventHubPartitionReceiverAsync("0", startingPositionExclusive, inMemoryEventHub))
+        {
+            var batch = await receiver.ReceiveBatchAsync(100, TimeSpan.Zero);
+            batch.Should().BeEmpty();
+        }
+
+    }
 
 
     [TestMethod]
