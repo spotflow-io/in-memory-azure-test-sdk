@@ -311,7 +311,7 @@ public class PartitionReceiverTests
 
         lastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(64, "otherwise test is not meaningful");
 
-        var startingPositionSequenceNumber = lastEnqueuedSequenceNumber + 10_000;
+        var startingPositionSequenceNumber = lastEnqueuedSequenceNumber + 1;
 
         var startingPositionInclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: true);
         var startingPositionExclusive = EventPosition.FromSequenceNumber(startingPositionSequenceNumber, isInclusive: false);
