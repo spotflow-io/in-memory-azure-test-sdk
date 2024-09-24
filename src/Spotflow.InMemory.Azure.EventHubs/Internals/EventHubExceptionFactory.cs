@@ -19,7 +19,6 @@ internal static class EventHubExceptionFactory
         return new($"In-memory event hub client does not support feature '{featureName}'.");
     }
 
-
     public static EventHubsException ConsumerGroupNotFound(InMemoryEventHub eventHub, string consumerGroupName)
     {
         return ResourceNotFound(consumerGroupName, $"Consumer Group '{consumerGroupName}' not found in '{eventHub}'.");
@@ -66,4 +65,13 @@ internal static class EventHubExceptionFactory
         }
     }
 
+    public static ArgumentException InvalidStartingSequenceNumber(InMemoryEventPosition supplied, long last)
+    {
+        var message = $"" +
+            $"The supplied sequence number '{supplied.SequenceNumber}' is invalid. " +
+            $"The last sequence number in the system is '{last}'. " +
+            $"Is supplied sequence number inclusive = {supplied.IsInclusive}.";
+
+        return new(message);
+    }
 }

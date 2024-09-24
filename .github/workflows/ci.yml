@@ -22,7 +22,7 @@ jobs:
     outputs:
       version: ${{ steps.resolve-version.outputs.version }}
       publish-nuget-org: ${{ startsWith(github.ref, 'refs/tags/v') }}
-      publish-github: ${{ github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
+      publish-github: ${{ !startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,7 +101,8 @@ jobs:
           AZURE_RESOURCE_GROUP_NAME: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
           AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
           AZURE_SERVICE_BUS_NAMESPACE_NAME: ${{ secrets.AZURE_SERVICE_BUS_NAMESPACE_NAME }}
-          AZURE_KEY_VAULT_NAME: ${{ secrets.AZURE_KEY_VAULT_NAME }}     
+          AZURE_KEY_VAULT_NAME: ${{ secrets.AZURE_KEY_VAULT_NAME }}
+          AZURE_EVENT_HUB_NAMESPACE_NAME: ${{ secrets.AZURE_EVENT_HUB_NAMESPACE_NAME }}     
 
   publish-nuget-org:
     runs-on: ubuntu-latest

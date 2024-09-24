@@ -17,6 +17,7 @@ internal static class AzureTestConfig
         public required Uri TableServiceUri { get; init; }
         public required string ServiceBusNamespaceName { get; init; }
         public required string KeyVaultName { get; init; }
+        public required string EventHubNamespaceName { get; init; }
         public required Uri KeyVaultUri { get; init; }
         public required TokenCredential TokenCredential { get; init; }
     }
@@ -44,13 +45,17 @@ internal static class AzureTestConfig
             BlobServiceUri = new($"https://{storageAccountName}.blob.core.windows.net/"),
             TableServiceUri = new($"https://{storageAccountName}.table.core.windows.net/"),
             ServiceBusNamespaceName = GetRequiredString("AZURE_SERVICE_BUS_NAMESPACE_NAME"),
+            EventHubNamespaceName = GetRequiredString("AZURE_EVENT_HUB_NAMESPACE_NAME"),
             KeyVaultName = keyVaultName,
             KeyVaultUri = new($"https://{keyVaultName}.vault.azure.net/"),
             TokenCredential = new AzureCliCredential(options: new() { TenantId = tenantId })
         };
     }
 
-    public static bool IsAvailable([NotNullWhen(true)] out Values? result) => (result = _values) is not null;
+    public static bool IsAvailable([NotNullWhen(true)] out Values? result)
+    {
+        return (result = _values) is not null;
+    }
 
     private static bool UseAzure()
     {

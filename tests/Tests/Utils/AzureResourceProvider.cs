@@ -1,6 +1,8 @@
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
+using Azure.ResourceManager.EventHubs;
+using Azure.ResourceManager.EventHubs.Models;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
@@ -16,6 +18,7 @@ internal class AzureResourceProvider
     private readonly Lazy<Task<ServiceBusResources>> _serviceBusResources;
     private readonly Lazy<Task<StorageAccountResource>> _storageAccountResource;
     private readonly Lazy<Task<KeyVaultResource>> _keyVaultResource;
+    private readonly Lazy<Task<EventHubResources>> _eventHubResources;
 
     public AzureResourceProvider(AzureTestConfig.Values config)
     {
@@ -25,6 +28,7 @@ internal class AzureResourceProvider
         _serviceBusResources = new(PrepareServiceBusResourcesAsync);
         _storageAccountResource = new(PrepareStorageAccountResourceAsync);
         _keyVaultResource = new(PrepareKeyVaultResourceAsync);
+        _eventHubResources = new(PrepareEventHubResourceAsync);
     }
 
     public AzureTestConfig.Values Config { get; }
@@ -44,6 +48,7 @@ internal class AzureResourceProvider
 
     public Task<StorageAccountResource> GetStorageAccountAsync() => _storageAccountResource.Value;
     public Task<ServiceBusResources> GetServiceBusResources() => _serviceBusResources.Value;
+    public Task<EventHubResources> GetEventHubResourcesAsync() => _eventHubResources.Value;
 
     private async Task<ResourceGroupResource> PrepareResourceGroupAsync()
     {
@@ -126,6 +131,80 @@ internal class AzureResourceProvider
         };
     }
 
+    private async Task<EventHubResources> PrepareEventHubResourceAsync()
+    {
+        var resourceGroup = await _resourceGroup.Value;
+
+        var eventHubNamespace = await GetOrCreateEventHubNamespaceAsync(resourceGroup, Config.EventHubNamespaceName);
+
+        var eventHubData = new EventHubData()
+        {
+            PartitionCount = 1,
+            RetentionDescription = new()
+            {
+                RetentionTimeInHours = 1,
+                CleanupPolicy = CleanupPolicyRetentionDescription.Delete
+            }
+        };
+
+        var ehPreviouslyUsedEmptyTask = eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "previously-used-empty", eventHubData);
+
+        var ehPreviouslyUsedActiveTask = eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "previously-used-active", eventHubData);
+
+        var ehNotUsedTask = eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "not-used", eventHubData);
+
+        var ehPreviouslyUsedEmpty = await ehPreviouslyUsedEmptyTask;
+        var ehPreviouslyUsedActive = await ehPreviouslyUsedActiveTask;
+        var ehNotUsed = await ehNotUsedTask;
+
+        eventHubData.Status = EventHubEntityStatus.SendDisabled;
+
+        await eventHubNamespace
+            .GetEventHubs()
+            .CreateOrUpdateAsync(WaitUntil.Completed, "not-used", eventHubData);
+
+
+        return new()
+        {
+            Namespace = eventHubNamespace,
+            EventHubPreviouslyUsedEmpty = ehPreviouslyUsedEmpty.Value,
+            EventHubPreviouslyUsedActive = ehPreviouslyUsedActive.Value,
+            EventHubNotUsed = ehNotUsed.Value
+        };
+    }
+
+    private static async Task<EventHubsNamespaceResource> GetOrCreateEventHubNamespaceAsync(ResourceGroupResource resourceGroup, string name)
+    {
+        var data = new EventHubsNamespaceData(resourceGroup.Data.Location)
+        {
+            Sku = new EventHubsSku(EventHubsSkuName.Basic)
+        };
+
+        var eventHubNamespaces = resourceGroup.GetEventHubsNamespaces();
+
+        var existingEventHubNamespace = await eventHubNamespaces.GetIfExistsAsync(name);
+
+        EventHubsNamespaceResource eventHubNamespace;
+
+        if (existingEventHubNamespace.HasValue)
+        {
+            eventHubNamespace = existingEventHubNamespace.Value!;
+        }
+        else
+        {
+            var response = await eventHubNamespaces.CreateOrUpdateAsync(WaitUntil.Completed, name, data: data);
+            eventHubNamespace = response.Value;
+        }
+
+        return eventHubNamespace;
+    }
+
     private async Task<KeyVaultResource> PrepareKeyVaultResourceAsync()
     {
         var resourceGroup = await _resourceGroup.Value;
@@ -160,5 +239,14 @@ internal class AzureResourceProvider
                 (false, false) => QueueWithoutSessions,
             };
         }
+    }
+
+    public class EventHubResources
+    {
+        public required EventHubsNamespaceResource Namespace { get; init; }
+        public required EventHubResource EventHubPreviouslyUsedEmpty { get; init; }
+        public required EventHubResource EventHubPreviouslyUsedActive { get; init; }
+
+        public required EventHubResource EventHubNotUsed { get; init; }
     }
 }

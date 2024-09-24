@@ -22,7 +22,7 @@ public class InMemoryEventHub
     public InMemoryEventHub(
         string name,
         EventHubProperties properties,
-        InMemoryEventHubOptions options,
+        InMemoryPartitionInitialState? partitionInitialState,
         InMemoryEventHubNamespace @namespace)
     {
         Namespace = @namespace;
@@ -30,7 +30,7 @@ public class InMemoryEventHub
         Properties = properties ?? throw new ArgumentNullException(nameof(properties));
         _consumerGroups = new(StringComparer.OrdinalIgnoreCase);
         _consumerGroups[DefaultConsumerGroupName] = 1;
-        _partitions = CreatePartitions(Properties.PartitionIds, options, this);
+        _partitions = CreatePartitions(Properties.PartitionIds, partitionInitialState, this);
     }
 
     public IReadOnlyDictionary<string, PartitionProperties> GetPartitionProperties()
@@ -38,32 +38,13 @@ public class InMemoryEventHub
         return _partitions.ToDictionary(kv => kv.Key, kv => kv.Value.GetProperties(), StringComparer.Ordinal);
     }
 
-    public long GetInitialSequenceNumber(string partitionId)
-    {
-        if (!_partitions.TryGetValue(partitionId, out var partition))
-        {
-            throw new InvalidOperationException($"Partition '{partitionId}' not found in event hub '{Name}' in namespace {Namespace.Name}.");
-        }
-
-        return partition.InitialSequenceNumber;
-    }
-
-    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryEventHubOptions options, InMemoryEventHub parent)
+    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryPartitionInitialState? partitionInitialState, InMemoryEventHub parent)
     {
         var result = new Dictionary<string, InMemoryPartition>(StringComparer.Ordinal);
 
-        Random? random = null;
-
-        if (options.RandomizeInitialSequenceNumbers)
-        {
-            random = options.RandomizationSeed is null ? Random.Shared : new(options.RandomizationSeed.Value);
-        }
-
         foreach (var id in partitionIds)
         {
-            var initialSequenceNumber = random is null ? 0 : random.Next(options.MinRandomInitialSequenceNumber, options.MaxRandomInitialSequenceNumber + 1);
-
-            result[id] = new(id, initialSequenceNumber, parent);
+            result[id] = new(id, partitionInitialState, parent);
         }
 
         return result;
@@ -90,6 +71,12 @@ public class InMemoryEventHub
         }
 
         return this;
+    }
+
+    public void TriggerRetentionPolicy(string partitionId, int deleteCount)
+    {
+        var partition = GetPartition(partitionId);
+        partition.TriggerRetentionPolicy(deleteCount);
     }
 
     internal InMemoryPartition GetRoundRobinPartition()

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 
 using Azure.Core;
 using Azure.Messaging.EventHubs;
@@ -11,7 +10,6 @@ using Spotflow.InMemory.Azure.EventHubs.Hooks;
 using Spotflow.InMemory.Azure.EventHubs.Hooks.Contexts;
 using Spotflow.InMemory.Azure.EventHubs.Internals;
 using Spotflow.InMemory.Azure.EventHubs.Resources;
-using Spotflow.InMemory.Azure.Internals;
 
 namespace Spotflow.InMemory.Azure.EventHubs;
 
@@ -20,11 +18,10 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     private readonly SemaphoreSlim _receiveLock = new(1, 1);
     private readonly object _lastEnqueuedEventPropertiesLock = new();
 
-
-    private readonly StartingPosition _startingPosition;
+    private readonly InMemoryEventPosition _startingPosition;
     private readonly TimeProvider _timeProvider;
 
-    private Position? _position;
+    private InMemoryEventPosition? _position;
 
     private LastEnqueuedEventProperties? _lastEnqueuedEventProperties;
 
@@ -71,7 +68,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     {
         Provider = provider;
         _timeProvider = provider.TimeProvider;
-        _startingPosition = ResolveStartingPosition(startingPosition);
+        _startingPosition = InMemoryEventPosition.FromEventPosition(startingPosition);
         _scope = new(provider.GetNamespaceNameFromHostname(FullyQualifiedNamespace), EventHubName, ConsumerGroup, PartitionId);
     }
 
@@ -175,7 +172,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
 
         var startTime = _timeProvider.GetTimestamp();
 
-        IReadOnlyList<EventData> events = [];
+        IReadOnlyList<EventData> events;
 
         await _receiveLock.WaitAsync(cancellationToken);
 
@@ -183,18 +180,28 @@ public class InMemoryPartitionReceiver : PartitionReceiver
         {
             if (_position is null)
             {
-                _position = partition.ResolvePosition(_startingPosition);
+                _position = _startingPosition;
             }
 
-
-            while (!cancellationToken.IsCancellationRequested)
+            while (true)
             {
-                events = partition.GetEvents(_position.Value, maximumEventCount);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    events = [];
+                    break;
+                }
+
+                if (!partition.TryGetEvents(_position.Value, maximumEventCount, out var fetchedEvents, out var nextPosition, out var error))
+                {
+                    throw error.GetClientException();
+                }
 
                 var elapsedTime = _timeProvider.GetElapsedTime(startTime);
 
-                if (events.Count > 0 || elapsedTime > maximumWaitTime)
+                if (fetchedEvents.Count > 0 || elapsedTime > maximumWaitTime)
                 {
+                    _position = nextPosition;
+                    events = fetchedEvents;
                     break;
                 }
 
@@ -202,11 +209,6 @@ public class InMemoryPartitionReceiver : PartitionReceiver
             }
 
             var partitionProperties = partition.GetProperties();
-
-            if (events.Count > 0)
-            {
-                _position = Position.FromSequenceNumber(events[^1].SequenceNumber, false);
-            }
 
             lock (_lastEnqueuedEventPropertiesLock)
             {
@@ -240,45 +242,6 @@ public class InMemoryPartitionReceiver : PartitionReceiver
     }
 
     #endregion
-
-    private static StartingPosition ResolveStartingPosition(EventPosition position)
-    {
-        if (position == EventPosition.Earliest)
-        {
-            return StartingPosition.Earliest;
-        }
-
-        if (position == EventPosition.Latest)
-        {
-            return StartingPosition.Latest;
-        }
-
-        var sequenceNumberObj = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "SequenceNumber");
-
-        long? sequencenceNumber = sequenceNumberObj switch
-        {
-            long l => l,
-            null => null,
-            string s => long.Parse(s, CultureInfo.InvariantCulture),
-            _ => throw new InvalidOperationException($"SequenceNumber property with value '{sequenceNumberObj}' has unexpected type: {sequenceNumberObj?.GetType()}.")
-        };
-
-        if (sequencenceNumber is null)
-        {
-            throw new InvalidOperationException("SequenceNumber property not available.");
-        }
-
-        var isInclusive = ReflectionUtils.ReadInternalValueProperty<bool>(position, "IsInclusive");
-
-        var offset = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "Offset");
-
-        if (offset is not null)
-        {
-            throw new NotSupportedException("EventPosition with offset is not supported.");
-        }
-
-        return StartingPosition.FromSequenceNumber(sequencenceNumber.Value, isInclusive);
-    }
 
     private InMemoryPartition GetPartition()
     {

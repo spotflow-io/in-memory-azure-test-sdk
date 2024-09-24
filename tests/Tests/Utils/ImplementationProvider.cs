@@ -1,11 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 
 using Azure.Data.Tables;
+using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Primitives;
+using Azure.Messaging.EventHubs.Producer;
 using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 
 using Spotflow.InMemory.Azure.Auth;
+using Spotflow.InMemory.Azure.EventHubs;
+using Spotflow.InMemory.Azure.EventHubs.Resources;
 using Spotflow.InMemory.Azure.KeyVault;
 using Spotflow.InMemory.Azure.KeyVault.Secrets;
 using Spotflow.InMemory.Azure.ServiceBus;
@@ -177,6 +182,60 @@ internal static class ImplementationProvider
         return true;
     }
 
+    public static async Task<EventHubProducerClient> GetEventHubProducerClientAsync(InMemoryEventHub inMemoryEventHub)
+    {
+        if (TryWithAzure(out var config, out var azure))
+        {
+            var eventHubResources = await azure.GetEventHubResourcesAsync();
 
+            return new EventHubProducerClient(
+                eventHubResources.Namespace.Data.ServiceBusEndpoint,
+                inMemoryEventHub.Name,
+                config.TokenCredential);
 
+        }
+        else
+        {
+            return InMemoryEventHubProducerClient.FromEventHub(inMemoryEventHub);
+        }
+    }
+
+    public static async Task<EventHubConsumerClient> GetEventHubConsumerClientAsync(InMemoryEventHub inMemoryEventHub)
+    {
+        if (TryWithAzure(out var config, out var azure))
+        {
+            var eventHubResources = await azure.GetEventHubResourcesAsync();
+
+            return new EventHubConsumerClient(
+                "$default",
+                eventHubResources.Namespace.Data.ServiceBusEndpoint,
+                inMemoryEventHub.Name,
+                config.TokenCredential);
+
+        }
+        else
+        {
+            return InMemoryEventHubConsumerClient.FromEventHub(inMemoryEventHub);
+        }
+    }
+
+    public static async Task<PartitionReceiver> GetEventHubPartitionReceiverAsync(string partitionId, EventPosition startingPosition, InMemoryEventHub inMemoryEventHub)
+    {
+        if (TryWithAzure(out var config, out var azure))
+        {
+            var eventHubResources = await azure.GetEventHubResourcesAsync();
+
+            return new PartitionReceiver(
+                "$default",
+                partitionId,
+                startingPosition,
+                eventHubResources.Namespace.Data.ServiceBusEndpoint,
+                inMemoryEventHub.Name,
+                config.TokenCredential);
+        }
+        else
+        {
+            return InMemoryPartitionReceiver.FromEventHub(partitionId, startingPosition, inMemoryEventHub);
+        }
+    }
 }
