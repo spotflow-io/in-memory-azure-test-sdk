@@ -74,6 +74,7 @@ public class EventHubProducerClientTests
         await producer.SendAsync([eventWithBody]);
         var eventWithBodyBatch = await consumer.ReceiveBatchAsync(1, TimeSpan.Zero);
         eventWithBodyBatch.Single().Offset.Should().Be(59);
+    }
 
     [TestMethod]
     [DataRow(1)]

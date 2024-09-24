@@ -38,17 +38,7 @@ public class InMemoryEventHub
         return _partitions.ToDictionary(kv => kv.Key, kv => kv.Value.GetProperties(), StringComparer.Ordinal);
     }
 
-    public long GetInitialSequenceNumber(string partitionId)
-    {
-        if (!_partitions.TryGetValue(partitionId, out var partition))
-        {
-            throw new InvalidOperationException($"Partition '{partitionId}' not found in event hub '{Name}' in namespace {Namespace.Name}.");
-        }
-
-        return partition.InitialSequenceNumber;
-    }
-
-    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryEventHubOptions options, InMemoryEventHub parent)
+    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryPartitionInitialState? partitionInitialState, InMemoryEventHub parent)
     {
         var result = new Dictionary<string, InMemoryPartition>(StringComparer.Ordinal);
 
