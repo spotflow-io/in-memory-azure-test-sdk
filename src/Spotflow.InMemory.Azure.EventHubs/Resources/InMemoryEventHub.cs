@@ -33,9 +33,24 @@ public class InMemoryEventHub
         _partitions = CreatePartitions(Properties.PartitionIds, partitionInitialState, this);
     }
 
-    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryPartitionInitialState? partitionInitialState, InMemoryEventHub parent)
+    public IReadOnlyDictionary<string, PartitionProperties> GetPartitionProperties()
     {
-        var result = new Dictionary<string, InMemoryPartition>();
+        return _partitions.ToDictionary(kv => kv.Key, kv => kv.Value.GetProperties(), StringComparer.Ordinal);
+    }
+
+    public long GetInitialSequenceNumber(string partitionId)
+    {
+        if (!_partitions.TryGetValue(partitionId, out var partition))
+        {
+            throw new InvalidOperationException($"Partition '{partitionId}' not found in event hub '{Name}' in namespace {Namespace.Name}.");
+        }
+
+        return partition.InitialSequenceNumber;
+    }
+
+    private static IReadOnlyDictionary<string, InMemoryPartition> CreatePartitions(string[] partitionIds, InMemoryEventHubOptions options, InMemoryEventHub parent)
+    {
+        var result = new Dictionary<string, InMemoryPartition>(StringComparer.Ordinal);
 
         foreach (var id in partitionIds)
         {
@@ -110,13 +125,13 @@ public class InMemoryEventHub
 
     internal InMemoryPartition GetPartitionByKey(string partitionKey)
     {
-        var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(partitionKey));
+        var hashBytes = SHA384.HashData(Encoding.UTF8.GetBytes(partitionKey));
 
         var hashCode = BinaryPrimitives.ReadInt32BigEndian(hashBytes.AsSpan(0, 4));
 
-        hashCode -= int.MinValue;
+        var mod = Properties.PartitionIds.Length;
 
-        var partitionId = hashCode % Properties.PartitionIds.Length;
+        var partitionId = ((hashCode % mod) + mod) % mod;
 
         return GetPartition(PartitionIdFromInt(partitionId));
     }
