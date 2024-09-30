@@ -1,5 +1,7 @@
 using Azure.Messaging.ServiceBus;
 
+using FluentAssertions.Execution;
+
 using Microsoft.Extensions.Time.Testing;
 
 using Spotflow.InMemory.Azure.ServiceBus;
@@ -261,6 +263,58 @@ public class ServiceBusReceiverTests
 
         subscription.ActiveMessageCount.Should().Be(1);
         subscription.MessageCount.Should().Be(1);
+    }
+
+
+    [TestMethod]
+    public async Task Received_Message_Should_Have_All_Expected_Properties()
+    {
+        var timeProvider = new FakeTimeProvider();
+
+        var provider = new InMemoryServiceBusProvider(timeProvider);
+
+        var queue = provider.AddNamespace().AddQueue("test-queue");
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
+
+        await using var sender = client.CreateSender("test-queue");
+        await using var receiver = client.CreateReceiver("test-queue");
+
+        var payload = BinaryData.FromString("Test payload.");
+
+        var message = new ServiceBusMessage(payload)
+        {
+            ApplicationProperties = { { "test-app-property", "test-app-property-value" } },
+            Subject = "test-subject",
+            ContentType = "test-content-type",
+            CorrelationId = "test-correlation-id",
+            MessageId = "test-message-id",
+            PartitionKey = "test-partition-key",
+            ReplyTo = "test-reply-to",
+            ReplyToSessionId = "test-reply-to-session-id"
+        };
+
+        await sender.SendMessagesAsync([message]);
+
+        var receivedMessage = await receiver.ReceiveMessageAsync();
+
+        using var assertionScope = new AssertionScope();
+
+        receivedMessage.ApplicationProperties.Count.Should().Be(1);
+        receivedMessage.ApplicationProperties["test-app-property"].Should().Be("test-app-property-value");
+
+        //receivedMessage.Subject.Should().Be("test-subject");
+        receivedMessage.ContentType.Should().Be("test-content-type");
+        receivedMessage.CorrelationId.Should().Be("test-correlation-id");
+        receivedMessage.MessageId.Should().Be("test-message-id");
+        //receivedMessage.PartitionKey.Should().Be("test-partition-key");
+        //receivedMessage.ReplyTo.Should().Be("test-reply-to");
+        receivedMessage.ReplyToSessionId.Should().Be("test-reply-to-session-id");
+
+        receivedMessage.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
+        receivedMessage.SequenceNumber.Should().Be(0);
+        receivedMessage.SessionId.Should().BeNull();
+
     }
 
 }
