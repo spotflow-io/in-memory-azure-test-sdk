@@ -232,23 +232,23 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
             throw new InvalidOperationException($"Unsupported receive mode: {receiveMode}.");
         }
 
-
-
         return ServiceBusModelFactory.ServiceBusReceivedMessage(
               body: message.Body,
               messageId: message.MessageId,
               sessionId: message.SessionId,
               replyToSessionId: message.ReplyToSessionId,
+              replyTo: message.ReplyTo,
               timeToLive: message.TimeToLive,
               correlationId: message.CorrelationId,
               contentType: message.ContentType,
               enqueuedTime: timeProvider.GetUtcNow(),
               properties: message.ApplicationProperties,
+              subject: message.Subject,
               lockTokenGuid: lockToken,
               lockedUntil: lockedUntil,
-              sequenceNumber: sequenceNumber
+              sequenceNumber: sequenceNumber,
+              partitionKey: message.PartitionKey
               );
-
     }
 
     private void ReleaseExpiredMessagesUnsafe()

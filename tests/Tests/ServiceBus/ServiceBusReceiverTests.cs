@@ -303,12 +303,12 @@ public class ServiceBusReceiverTests
         receivedMessage.ApplicationProperties.Count.Should().Be(1);
         receivedMessage.ApplicationProperties["test-app-property"].Should().Be("test-app-property-value");
 
-        //receivedMessage.Subject.Should().Be("test-subject");
+        receivedMessage.Subject.Should().Be("test-subject");
         receivedMessage.ContentType.Should().Be("test-content-type");
         receivedMessage.CorrelationId.Should().Be("test-correlation-id");
         receivedMessage.MessageId.Should().Be("test-message-id");
-        //receivedMessage.PartitionKey.Should().Be("test-partition-key");
-        //receivedMessage.ReplyTo.Should().Be("test-reply-to");
+        receivedMessage.PartitionKey.Should().Be("test-partition-key");
+        receivedMessage.ReplyTo.Should().Be("test-reply-to");
         receivedMessage.ReplyToSessionId.Should().Be("test-reply-to-session-id");
 
         receivedMessage.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
