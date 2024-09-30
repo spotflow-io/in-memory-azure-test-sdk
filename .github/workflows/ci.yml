@@ -80,7 +80,7 @@ jobs:
   test-with-azure-infra:
     runs-on: ubuntu-latest
     environment: azure
-    if: github.repository == 'spotflow-io/in-memory-azure-test-sdk'
+    if: ${{ github.secret_source == 'Actions' }}
     permissions: 
       contents: read
       id-token: write
@@ -108,7 +108,7 @@ jobs:
   publish-nuget-org:
     runs-on: ubuntu-latest
     needs: [init, build, test-with-azure-infra]
-    if: ${{ github.repository == 'spotflow-io/in-memory-azure-test-sdk' && needs.init.outputs.publish-nuget-org == 'true' }}
+    if: ${{ needs.init.outputs.publish-nuget-org == 'true' }}
     environment: nuget-org
     steps:
       - name: Download Nugets
@@ -123,7 +123,7 @@ jobs:
     needs: [init, build, test-with-azure-infra]
     permissions:
       packages: write
-    if: ${{ github.repository == 'spotflow-io/in-memory-azure-test-sdk' && needs.init.outputs.publish-github == 'true' }}
+    if: ${{ needs.init.outputs.publish-github == 'true' }}
     steps:
       - name: Download Nugets
         uses: actions/download-artifact@v4
