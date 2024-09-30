@@ -233,6 +233,7 @@ If the given feature is not supported, than the method will just ignore any para
 | Deferred messages               | ❌           |
 | Dead-letter queues              | ❌           |
 | Duplicate detection             | ❌           |
+| Partitioning                    | ❌           |
 | `PeekLock` receive mode         | ✅           |
 | Processors                      | ❌           |
 | Queues                          | ✅           |
