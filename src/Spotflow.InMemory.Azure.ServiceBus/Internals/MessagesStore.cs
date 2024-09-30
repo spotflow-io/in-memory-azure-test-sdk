@@ -237,6 +237,7 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
               messageId: message.MessageId,
               sessionId: message.SessionId,
               replyToSessionId: message.ReplyToSessionId,
+              replyTo: message.ReplyTo,
               timeToLive: message.TimeToLive,
               correlationId: message.CorrelationId,
               contentType: message.ContentType,
@@ -245,7 +246,8 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
               subject: message.Subject,
               lockTokenGuid: lockToken,
               lockedUntil: lockedUntil,
-              sequenceNumber: sequenceNumber
+              sequenceNumber: sequenceNumber,
+              partitionKey: message.PartitionKey
               );
     }
 
