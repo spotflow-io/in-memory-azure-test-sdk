@@ -100,8 +100,8 @@ The in-memory clients have similar constructors as real clients but they all als
 
 ## Maintainers
 
--   [Tomáš Pajurek](https://github.com/tomas-pajurek) (Spotflow)
--   [David Nepožitek](https://github.com/DavidNepozitek) (Spotflow)
+-   [Tomáš Pajurek](https://github.com/tomas-pajurek) ([Spotflow](https://spotflow.io))
+-   [David Nepožitek](https://github.com/DavidNepozitek) ([Spotflow](https://spotflow.io))
 
 ## Contributing
 
