@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 
 using Azure;
@@ -118,7 +119,7 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
-    public void OpenWrite_And_Dispose_Should_Create_Blob(BlobClientType clientType)
+    public void OpenWrite_Should_Create_Blob_With_Content(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 
@@ -131,16 +132,92 @@ public class BlobClientTests
         using (var stream = OpenWrite(blobClient, true))
         using (var streamWriter = new StreamWriter(stream))
         {
-
-            blobClient.DownloadContent().Value.Content.ToString().Should().BeEmpty();
-
             streamWriter.Write("test-data1\n");
             streamWriter.Write("test-data2\n");
         }
 
         blobClient.DownloadContent().Value.Content.ToString().Should().Be("test-data1\ntest-data2\n");
 
+        ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 1, uncommited: 0);
     }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_And_Dispose_Immediately_Should_Create_Empty_Blob(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using (var stream = OpenWrite(blobClient, true))
+        using (var streamWriter = new StreamWriter(stream))
+        {
+            // Intentionally empty
+        }
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().BeEmpty();
+
+        ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 0, uncommited: 0);
+
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_And_Without_Dispose_Should_Create_Empty_Blob(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using var stream = OpenWrite(blobClient, true);
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().BeEmpty();
+
+        ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 0, uncommited: 0);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Flush_And_Dispose_Should_Be_Idempotent(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using (var stream = OpenWrite(blobClient, true))
+        using (var streamWriter = new StreamWriter(stream))
+        {
+            streamWriter.Write("test-data1\n");
+            streamWriter.Write("test-data2\n");
+
+            stream.Flush();
+            stream.Flush();
+            stream.Flush();
+        }
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().Be("test-data1\ntest-data2\n");
+
+        ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 1, uncommited: 0);
+    }
+
 
 
     [TestMethod]
@@ -551,5 +628,19 @@ public class BlobClientTests
 
     }
 
+    private static void ShouldHaveBlocks(BlockBlobClient client, int? commited, int? uncommited)
+    {
+        var blockList = client.GetBlockList().Value;
+
+        if (commited.HasValue)
+        {
+            blockList.CommittedBlocks.Should().HaveCount(commited.Value);
+        }
+
+        if (uncommited.HasValue)
+        {
+            blockList.UncommittedBlocks.Should().HaveCount(uncommited.Value);
+        }
+    }
 
 }
