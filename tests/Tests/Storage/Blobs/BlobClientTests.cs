@@ -5,6 +5,8 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 
+using Spotflow.InMemory.Azure.Storage.FluentAssertions;
+
 using Tests.Utils;
 
 namespace Tests.Storage.Blobs;
@@ -324,6 +326,41 @@ public class BlobClientTests
             .Where(e => e.Status == 409)
             .Where(e => e.ErrorCode == "BlobAlreadyExists");
 
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Stream_Should_Create_Block_And_Commit_On_Each_Flush(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        using (var stream = OpenWrite(blobClient, true))
+        {
+            blobClient.Should().HaveNoCommittedBlocks();
+
+            stream.WriteByte(1);
+            stream.Flush();
+
+            blobClient.Should().HaveCommittedBlocks(1);
+
+            stream.WriteByte(2);
+            stream.Flush();
+
+            blobClient.Should().HaveCommittedBlocks(2);
+
+            stream.WriteByte(2);
+
+        }
+
+        blobClient.Should().HaveCommittedBlocks(3);
     }
 
 

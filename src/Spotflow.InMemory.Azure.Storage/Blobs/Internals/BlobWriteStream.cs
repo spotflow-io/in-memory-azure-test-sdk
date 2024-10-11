@@ -146,8 +146,16 @@ internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, lo
 
             _blocks.Add(blockId);
 
+            var commitResult = await blobClient.CommitBlockListAsync(_blocks, options: _commitOptions, cancellationToken);
+
+            var newETag = commitResult.Value.ETag;
+
+            _commitOptions.Conditions.IfMatch = newETag;
+            _stageOptions.Conditions.IfMatch = newETag;
+
             _bufferPosition = 0;
         }
+
 
         foreach (var interceptor in _interceptors)
         {
