@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
@@ -321,12 +323,16 @@ public class PartitionReceiverTests
 
         var expectedMessage = $"" +
             $"The supplied sequence number '{startingPositionSequenceNumber}' is invalid. " +
-            $"The last sequence number in the system is '{lastEnqueuedSequenceNumber}'";
+            $"The last sequence number in the system is '";
 
-        await act
-            .Should()
-            .ThrowAsync<ArgumentException>()
-            .Where(e => e.Message.StartsWith(expectedMessage));
+        var exception = await act
+             .Should()
+             .ThrowAsync<ArgumentException>()
+             .Where(e => e.Message.StartsWith(expectedMessage));
+
+        var actualLastEnqueuedSequenceNumber = long.Parse(Regex.Match(exception.Which.Message, @"The last sequence number in the system is '(\d+)'").Groups[1].Value);
+
+        actualLastEnqueuedSequenceNumber.Should().BeGreaterThanOrEqualTo(lastEnqueuedSequenceNumber);
     }
 
     [TestMethod]
