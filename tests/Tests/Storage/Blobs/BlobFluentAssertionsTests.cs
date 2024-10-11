@@ -383,7 +383,7 @@ public class BlobFluentAssertionsTests
         act.Should()
             .Throw<AssertFailedException>()
             .WithMessage("" +
-            "Expected block.Name to be \"XdGVzdC1ibG9jay0x\" with a length of 17, but \"dGVzdC1ibG9jay0x\" has a length of 16, differs near \"dGV\" (index 0).*" +
+            "Expected * to be \"XdGVzdC1ibG9jay0x\" with a length of 17, but \"dGVzdC1ibG9jay0x\" has a length of 16, differs near \"dGV\" (index 0).*" +
             "With Blob:*https://*/test-container/test-blob*" +
             "With Block:*#0");
 
