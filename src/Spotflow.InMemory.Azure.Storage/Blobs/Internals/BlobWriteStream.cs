@@ -136,22 +136,26 @@ internal class BlobWriteStream(InMemoryBlockBlobClient blobClient, ETag eTag, lo
 
     private async Task FlushUnsafeAsync(CancellationToken cancellationToken)
     {
-        var blockId = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        if (_bufferPosition > 0)
+        {
+            var blockId = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 
-        using var content = new MemoryStream(_buffer, 0, _bufferPosition);
+            using var content = new MemoryStream(_buffer, 0, _bufferPosition);
 
-        await blobClient.StageBlockAsync(blockId, content, options: _stageOptions, cancellationToken);
+            await blobClient.StageBlockAsync(blockId, content, options: _stageOptions, cancellationToken);
 
-        _blocks.Add(blockId);
+            _blocks.Add(blockId);
 
-        var commitResult = await blobClient.CommitBlockListAsync(_blocks, options: _commitOptions, cancellationToken);
+            var commitResult = await blobClient.CommitBlockListAsync(_blocks, options: _commitOptions, cancellationToken);
 
-        var newETag = commitResult.Value.ETag;
+            var newETag = commitResult.Value.ETag;
 
-        _commitOptions.Conditions.IfMatch = newETag;
-        _stageOptions.Conditions.IfMatch = newETag;
+            _commitOptions.Conditions.IfMatch = newETag;
+            _stageOptions.Conditions.IfMatch = newETag;
 
-        _bufferPosition = 0;
+            _bufferPosition = 0;
+        }
+
 
         foreach (var interceptor in _interceptors)
         {
