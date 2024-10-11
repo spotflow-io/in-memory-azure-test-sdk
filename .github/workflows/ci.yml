@@ -15,6 +15,7 @@ on:
         - '*.md'
         - 'docs/**'
         - '.github/workflows/purge-packages.yml'
+    merge_group:
 
 jobs:
   init:
