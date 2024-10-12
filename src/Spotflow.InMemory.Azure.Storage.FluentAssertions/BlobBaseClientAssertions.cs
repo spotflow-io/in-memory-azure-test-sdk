@@ -139,6 +139,15 @@ public class BlobBaseClientAssertions(BlobBaseClient subject)
         return HaveUncommittedBlocks(0, because: because, becauseArgs: becauseArgs);
     }
 
+
+    /// <summary>
+    /// Asserts that blob has expected number of committed blocks with expected sizes.
+    /// </summary>
+    /// <param name="expectedBlockSizes">
+    /// Expected sizes of individual blocks in the block list order.
+    /// If an item in the array is set to <c>null</c>, the size of the particular block is not checked.
+    /// </param>
+    /// <returns></returns>
     [CustomAssertion]
     public AndConstraint<BlobBaseClientAssertions> HaveCommittedBlocksWithSizes(int?[] expectedBlockSizes, string? because = null, params object[] becauseArgs)
     {

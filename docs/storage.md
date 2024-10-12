@@ -445,7 +445,20 @@ Namespace: `Spotflow.InMemory.Azure.Storage.FluentAssertions`
 
 ### `BlobClientBase`
 
--   `.Should().ExistAsync(...)`: returns immediately if the blob exists or waits for some time for the blob to be created before failing.
+`.Should()`
+
+-   `.Exist()`: asserts that the blob exist at the given time..
+-   `.Exist(TimeSpan waitTime)`: returns immediately if the blob exist or waits for some time for the blob to be deleted before failing.
+-   `.MatchName(string expectedNamePattern)`: asserts that the blob name matches expected FluentAssertion wildcard pattern.
+-   `.HaveSize()`: asserts that blob size equals to expected size.
+-   `.BeEmpty()`: asserts that blob size is 0.
+-   `.HaveContent(string expectedContent)`: interprets blob content as UTF-8 string and asserts it equals to the expected content.
+-   `.HaveCommittedBlocks(int expectedCount)`: asserts that blob has expected number of committed blocks.
+-   `.HaveCommittedBlocksWithSizes(int?[] expectedBlockSizes)`: asserts that blob has expected number of committed blocks with expected sizes.
+-   `.HaveCommittedBlock(int blockOrdinal, Action<BlobBlock> blockAssertion)`: asserts that blob has committed block with expected properties.
+-   `.HaveNoCommittedBlocks()`: asserts that blob has no committed blocks.
+-   `.HaveUncommittedBlocks(int expectedCount)`: asserts that blob has expected number of uncommitted blocks.
+-   `.HaveNoUncommittedBlocks()`: asserts that blob has no uncommitted blocks.
 
 ## Hooks
 
