@@ -115,14 +115,15 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
 
     public override async Task<IReadOnlyList<ServiceBusReceivedMessage>> ReceiveMessagesAsync(int maxMessages, TimeSpan? maxWaitTime = null, CancellationToken cancellationToken = default)
     {
-        return await ReceiveMessagesCoreAsync(maxMessages, maxWaitTime, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+        return await ReceiveMessagesCoreAsync(maxMessages, maxWaitTime, cancellationToken);
     }
 
     private async Task<IReadOnlyList<ServiceBusReceivedMessage>> ReceiveMessagesCoreAsync(int maxMessages, TimeSpan? maxWaitTime, CancellationToken cancellationToken)
     {
         var beforeContext = new ReceiveBatchBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var messages = await _getStore().ReceiveAsync(maxMessages, maxWaitTime ?? _defaultMaxWaitTime, ReceiveMode, cancellationToken);
 
@@ -131,21 +132,22 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
             Messages = messages
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return messages;
     }
 
     public override async Task<ServiceBusReceivedMessage?> ReceiveMessageAsync(TimeSpan? maxWaitTime = null, CancellationToken cancellationToken = default)
     {
-        return await ReceiveMessageCoreAsync(maxWaitTime, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+        return await ReceiveMessageCoreAsync(maxWaitTime, cancellationToken);
     }
 
     private async Task<ServiceBusReceivedMessage?> ReceiveMessageCoreAsync(TimeSpan? maxWaitTime, CancellationToken cancellationToken)
     {
         var beforeContext = new ReceiveMessageBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var message = await ServiceBusClientUtils.ReceiveSingleAsync(_getStore(), maxWaitTime ?? _defaultMaxWaitTime, ReceiveMode, cancellationToken);
 
@@ -154,7 +156,7 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
             Message = message
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return message;
     }
@@ -165,7 +167,7 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
 
         var beforeContext = new ReceiveBatchBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var messages = new List<ServiceBusReceivedMessage>();
 
@@ -180,7 +182,7 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
             Messages = messages
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
     }
 
     #endregion
