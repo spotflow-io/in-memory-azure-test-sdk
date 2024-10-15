@@ -79,66 +79,47 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
             ReleaseExpiredMessagesUnsafe();
         }
 
-        var result = new List<ServiceBusReceivedMessage>();
+        var result = new List<ServiceBusReceivedMessage>(maxMessages);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        cts.CancelAfter(maxWaitTime);
-
-        while (result.Count < maxMessages)
+        while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested(); // Use just the callers CT on purpose.
-
-            bool shouldWait;
+            cancellationToken.ThrowIfCancellationRequested(); // Throw if user cancelled the operation and no messages are available
 
             lock (_syncObj)
             {
-                EnqueuedServiceBusMessage? message;
-
-                if (_reenqueuedMessages.TryDequeue(out var expiredMessage))
+                while (result.Count < maxMessages && _reenqueuedMessages.TryDequeue(out var expiredMessage))
                 {
-                    message = expiredMessage;
-                }
-                else if (_enqueuedMessages.TryDequeue(out var enqueuedMessage))
-                {
-                    message = enqueuedMessage;
-                }
-                else
-                {
-                    message = null;
-                }
-
-                if (message is not null)
-                {
-                    var receivedMessage = FinishReceiveMessageUnsafe(message, receiveMode);
+                    var receivedMessage = FinishReceiveMessageUnsafe(expiredMessage, receiveMode);
                     result.Add(receivedMessage);
-                    shouldWait = false;
                 }
-                else
+
+                while (result.Count < maxMessages && _enqueuedMessages.TryDequeue(out var enqueuedMessage))
                 {
-                    _newMessageAdded.Reset();
-                    shouldWait = true;
+                    var receivedMessage = FinishReceiveMessageUnsafe(enqueuedMessage, receiveMode);
+                    result.Add(receivedMessage);
                 }
             }
 
-            if (shouldWait)
+            if (result.Count > 0)
             {
-                try
-                {
-                    _newMessageAdded.Wait(cts.Token);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) // Requested is cancelled by the caller
-                {
-                    throw;
-                }
-                catch (OperationCanceledException) // Max wait time is reached
-                {
-                    return result;
-                }
+                return result;
             }
+
+            try
+            {
+                _newMessageAdded.Wait(cts.Token);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) // Requested is cancelled by the caller
+            {
+                throw;
+            }
+            catch (OperationCanceledException) // Max wait time is reached
+            {
+                return result;
+            }
+
         }
 
-        return result;
     }
 
     public bool CompleteMessage(ServiceBusReceivedMessage message)
