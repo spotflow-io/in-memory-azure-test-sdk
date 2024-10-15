@@ -4,6 +4,8 @@ using Microsoft.Extensions.Time.Testing;
 
 using Spotflow.InMemory.Azure.ServiceBus;
 
+using Tests.Utils;
+
 namespace Tests.ServiceBus;
 
 [TestClass]
@@ -80,54 +82,97 @@ public class ServiceBusSessionsReceiverTests
     }
 
     [TestMethod]
-    public async Task Empty_Session_Is_Not_Available()
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Accepting_Specific_Empty_Session_Should_Not_Fail_And_Return_No_Message()
     {
-        var timeProvider = new FakeTimeProvider();
+        await using var client = await ImplementationProvider.GetServiceBusClientAsync();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var sessionId = Guid.NewGuid().ToString();
 
-        var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true });
+        await using var sessionReceiver = await client.AcceptSessionAsync("test-queue-with-sessions-empty", sessionId);
 
-        var clientOptions = new ServiceBusClientOptions { RetryOptions = new() { MaxDelay = TimeSpan.FromMinutes(3) } };
+        var messages = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
 
-        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, clientOptions);
+        messages.Should().BeEmpty();
+    }
 
-        await using var sender = client.CreateSender("test-queue");
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Accepting_Specific_Empty_Session_Should_Not_Fail_And_Subsequently_Sent_Messages_Should_Be_Received()
+    {
+        await using var client = await ImplementationProvider.GetServiceBusClientAsync();
 
-        await sender.SendMessageAsync(new(BinaryData.FromString("Test Message")) { SessionId = "session-1" });
+        var queueName = "test-queue-with-sessions";
 
-        await using (var sessionReceiver = await client.AcceptSessionAsync("test-queue", "session-1"))
-        {
-            var receivedMessage = await sessionReceiver.ReceiveMessageAsync();
+        var sessionId = Guid.NewGuid().ToString();
 
-            receivedMessage.Body.ToString().Should().Be("Test Message");
+        await using var sessionReceiver = await client.AcceptSessionAsync(queueName, sessionId);
 
-            await sessionReceiver.CompleteMessageAsync(receivedMessage);
-        }
+        var messagesBeforeSend = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
 
-        var withSessionIdAct = () => client.AcceptSessionAsync("test-queue", "session-1");
+        messagesBeforeSend.Should().BeEmpty();
 
-        var withoutSessionIdAct = async () =>
-        {
-            var task = client.AcceptNextSessionAsync("test-queue");
+        await using var sender = client.CreateSender(queueName);
 
-            while (!task.IsCompleted)
-            {
-                timeProvider.Advance(TimeSpan.FromMinutes(1));
-                await Task.Delay(100);
-            }
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")) { SessionId = sessionId });
 
-            await task;
-        };
+        var messagesAfterSend = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
 
-        await withSessionIdAct.Should()
-            .ThrowAsync<ServiceBusException>()
-            .Where(e => e.Reason == ServiceBusFailureReason.GeneralError);
+        messagesAfterSend.Should().HaveCount(1);
+        messagesAfterSend[0].Body.ToString().Should().Be("Hello, world!");
 
-        await withoutSessionIdAct.Should()
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Accepting_Next_Session_On_Empty_Queue_Should_Timeout()
+    {
+        var clientOptions = new ServiceBusClientOptions();
+
+        clientOptions.RetryOptions.MaxRetries = 0;
+        clientOptions.RetryOptions.MaxDelay = TimeSpan.FromSeconds(2);
+        clientOptions.RetryOptions.TryTimeout = TimeSpan.FromSeconds(2);
+        clientOptions.RetryOptions.Delay = TimeSpan.FromMilliseconds(10);
+
+        await using var client = await ImplementationProvider.GetServiceBusClientAsync(clientOptions);
+
+        var act = () => client.AcceptNextSessionAsync("test-queue-with-sessions-empty");
+
+        await act.Should()
             .ThrowAsync<ServiceBusException>()
             .Where(e => e.Reason == ServiceBusFailureReason.ServiceTimeout);
     }
+
+    [TestMethod]
+    public async Task Accepting_Next_Session_On_Empty_Queue_Should_Return_Subsequently_Sent_Message()
+    {
+        var queueName = "test-queue";
+
+        var provider = new InMemoryServiceBusProvider();
+        var ns = provider.AddNamespace();
+        ns.AddQueue(queueName, new() { EnableSessions = true });
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(ns);
+
+        var task = Task.Run(() => client.AcceptNextSessionAsync(queueName));
+
+        await using var sender = client.CreateSender(queueName);
+
+        var sessionId = Guid.NewGuid().ToString();
+
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")) { SessionId = sessionId });
+
+        var sessionReceiver = await task;
+
+        sessionReceiver.SessionId.Should().Be(sessionId);
+
+        var messages = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
+
+        messages.Should().HaveCount(1);
+        messages[0].Body.ToString().Should().Be("Hello, world!");
+
+    }
+
 
     [TestMethod]
     public async Task Session_Should_BeRelease_And_Reacquired()

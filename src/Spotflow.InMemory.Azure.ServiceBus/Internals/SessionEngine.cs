@@ -53,8 +53,7 @@ internal class SessionEngine(IConsumableEntity entity) : IMessagingEngine
         {
             var sessionId = sessionGroup.Key;
             var sessionMessages = sessionGroup.ToList();
-
-            var session = _sessions.GetOrAdd(sessionId, (s) => new SessionStore(entity.FullyQualifiedNamespace, entity.EntityPath, sessionId, entity.TimeProvider, entity.LockTime));
+            var session = GetOrAddSession(sessionId);
 
             session.AddMessages(sessionMessages, currentMessageSequenceNumber);
             currentMessageSequenceNumber += sessionMessages.Count;
@@ -64,38 +63,51 @@ internal class SessionEngine(IConsumableEntity entity) : IMessagingEngine
         return true;
     }
 
+    private SessionStore GetOrAddSession(string sessionId)
+    {
+        return _sessions.GetOrAdd(sessionId, create, entity);
+
+        static SessionStore create(string sessionId, IConsumableEntity entity)
+        {
+            return new(entity.FullyQualifiedNamespace, entity.EntityPath, sessionId, entity.TimeProvider, entity.LockTime);
+        }
+    }
+
     public async Task<LockedSession?> TryAcquireNextAvailableSessionAsync(TimeSpan maxDelay, CancellationToken cancellationToken)
     {
         var start = entity.TimeProvider.GetTimestamp();
 
-        do
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             foreach (var (_, sessionStore) in _sessions)
             {
-                if (sessionStore.TryLockIfNotEmpty(out var acquiredSession))
+                if (sessionStore.TryLock(out var acquiredSession))
                 {
                     return acquiredSession;
                 }
             }
 
+            var elapsed = entity.TimeProvider.GetElapsedTime(start);
+
+            if (elapsed >= maxDelay)
+            {
+                return null;
+            }
+
             await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken: cancellationToken);
-
-        } while (entity.TimeProvider.GetElapsedTime(start) < maxDelay);
-
-        return null;
+        }
     }
 
     public bool TryAcquireSession(string sessionId, [NotNullWhen(true)] out LockedSession? session)
     {
-        if (_sessions.TryGetValue(sessionId, out var sessionStore))
+        var sessionStore = GetOrAddSession(sessionId);
+
+        if (sessionStore.TryLock(out var acquiredSession))
         {
-            if (sessionStore.TryLockIfNotEmpty(out var acquiredSession))
-            {
-                session = acquiredSession;
-                return true;
-            }
+            session = acquiredSession;
+            return true;
         }
 
         session = null;
