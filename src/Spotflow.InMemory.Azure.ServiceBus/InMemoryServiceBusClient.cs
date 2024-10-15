@@ -35,6 +35,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
     {
         Provider = provider;
         DefaultMaxWaitTime = options.RetryOptions.MaxDelay;
+        TryTimeout = options.RetryOptions.TryTimeout;
         FullyQualifiedNamespace = fullyQualifiedNamespace;
         Identifier = options.Identifier ?? Guid.NewGuid().ToString();
     }
@@ -49,6 +50,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
     public InMemoryServiceBusProvider Provider { get; }
 
     internal TimeSpan DefaultMaxWaitTime { get; }
+    internal TimeSpan TryTimeout { get; }
 
     #region Properties
     public override string FullyQualifiedNamespace { get; }
@@ -113,7 +115,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.SessionsNotEnabled(FullyQualifiedNamespace, queue.EntityPath);
         }
 
-        var session = await store.TryAcquireNextAvailableSessionAsync(DefaultMaxWaitTime, cancellationToken);
+        var session = await store.TryAcquireNextAvailableSessionAsync(TryTimeout, cancellationToken);
 
         if (session is null)
         {
@@ -135,7 +137,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.SessionsNotEnabled(FullyQualifiedNamespace, subscription.EntityPath);
         }
 
-        var session = await store.TryAcquireNextAvailableSessionAsync(DefaultMaxWaitTime, cancellationToken);
+        var session = await store.TryAcquireNextAvailableSessionAsync(TryTimeout, cancellationToken);
 
         if (session is null)
         {
