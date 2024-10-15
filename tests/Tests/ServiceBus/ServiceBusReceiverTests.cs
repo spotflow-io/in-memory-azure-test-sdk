@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Azure.Messaging.ServiceBus;
 
 using FluentAssertions.Execution;
@@ -314,6 +316,46 @@ public class ServiceBusReceiverTests
         receivedMessage.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         receivedMessage.SequenceNumber.Should().Be(0);
         receivedMessage.SessionId.Should().BeNull();
+
+    }
+
+    [TestMethod]
+    public async Task Received_Message_Should_Return_If_There_Are_Some_Messages_Even_If_Max_Wait_Time_Is_Not_Reached()
+    {
+        var timeProvider = new FakeTimeProvider();
+
+        var provider = new InMemoryServiceBusProvider(timeProvider);
+
+        var queue = provider.AddNamespace().AddQueue("test-queue");
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
+
+        await using var sender = client.CreateSender("test-queue");
+        await using var receiver = client.CreateReceiver("test-queue");
+
+        var payload = BinaryData.FromString("Test payload.");
+
+        var message = new ServiceBusMessage(payload);
+
+        var receivedMessagesBeforeSend = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+
+        receivedMessagesBeforeSend.Should().BeEmpty();
+
+        var start = Stopwatch.GetTimestamp();
+
+        var receiveTask = receiver.ReceiveMessageAsync(TimeSpan.FromMinutes(10));
+
+        receiveTask.IsCompleted.Should().BeFalse();
+
+        await sender.SendMessagesAsync([message]);
+
+        var receivedMessage = await receiveTask;
+
+        var elapsed = Stopwatch.GetElapsedTime(start);
+
+        elapsed.Should().BeLessThan(TimeSpan.FromMinutes(1));
+
+        receivedMessage.Body.ToString().Should().Be("Test payload.");
 
     }
 

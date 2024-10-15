@@ -74,6 +74,10 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
 
         await Task.Yield();
 
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        linkedCts.CancelAfter(maxWaitTime);
+
         lock (_syncObj)
         {
             ReleaseExpiredMessagesUnsafe();
@@ -83,7 +87,11 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
 
         while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested(); // Throw if user cancelled the operation and no messages are available
+
+            // Throw if user cancelled the operation and no messages are available.
+            // Make sure to check the original caller CT.
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             lock (_syncObj)
             {
@@ -98,16 +106,18 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
                     var receivedMessage = FinishReceiveMessageUnsafe(enqueuedMessage, receiveMode);
                     result.Add(receivedMessage);
                 }
-            }
 
-            if (result.Count > 0)
-            {
-                return result;
+                if (result.Count > 0)
+                {
+                    return result;
+                }
+
+                _newMessageAdded.Reset();
             }
 
             try
             {
-                _newMessageAdded.Wait(cts.Token);
+                _newMessageAdded.Wait(linkedCts.Token); // Make sure to check the linked token
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) // Requested is cancelled by the caller
             {
