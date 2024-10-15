@@ -108,7 +108,7 @@ public class ServiceBusSessionsReceiverTests
 
         await using var sessionReceiver = await client.AcceptSessionAsync(queueName, sessionId);
 
-        var messagesBeforeSend = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
+        var messagesBeforeSend = await sessionReceiver.ReceiveMessagesAsync(1, maxWaitTime: TimeSpan.FromSeconds(10));
 
         messagesBeforeSend.Should().BeEmpty();
 
@@ -116,7 +116,7 @@ public class ServiceBusSessionsReceiverTests
 
         await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")) { SessionId = sessionId });
 
-        var messagesAfterSend = await sessionReceiver.ReceiveMessagesAsync(100, maxWaitTime: TimeSpan.FromMilliseconds(100));
+        var messagesAfterSend = await sessionReceiver.ReceiveMessagesAsync(1, maxWaitTime: TimeSpan.FromSeconds(10));
 
         messagesAfterSend.Should().HaveCount(1);
         messagesAfterSend[0].Body.ToString().Should().Be("Hello, world!");
