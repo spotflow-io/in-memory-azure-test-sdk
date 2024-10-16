@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Azure.Messaging.ServiceBus;
 
 using FluentAssertions.Execution;
@@ -147,7 +149,14 @@ public class ServiceBusReceiverTests
 
         timeProvider.Advance(TimeSpan.FromHours(1));
 
-        var messagesAfterComplete = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+        var messagesAfterCompleteTask = receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+
+        while (!messagesAfterCompleteTask.IsCompleted)
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(10));
+        }
+
+        var messagesAfterComplete = await messagesAfterCompleteTask;
 
         messagesAfterComplete.Should().BeEmpty();
 
@@ -314,6 +323,47 @@ public class ServiceBusReceiverTests
         receivedMessage.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         receivedMessage.SequenceNumber.Should().Be(0);
         receivedMessage.SessionId.Should().BeNull();
+
+    }
+
+    [TestMethod]
+    public async Task Received_Message_Should_Return_If_There_Are_Some_Messages_Even_If_Max_Wait_Time_Is_Not_Reached()
+    {
+        var timeProvider = new FakeTimeProvider();
+
+        var provider = new InMemoryServiceBusProvider(timeProvider);
+
+        var queue = provider.AddNamespace().AddQueue("test-queue");
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
+
+        await using var sender = client.CreateSender("test-queue");
+        await using var receiver = client.CreateReceiver("test-queue");
+
+        var payload = BinaryData.FromString("Test payload.");
+
+        var message = new ServiceBusMessage(payload);
+
+        var receivedMessagesBeforeSendTask = receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+
+        while (!receivedMessagesBeforeSendTask.IsCompleted)
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(1));
+        }
+
+        var receivedMessagesBeforeSend = await receivedMessagesBeforeSendTask;
+
+        receivedMessagesBeforeSend.Should().BeEmpty();
+
+        var receiveTask = receiver.ReceiveMessageAsync(TimeSpan.FromMinutes(10));
+
+        await Task.Delay(500); // Give some time for the ReceiveMessage to really start.
+
+        await sender.SendMessagesAsync([message]);
+
+        var receivedMessage = await receiveTask;
+
+        receivedMessage.Body.ToString().Should().Be("Test payload.");
 
     }
 
