@@ -72,7 +72,7 @@ public class HooksTests
         ReceiveBatchBeforeHookContext? capturedBeforeContext = null;
         ReceiveBatchAfterHookContext? capturedAfterContext = null;
 
-        provider.AddHook(builder => builder.ForConsumer().AfterReceiveBatch(ctx =>
+        provider.AddHook(builder => builder.ForConsumer().BeforeReceiveBatch(ctx =>
         {
             capturedBeforeContext = ctx;
             return Task.CompletedTask;
