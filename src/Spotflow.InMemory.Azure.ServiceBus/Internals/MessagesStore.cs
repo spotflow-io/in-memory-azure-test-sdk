@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Azure.Messaging.ServiceBus;
 
 namespace Spotflow.InMemory.Azure.ServiceBus.Internals;
@@ -71,65 +73,86 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
     public async Task<IReadOnlyList<ServiceBusReceivedMessage>> ReceiveAsync(int maxMessages, TimeSpan maxWaitTime, ServiceBusReceiveMode receiveMode, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxMessages, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxWaitTime, TimeSpan.Zero);
 
         await Task.Yield();
-
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        linkedCts.CancelAfter(maxWaitTime);
 
         lock (_syncObj)
         {
             ReleaseExpiredMessagesUnsafe();
         }
 
-        var result = new List<ServiceBusReceivedMessage>(maxMessages);
+        CancellationTokenSource? waitCts = null;
+        CancellationTokenSource? linkedCts = null;
 
-        while (true)
+        try
         {
-
-            // Throw if user cancelled the operation and no messages are available.
-            // Make sure to check the original caller CT.
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            lock (_syncObj)
+            while (true)
             {
-                while (result.Count < maxMessages && _reenqueuedMessages.TryDequeue(out var expiredMessage))
+
+                // Throw if user cancelled the operation and no messages are available.
+                // Make sure to check the original caller CT.
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                lock (_syncObj)
                 {
-                    var receivedMessage = FinishReceiveMessageUnsafe(expiredMessage, receiveMode);
-                    result.Add(receivedMessage);
+                    if (TryDequeueMessagesUnsafe(maxMessages, receiveMode, out var result))
+                    {
+                        return result;
+                    }
+
+                    _newMessageAdded.Reset();
                 }
 
-                while (result.Count < maxMessages && _enqueuedMessages.TryDequeue(out var enqueuedMessage))
+                waitCts ??= new CancellationTokenSource(maxWaitTime, timeProvider); // Dedicated waiting CTS must be created because otherwise TimeProvider can't be provided.
+                linkedCts ??= CancellationTokenSource.CreateLinkedTokenSource(waitCts.Token, cancellationToken);
+
+                try
                 {
-                    var receivedMessage = FinishReceiveMessageUnsafe(enqueuedMessage, receiveMode);
-                    result.Add(receivedMessage);
+                    _newMessageAdded.Wait(linkedCts.Token);
+                }
+                catch (OperationCanceledException) when (waitCts.IsCancellationRequested) // If wait time is reached, return empty list. Otherwise, rethrow.
+                {
+                    return [];
                 }
 
-                if (result.Count > 0)
-                {
-                    return result;
-                }
-
-                _newMessageAdded.Reset();
             }
-
-            try
-            {
-                _newMessageAdded.Wait(linkedCts.Token); // Make sure to check the linked token
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) // Requested is cancelled by the caller
-            {
-                throw;
-            }
-            catch (OperationCanceledException) // Max wait time is reached
-            {
-                return result;
-            }
-
+        }
+        finally
+        {
+            waitCts?.Dispose();
+            linkedCts?.Dispose();
         }
 
+    }
+
+    private bool TryDequeueMessagesUnsafe(int maxCount, ServiceBusReceiveMode receiveMode, [NotNullWhen(true)] out IReadOnlyList<ServiceBusReceivedMessage>? result)
+    {
+        var actualCount = Math.Min(maxCount, _enqueuedMessages.Count + _reenqueuedMessages.Count);
+
+        if (actualCount is 0)
+        {
+            result = null;
+            return false;
+        }
+
+        var messages = new List<ServiceBusReceivedMessage>(actualCount);
+
+        while (messages.Count < maxCount && _reenqueuedMessages.TryDequeue(out var expiredMessage))
+        {
+            var receivedMessage = FinishReceiveMessageUnsafe(expiredMessage, receiveMode);
+            messages.Add(receivedMessage);
+        }
+
+        while (messages.Count < maxCount && _enqueuedMessages.TryDequeue(out var enqueuedMessage))
+        {
+            var receivedMessage = FinishReceiveMessageUnsafe(enqueuedMessage, receiveMode);
+            messages.Add(receivedMessage);
+        }
+
+        result = messages;
+        return true;
     }
 
     public bool CompleteMessage(ServiceBusReceivedMessage message)

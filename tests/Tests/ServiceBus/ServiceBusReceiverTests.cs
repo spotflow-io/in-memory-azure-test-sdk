@@ -149,7 +149,14 @@ public class ServiceBusReceiverTests
 
         timeProvider.Advance(TimeSpan.FromHours(1));
 
-        var messagesAfterComplete = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+        var messagesAfterCompleteTask = receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+
+        while (!messagesAfterCompleteTask.IsCompleted)
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(10));
+        }
+
+        var messagesAfterComplete = await messagesAfterCompleteTask;
 
         messagesAfterComplete.Should().BeEmpty();
 
@@ -337,7 +344,14 @@ public class ServiceBusReceiverTests
 
         var message = new ServiceBusMessage(payload);
 
-        var receivedMessagesBeforeSend = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+        var receivedMessagesBeforeSendTask = receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
+
+        while (!receivedMessagesBeforeSendTask.IsCompleted)
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(1));
+        }
+
+        var receivedMessagesBeforeSend = await receivedMessagesBeforeSendTask;
 
         receivedMessagesBeforeSend.Should().BeEmpty();
 
@@ -345,7 +359,7 @@ public class ServiceBusReceiverTests
 
         var receiveTask = receiver.ReceiveMessageAsync(TimeSpan.FromMinutes(10));
 
-        receiveTask.IsCompleted.Should().BeFalse();
+        await Task.Delay(500);
 
         await sender.SendMessagesAsync([message]);
 
