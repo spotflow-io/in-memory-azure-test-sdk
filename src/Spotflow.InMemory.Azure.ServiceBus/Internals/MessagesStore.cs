@@ -116,7 +116,6 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
                 {
                     return [];
                 }
-
             }
         }
         finally
@@ -124,7 +123,6 @@ internal class MessagesStore(TimeProvider timeProvider, TimeSpan lockTime)
             waitCts?.Dispose();
             linkedCts?.Dispose();
         }
-
     }
 
     private bool TryDequeueMessagesUnsafe(int maxCount, ServiceBusReceiveMode receiveMode, [NotNullWhen(true)] out IReadOnlyList<ServiceBusReceivedMessage>? result)

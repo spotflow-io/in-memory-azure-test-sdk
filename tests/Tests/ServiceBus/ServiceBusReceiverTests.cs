@@ -359,7 +359,9 @@ public class ServiceBusReceiverTests
 
         var receiveTask = receiver.ReceiveMessageAsync(TimeSpan.FromMinutes(10));
 
+
         await Task.Delay(500);
+
 
         await sender.SendMessagesAsync([message]);
 

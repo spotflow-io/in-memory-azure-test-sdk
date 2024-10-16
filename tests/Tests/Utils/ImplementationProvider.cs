@@ -96,6 +96,22 @@ internal static class ImplementationProvider
         throw new InvalidOperationException("No storage account keys found.");
     }
 
+    public static async Task<ServiceBusClient> GetServiceBusClientAsync(ServiceBusClientOptions? clientOptions = null)
+    {
+        if (TryWithAzure(out var config, out var provider))
+        {
+            var serviceBusResources = await provider.GetServiceBusResources();
+            return new ServiceBusClient(serviceBusResources.FullyQualifiedNamespaceName, config.TokenCredential, clientOptions);
+        }
+        else
+        {
+            var ns = new InMemoryServiceBusProvider().AddNamespace();
+            ns.AddQueue("test-queue-with-sessions-empty", new() { EnableSessions = true });
+            ns.AddQueue("test-queue-with-sessions", new() { EnableSessions = true });
+
+            return new InMemoryServiceBusClient(ns.FullyQualifiedNamespace, NoOpTokenCredential.Instance, clientOptions ?? new(), ns.Provider);
+        }
+    }
 
     public static async Task<ServiceBusSender> GetServiceBusSenderAsync(bool withSessions = false, bool missingEntity = false, bool useTopics = false, bool missingNamespace = false)
     {

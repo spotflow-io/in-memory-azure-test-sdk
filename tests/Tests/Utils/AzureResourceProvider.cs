@@ -109,6 +109,7 @@ internal class AzureResourceProvider
 
         var ttl = TimeSpan.FromMinutes(30);
 
+        var queueWithSessionsEmptyTask = queues.CreateOrUpdateAsync(WaitUntil.Completed, "test-queue-with-sessions-empty", data: new() { RequiresSession = true, DefaultMessageTimeToLive = ttl });
         var queueWithSessionsTask = queues.CreateOrUpdateAsync(WaitUntil.Completed, "test-queue-with-sessions", data: new() { RequiresSession = true, DefaultMessageTimeToLive = ttl });
         var queueWithoutSessionsTask = queues.CreateOrUpdateAsync(WaitUntil.Completed, "test-queue-without-sessions", data: new() { RequiresSession = false, DefaultMessageTimeToLive = ttl });
 
@@ -125,6 +126,7 @@ internal class AzureResourceProvider
         {
             FullyQualifiedNamespaceName = serviceBusNamespaceFqn,
             QueueWithSessions = (await queueWithSessionsTask).Value,
+            QueueWithSessionsEmpty = (await queueWithSessionsEmptyTask).Value,
             QueueWithoutSessions = (await queueWithoutSessionsTask).Value,
             SubscriptionWithSessions = (await subWithSessionsTask).Value,
             SubscriptionWithoutSessions = (await subWithoutSessionsTask).Value
@@ -225,6 +227,7 @@ internal class AzureResourceProvider
     {
         public required string FullyQualifiedNamespaceName { get; init; }
         public required ServiceBusQueueResource QueueWithSessions { get; init; }
+        public required ServiceBusQueueResource QueueWithSessionsEmpty { get; init; }
         public required ServiceBusQueueResource QueueWithoutSessions { get; init; }
         public required ServiceBusSubscriptionResource SubscriptionWithSessions { get; init; }
         public required ServiceBusSubscriptionResource SubscriptionWithoutSessions { get; init; }

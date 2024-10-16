@@ -30,7 +30,7 @@ internal class SessionStore(string fullyQualifiedNamespace, string entityPath, s
         get { lock (_syncObj) { return _sessionLockedUntil; } }
     }
 
-    public bool TryLockIfNotEmpty([NotNullWhen(true)] out LockedSession? acquiredSession)
+    public bool TryLock([NotNullWhen(true)] out LockedSession? acquiredSession)
     {
         lock (_syncObj)
         {
@@ -40,16 +40,10 @@ internal class SessionStore(string fullyQualifiedNamespace, string entityPath, s
                 return false;
             }
 
-            if (_messageStore.ActiveMessageCount > 0)
-            {
-                _sessionLockToken = Guid.NewGuid();
-                _sessionLockedUntil = timeProvider.GetUtcNow().Add(lockTime);
-                acquiredSession = new LockedSession(this, _sessionLockToken.Value);
-                return true;
-            }
-
-            acquiredSession = null;
-            return false;
+            _sessionLockToken = Guid.NewGuid();
+            _sessionLockedUntil = timeProvider.GetUtcNow().Add(lockTime);
+            acquiredSession = new LockedSession(this, _sessionLockToken.Value);
+            return true;
 
         }
     }
