@@ -63,11 +63,11 @@ public class ServiceBusHookBuilder
         public ServiceBusHook<ConsumerBeforeHookContext> Before(HookFunc<ConsumerBeforeHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
         public ServiceBusHook<ConsumerAfterHookContext> After(HookFunc<ConsumerAfterHookContext> hook, ConsumerOperations? operations = null) => new(hook, _filter.With(operations));
 
-        public ServiceBusHook<ReceiveBatchBeforeHookContext> AfterReceiveBatch(HookFunc<ReceiveBatchBeforeHookContext> hook) => new(hook, _filter);
+        public ServiceBusHook<ReceiveBatchBeforeHookContext> BeforeReceiveBatch(HookFunc<ReceiveBatchBeforeHookContext> hook) => new(hook, _filter);
 
         public ServiceBusHook<ReceiveBatchAfterHookContext> AfterReceiveBatch(HookFunc<ReceiveBatchAfterHookContext> hook) => new(hook, _filter);
 
-        public ServiceBusHook<ReceiveMessageBeforeHookContext> AfterReceiveMessage(HookFunc<ReceiveMessageBeforeHookContext> hook) => new(hook, _filter);
+        public ServiceBusHook<ReceiveMessageBeforeHookContext> BeforeReceiveMessage(HookFunc<ReceiveMessageBeforeHookContext> hook) => new(hook, _filter);
 
         public ServiceBusHook<ReceiveMessageAfterHookContext> AfterReceiveMessage(HookFunc<ReceiveMessageAfterHookContext> hook) => new(hook, _filter);
     }
