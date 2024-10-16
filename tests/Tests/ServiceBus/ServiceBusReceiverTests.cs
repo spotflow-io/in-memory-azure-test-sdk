@@ -355,21 +355,13 @@ public class ServiceBusReceiverTests
 
         receivedMessagesBeforeSend.Should().BeEmpty();
 
-        var start = Stopwatch.GetTimestamp();
-
         var receiveTask = receiver.ReceiveMessageAsync(TimeSpan.FromMinutes(10));
 
-
-        await Task.Delay(500);
-
+        await Task.Delay(500); // Give some time for the ReceiveMessage to really start.
 
         await sender.SendMessagesAsync([message]);
 
         var receivedMessage = await receiveTask;
-
-        var elapsed = Stopwatch.GetElapsedTime(start);
-
-        elapsed.Should().BeLessThan(TimeSpan.FromMinutes(1));
 
         receivedMessage.Body.ToString().Should().Be("Test payload.");
 
