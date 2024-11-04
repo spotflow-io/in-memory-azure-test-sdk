@@ -26,7 +26,7 @@ dotnet add Spotflow.InMemory.Azure.Storage
 Create non-static factory class for creating the real Azure SDK clients. Relevant methods should be virtual to allow overriding as well as there should be a protected parameterless constructor for testing purposes.
 
 ```cs
-class AzureClientFactory(TokenCredential tokenCredential)
+class AzureClientFactory(TokenCredential tokenCredential) // Connection string or SAS is also supported.
 {
     protected AzureClientFactory(): this(null!) {} // Testing-purposes only
 
@@ -39,11 +39,11 @@ Use this class to obtain Storage clients in the tested code:
 ```cs
 class ExampleService(AzureClientFactory clientFactory, Uri containerUri)
 {
-    private readonly BlobContainerClient _containerCLient = clientFactory.CreateBlobContainerClient(containerUri);
+    private readonly BlobContainerClient _containerClient = clientFactory.CreateBlobContainerClient(containerUri);
 
     public async Task AddBlobToContainerAsync(BinaryData content, string blobName)
     {
-        var blobClient = _containerCLient.GetBlobClient(blobName);
+        var blobClient = _containerClient.GetBlobClient(blobName);
         await blobClient.UploadAsync(content);
     }
 }
