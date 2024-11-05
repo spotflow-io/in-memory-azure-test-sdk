@@ -1,3 +1,5 @@
+using Azure.Storage.Blobs;
+
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
 using Spotflow.InMemory.Azure.Storage.Resources;
@@ -42,6 +44,21 @@ public class BlobServiceClientTests
 
         AssertClientProperties(client, account);
     }
+
+    [TestMethod]
+    public void Service_Uri_Should_End_With_Slash()
+    {
+        var connectionString = "AccountName=test1;AccountKey=dGVzdHRlc3Q=;";
+        var provider = new InMemoryStorageProvider();
+
+        var realBlobServiceClient = new BlobServiceClient(connectionString);
+        realBlobServiceClient.Uri.ToString().Should().Be("https://test1.blob.core.windows.net/");
+
+        var inMemoryBlobServiceClient = new InMemoryBlobServiceClient(connectionString, provider);
+        inMemoryBlobServiceClient.Uri.ToString().Should().Be("https://test1.blob.storage.in-memory.example.com/");
+
+    }
+
 
     private static void AssertClientProperties(InMemoryBlobServiceClient client, InMemoryStorageAccount account)
     {

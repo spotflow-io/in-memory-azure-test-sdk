@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 using Azure.Messaging.ServiceBus;
 
 using FluentAssertions.Execution;

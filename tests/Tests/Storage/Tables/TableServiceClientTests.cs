@@ -1,3 +1,5 @@
+using Azure.Data.Tables;
+
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Resources;
 using Spotflow.InMemory.Azure.Storage.Tables;
@@ -41,6 +43,20 @@ public class TableServiceClientTests
         var client = InMemoryTableServiceClient.FromAccount(account);
 
         AssertClientProperties(client, account);
+    }
+
+    [TestMethod]
+    public void Service_Uri_Should_End_With_Slash()
+    {
+        var connectionString = "AccountName=test1;AccountKey=dGVzdHRlc3Q=;";
+        var provider = new InMemoryStorageProvider();
+
+        var realTableServiceClient = new TableServiceClient(connectionString);
+        realTableServiceClient.Uri.ToString().Should().Be("https://test1.table.core.windows.net/");
+
+        var inMemoryTableServiceClient = new InMemoryTableServiceClient(connectionString, provider);
+        inMemoryTableServiceClient.Uri.ToString().Should().Be("https://test1.table.storage.in-memory.example.com/");
+
     }
 
     private static void AssertClientProperties(InMemoryTableServiceClient client, InMemoryStorageAccount account)

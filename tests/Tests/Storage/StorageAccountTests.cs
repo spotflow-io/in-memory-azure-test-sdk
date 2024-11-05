@@ -30,4 +30,15 @@ public class StorageAccountTests
 
     }
 
+    [TestMethod]
+    public void Service_Uris_Should_End_With_Slash()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var account = provider.AddAccount("test1");
+
+        account.BlobServiceUri.ToString().Should().Be("https://test1.blob.storage.in-memory.example.com/");
+        account.TableServiceUri.ToString().Should().Be("https://test1.table.storage.in-memory.example.com/");
+    }
+
 }
