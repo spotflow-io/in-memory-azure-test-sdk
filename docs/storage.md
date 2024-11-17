@@ -5,7 +5,7 @@
 <a href="https://www.nuget.org/packages/Azure.Data.Tables" target="_blank">Azure.Data.Tables</a> SDKs in your tests. </p>
 
 <p align="center">
-    <a href="#recommended-usage">Recommended Usage</a> |
+    <a href="#example-usage">Example Usage</a> |
     <a href="#fault-injection">Fault Injection</a> |
     <a href="#supported-apis-and-features-for-blobs">Supported APIs and features for Blobs</a> |
     <a href="#supported-apis-and-features-for-tables">Supported APIs and features for Tables</a> |
@@ -15,32 +15,23 @@
 > [!TIP]
 > See the whole [In-Memory Azure Test SDK](../README.md) suite if you are interested in other Azure services.
 
-## Recommended Usage
+## Example Usage
 
-To get started, add `Spotflow.InMemory.Azure.EventHubs` package to your project.
+To get started, add `Spotflow.InMemory.Azure.Storage` package to your project.
 
 ```shell
 dotnet add Spotflow.InMemory.Azure.Storage
 ```
+This package provides in-memory implementation of Azure Storage SDK clients and models.
+These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
+There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
+Only extra step is to create parent `InMemoryStorageProvider` instance for the in-memory clients.
 
-Create non-static factory class for creating the real Azure SDK clients. Relevant methods should be virtual to allow overriding as well as there should be a protected parameterless constructor for testing purposes.
-
-```cs
-class AzureClientFactory(TokenCredential tokenCredential) // Connection string or SAS is also supported.
-{
-    protected AzureClientFactory(): this(null!) {} // Testing-purposes only
-
-    public virtual BlobContainerClient CreateBlobContainerClient(Uri uri) => new(uri, tokenCredential);
-}
-```
-
-Use this class to obtain Storage clients in the tested code:
+Let's consider the following type `ExampleService` as an example:
 
 ```cs
-class ExampleService(AzureClientFactory clientFactory, Uri containerUri)
+class ExampleService(BlobContainerClient containerClient)
 {
-    private readonly BlobContainerClient _containerClient = clientFactory.CreateBlobContainerClient(containerUri);
-
     public async Task AddBlobToContainerAsync(BinaryData content, string blobName)
     {
         var blobClient = _containerClient.GetBlobClient(blobName);
@@ -49,41 +40,51 @@ class ExampleService(AzureClientFactory clientFactory, Uri containerUri)
 }
 ```
 
-Create `InMemoryAzureClientFactory` by inheriting `AzureClientFactory` and override relevant factory methods to return in-memory clients:
+The `ExampleService` might be constructed, for example, using DI:
 
 ```cs
-class InMemoryAzureClientFactory(InMemoryStorageProvider provider): AzureClientFactory
-{
-    public override BlobContainerClient CreateBlobContainerClient(Uri uri)
-    {
-        return new InMemoryBlobContainerClient(uri, provider);
-    }
-}
-```
-
-When testing, it is now enough to initialize `InMemoryStorageProvider` to desired state and inject `InMemoryAzureClientFactory` to the tested code (e.g. via Dependency Injection):
-
-```cs
-var provider = new InMemoryStorageProvider();
-var storageAccount = provider.AddAccount();
-
-var containerClient = InMemoryBlobContainerClient.FromAccount(storageAccount, "test-container");
-
-containerClient.Create();
+// Setup DI - production configuration
+var connectionString = "AccountName=testaccount;AccountKey=...";
+var containerName = "test-container";
 
 var services = new ServiceCollection();
 
+services.AddSingleton<BlobContainerClient>(new BlobContainerClient(connectionString, containerName));
 services.AddSingleton<ExampleService>();
-services.AddSingleton(provider);
-services.AddSingleton<AzureClientFactory, InMemoryAzureClientFactory>();
 
-var exampleService = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+...
 
-var content = BinaryData.FromString("data");
+// Use resulting service provider
+var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+```
 
-await exampleService.AddBlobToContainerAsync(content, containerClient.Uri, "test-blob");
+*Note:
+Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
+This is just an example of one of many ways how the in-memory clients can be used.*
 
-containerClient.GetBlobClient("test-blob").Exists().Value.Should.BeTrue();
+
+To inject the in-memory implementation of `BlobContainerClient` to the `ExampleService` during test,
+the `InMemoryBlobContainerClient` can be simply substituted for the real `BlobContainerClient` in the DI container:
+
+```cs
+// Setup DI - test-only configuration (additive)
+var inMemoryProvider = new InMemoryStorageProvider();
+var containerClient = new InMemoryBlobContainerClient(connectionString, containerName, inMemoryProvider);
+
+services.AddSingleton<BlobContainerClient>(containerClient);
+```
+
+By default, the `InMemoryStorageProvider` is empty but exposes methods that allow to set up expected management-plane state:
+
+```cs
+inMemoryProvider.AddAccount("testaccount1");
+inMemoryProvider.AddAccount("testaccount2");
+```
+
+To set up expected data-plane state, the `InMemoryBlobContainerClient` or other in-memory clients can be directly used:
+
+```cs
+containerClient.CreateIfNotExists();
 ```
 
 ## Fault Injection

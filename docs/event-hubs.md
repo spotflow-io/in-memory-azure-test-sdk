@@ -4,7 +4,7 @@
 <a href="https://www.nuget.org/packages/Azure.Messaging.EventHubs" target="_blank">Azure.Messaging.EventHubs SDK</a> in your tests.</p>
 
 <p align="center">
-    <a href="#recommended-usage">Recommended Usage</a> |
+    <a href="#example-usage">Example Usage</a> |
     <a href="#fault-injection">Fault Injection</a> |
     <a href="#features">Features</a> |
     <a href="#available-client-apis">Available APIs</a>
@@ -13,77 +13,79 @@
 > [!TIP]
 > See the whole [In-Memory Azure Test SDK](../README.md) suite if you are interested in other Azure services.
 
-## Recommended Usage
+## Example Usage
 
 To get started, add `Spotflow.InMemory.Azure.EventHubs` package to your project.
 
 ```shell
 dotnet add Spotflow.InMemory.Azure.EventHubs
 ```
+This package provides in-memory implementation of Azure Event Hubs SDK clients and models.
+These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
+There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
+Only extra step is to create parent `InMemoryEventHubProvider` instance for the in-memory clients.
 
-Create non-static factory class for creating the real Azure SDK clients. Relevant methods should be virtual to allow overriding as well as there should be a protected parameterless constructor for testing purposes.
-
-```cs
-class AzureClientFactory(TokenCredential tokenCredential)
-{
-    protected AzureClientFactory(): this(null!) {} // Testing-purposes only
-
-    public virtual EventHubProducerClient CreateProducerClient(string fullyQualifiedNamespace, string eventHubName)
-    {
-        return new EventHubProducerClient(fullyQualifiedNamespace, eventHubName, tokenCredential);
-    }
-}
-```
-
-Use this class to obtain EventHub clients in the tested code:
+Let's consider the following type `ExampleService` as an example:
 
 ```cs
-class ExampleService(AzureClientFactory clientFactory, string fullyQualifiedNamespace, string eventHubName)
+class ExampleService(EventHubProducerClient producerClient)
 {
-    private readonly EventHubProducerClient _client = clientFactory.CreateProducerClient(fullyQualifiedNamespace, eventHubName);
-
     public async Task SendEventAsync(BinaryData payload)
     {
-        await _client.SendAsync(new EventData(payload));
+        await producerClient.SendAsync(new EventData(payload));
     }
 }
 ```
 
-Create `InMemoryAzureClientFactory` by inheriting `AzureClientFactory` and override relevant factory methods to return in-memory clients:
+The `ExampleService` might be constructed, for example, using DI:
 
 ```cs
-class InMemoryAzureClientFactory(InMemoryEventHubProvider provider): AzureClientFactory
-{
-    public override EventHubProducerClient CreateProducerClient(string fullyQualifiedNamespace, string eventHubName)
-    {
-        return new InMemoryEventHubProducerClient(fullyQualifiedNamespace, eventHubName, NoOpTokenCredential.Instance, provider);
-    }
-}
-```
-
-When testing, it is now enough to initialize `InMemoryEventHubProvider` and inject `InMemoryAzureClientFactory` to the tested code (e.g. via Dependency Injection):
-
-```cs
-var provider = new InMemoryEventHubProvider();
-var eventHub = provider.AddNamespace().AddEventHub("test-event-hub", numberOfPartitions: 4);
+// Setup DI - production configuration
+var connectionString = "Endpoint=sb://test-namespace...;EntityPath=test-eh;...";
 
 var services = new ServiceCollection();
 
+services.AddSingleton<EventHubProducerClient>(new EventHubProducerClient(connectionString));
 services.AddSingleton<ExampleService>();
-services.AddSingleton(provider);
-services.AddSingleton<AzureClientFactory, InMemoryAzureClientFactory>();
 
-var exampleService = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+...
 
-var payload = BinaryData.FromString("test-data");
+// Use resulting service provider
+var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+```
 
-await exampleService.SendEventAsync(eventHub.Namespace.Hostname, eventHub.Name, payload);
+*Note:
+Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
+This is just an example of one of many ways how the in-memory clients can be used.*
 
-var receiver = InMemoryPartitionReceiver.FromEventHub(partitionId: "0", eventHub);
 
-var batch = await receiver.ReceiveBatchAsync(100, TimeSpan.Zero);
+To inject the in-memory implementation of `EventHubProducerClient` to the `ExampleService` during test,
+the `InMemoryEventHubProducerClient` can be simply substituted for the real `EventHubProducerClient` in the DI container:
 
-batch.Should().ContainSingle(e => e.EventBody.ToString() == "test-data");
+```csharp
+// Setup DI - test-only configuration (additive)
+var inMemoryProvider = new InMemoryEventHubProvider();
+var producerClient = new InMemoryEventHubProducerClient(connectionString, inMemoryProvider);
+
+services.AddSingleton<EventHubProducerClient>(producerClient);
+```
+
+By default, the `InMemoryEventHubProvider` is empty but exposes methods that allow to set up expected management-plane state:
+
+```csharp
+inMemoryProvider.AddNamespace("test-namespace...").AddEventHub("test-eh");
+```
+
+To send/receive events in test code (data-plane operations), the in-memory clients can be used directly:
+
+```cs
+await using var partitionReceiver = new InMemoryPartitionReceiver(consumerGroup, partitionId, EventPosition.Earliest, connectionString);
+
+await using var producerClient = new InMemoryEventHubProducerClient(connectionString, inMemoryProvider);
+
+await producerClient.SendAsync(new EventData(...));
+
+var receivedEvents = await partitionReceiver.ReceiveBatchAsync(10, TimeSpan.FromSeconds(5));
 ```
 
 ## Fault Injection

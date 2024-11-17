@@ -1,10 +1,10 @@
 <h1 align="center">Azure Service Bus</h1>
 
-<p align="center">This library provides in-memory SDK for Azure Event Hubs which can be used as a drop-in replacement for the official 
+<p align="center">This library provides in-memory SDK for Azure Service Bus which can be used as a drop-in replacement for the official 
 <a href="https://www.nuget.org/packages/Azure.Messaging.ServiceBus" target="_blank">Azure.Messaging.ServiceBus</a> in your tests.</p>
 
 <p align="center">
-    <a href="#recommended-usage">Recommended Usage</a> |
+    <a href="#example-usage">Example Usage</a> |
     <a href="#fault-injection">Fault Injection</a> |
     <a href="#features">Features</a> |
     <a href="#available-client-apis">Available APIs</a> |
@@ -14,81 +14,82 @@
 > [!TIP]
 > See the whole [In-Memory Azure Test SDK](../README.md) suite if you are interested in other Azure services.
 
-## Recommended Usage
+## Example Usage
 
-To get started, add `Spotflow.InMemory.Azure.EventHubs` package to your project.
+To get started, add `Spotflow.InMemory.Azure.ServiceBus` package to your project.
 
 ```shell
 dotnet add Spotflow.InMemory.Azure.ServiceBus
 ```
+This package provides in-memory implementation of Azure Service Bus SDK clients and models.
+These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
+There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
+Only extra step is to create parent `InMemoryServiceBusProvider` instance for the in-memory clients.
 
-Create non-static factory class for creating the real Azure SDK clients. Relevant methods should be virtual to allow overriding as well as there should be a protected parameterless constructor for testing purposes.
-
-```cs
-class AzureClientFactory(TokenCredential tokenCredential)
-{
-    protected AzureClientFactory(): this(null!) {} // Testing-purposes only
-
-    public virtual ServiceBusSender CreateServiceBusSender(string fullyQualifiedNamespace, string queueOrTopicName)
-    {
-        return new ServiceBusClient(fullyQualifiedNamespace, tokenCredential).CreateSender(queueOrTopicName);
-    }
-}
-```
-
-Use this class to obtain ServiceBus clients in the tested code:
+Let's consider the following type `ExampleService` as an example:
 
 ```cs
-class ExampleService(AzureClientFactory clientFactory, string fullyQualifiedNamespace, string queueName)
+class ExampleService(InMemoryServiceBusClient client)
 {
-    private readonly ServiceBusSender _client  = clientFactory.CreateServiceBusSender(fullyQualifiedNamespace, queueName);
+    private readonly ServiceBusSender _sender = client.CreateSender("test-queue");
 
     public async Task SendMessageAsync(BinaryData payload)
     {
-        await _client.SendMessageAsync(new ServiceBusMessage(payload));
+        await _sender.SendMessageAsync(new ServiceBusMessage(payload));
     }
 }
 ```
 
-Create `InMemoryAzureClientFactory` by inheriting `AzureClientFactory` and override relevant factory methods to return in-memory clients:
+The `ExampleService` might be constructed, for example, using DI:
 
 ```cs
-class InMemoryAzureClientFactory(InMemoryServiceBusProvider provider) : AzureClientFactory
-{
-    public override ServiceBusSender CreateServiceBusSender(string fullyQualifiedNamespace, string queueOrTopicName)
-    {
-        return new InMemoryServiceBusClient(fullyQualifiedNamespace, NoOpTokenCredential.Instance, provider).CreateSender(queueOrTopicName);
-    }
-}
-```
-
-When testing, it is now enough to initialize `InMemoryServiceBusProvider` and inject `InMemoryAzureClientFactory` to the tested code (e.g. via Dependency Injection):
-
-```csharp
-var provider = new InMemoryServiceBusProvider();
-var queue = serviceBusProvider.AddNamespace().AddQueue("my-queue");
+// Setup DI - production configuration
+var connectionString = "Endpoint=sb://test-namespace...;";
 
 var services = new ServiceCollection();
 
+services.AddSingleton<ServiceBusClient>(new ServiceBusClient(connectionString));
 services.AddSingleton<ExampleService>();
-services.AddSingleton(provider);
-services.AddSingleton<AzureClientFactory, InMemoryAzureClientFactory>();
+...
 
-var exampleService = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+// Use resulting service provider
+var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+```
 
-var payload = BinaryData.FromString("test-data");
+*Note:
+Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
+This is just an example of one of many ways how the in-memory clients can be used.*
 
-await exampleService.SendMessageAsync(queue.Namespace.FullyQualifiedNamespace, queue.QueueName, payload);
 
-await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, provider);
+To inject the in-memory implementation of `ServiceBusClient` to the `ExampleService` during test,
+the `InMemoryServiceBusClient` can be simply substituted for the real `ServiceBusClient` in the DI container:
 
-await using var receiver = client.CreateReceiver(queue.QueueName);
+```csharp
+// Setup DI - test-only configuration (additive)
+var inMemoryProvider = new InMemoryServiceBusProvider();
+var client = new InMemoryServiceBusClient(connectionString, inMemoryProvider);
+
+services.AddSingleton<ServiceBusClient>(client);
+```
+
+By default, the `InMemoryServiceBusProvider` is empty but exposes methods that allow to set up expected management-plane state:
+
+```csharp
+inMemoryProvider.AddNamespace("test-namespace...").AddQueue("test-queue", new() { EnableSessions = true });
+```
+
+To send/receive messages in test code (data-plane operations), the in-memory clients can be used directly:
+
+```cs
+await using var client = new InMemoryServiceBusClient(connectionString, inMemoryProvider);
+
+await using var sender = client.CreateSender("test-queue");
+
+await using var receiver = client.CreateReceiver("test-queue");
+
+await sender.SendMessageAsync(new ServiceBusMessage(...));
 
 var message = await receiver.ReceiveMessageAsync();
-
-message.Body.ToString().Should().Be("test-data");
-
-await receiver.CompleteMessageAsync(message);
 ```
 
 ## Fault Injection
