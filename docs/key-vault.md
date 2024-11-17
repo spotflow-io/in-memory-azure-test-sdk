@@ -4,7 +4,7 @@
 `Azure.Security.KeyVault.*` SDKs in your tests.</p>
 
 <p align="center">
-    <a href="#recommended-usage">Recommended Usage</a> |
+    <a href="#example-usage">Example Usage</a> |
     <a href="#features">Features</a> |
     <a href="#available-client-apis">Available APIs</a>
 </p>
@@ -12,67 +12,74 @@
 > [!TIP]
 > See the whole [In-Memory Azure Test SDK](../README.md) suite if you are interested in other Azure services.
 
-## Recommended Usage
+## Example Usage
 
 To get started, add `Spotflow.InMemory.Azure.KeyVault` package to your project.
 
 ```shell
 dotnet add Spotflow.InMemory.Azure.KeyVault
 ```
+This package provides in-memory implementation of Azure Key Vault SDK clients and models.
+These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
+There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
+Only extra step is to create parent `InMemoryKeyVaultProvider` instance for the in-memory clients.
 
-Create non-static factory class for creating the real Azure SDK clients. Relevant methods should be virtual to allow overriding as well as there should be a protected parameterless constructor for testing purposes.
-
-```cs
-class AzureClientFactory(TokenCredential tokenCredential)
-{
-    protected AzureClientFactory(): this(null!) {} // Testing-purposes only
-
-    public virtual SecretClient CreateSecretClient(Uri vaultUri) => new(vaultUri, tokenCredential);
-}
-```
-
-Use this class to obtain Key Vault clients in the tested code:
+Let's consider the following type `ExampleService` as an example:
 
 ```cs
-class ExampleService(AzureClientFactory clientFactory, Uri vaultUri)
+class ExampleService(SecretClient client)
 {
-    private readonly SecretClient _client = clientFactory.CreateSecretClient(vaultUri);
-
     public async Task<string> GetSecretAsync(string secretName)
     {
-        var response = await _client.GetSecretAsync(secretName);
+        var response = await client.GetSecretAsync(secretName);
         return response.Value.Value;
     }
 }
 ```
 
-Create `InMemoryAzureClientFactory` by inheriting `AzureClientFactory` and override relevant factory methods to return in-memory clients:
+The `ExampleService` might be constructed, for example, using DI:
 
 ```cs
-class InMemoryAzureClientFactory(InMemoryEventHubProvider provider): AzureClientFactory
-{
-    public override SecretClient CreateSecretClient(Uri vaultUri)
-    {
-        return new InMemorySecretClient(vaultUri, provider);
-    }
-}
-```
-
-When testing, it is now enough to initialize `InMemoryKeyVaultProvider` and inject `InMemoryAzureClientFactory` to the tested code (e.g. via Dependency Injection):
-
-```cs
-var provider = new InMemoryKeyVaultProvider();
-var vault = provider.AddVault();
+// Setup DI - production configuration
+var vaultUri = "https://test-vault...";
+var credential = new DefaultAzureCredential();
 
 var services = new ServiceCollection();
 
+services.AddSingleton<SecretClient>(new SecretClient(vaultUri, credential));
 services.AddSingleton<ExampleService>();
-services.AddSingleton(provider);
-services.AddSingleton<AzureClientFactory, InMemoryAzureClientFactory>();
+...
 
-var exampleService = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+// Use resulting service provider
+var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
+```
 
-var secret = exampleService.GetSecretAsync("my-secret");
+*Note:
+Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
+This is just an example of one of many ways how the in-memory clients can be used.*
+
+
+To inject the in-memory implementation of `SecretClient` to the `ExampleService` during test,
+the `InMemorySecretClient` can be simply substituted for the real `SecretClient` in the DI container:
+
+```csharp
+// Setup DI - test-only configuration (additive)
+var inMemoryProvider = new InMemoryKeyVaultProvider();
+var secretClient = new InMemorySecretClient(vaultUri, inMemoryProvider);
+
+services.AddSingleton<SecretClient>(secretClient);
+```
+
+By default, the `InMemoryKeyVaultProvider` is empty but exposes methods that allow to set up expected management-plane state:
+
+```csharp
+inMemoryProvider.AddVault();
+```
+
+To set up expected data-plane state, the `InMemorySecretClient` or other in-memory clients can be directly used:
+
+```cs
+secretClient.SetSecret("secret-name", secretValue);
 ```
 
 ## Fault Injection
