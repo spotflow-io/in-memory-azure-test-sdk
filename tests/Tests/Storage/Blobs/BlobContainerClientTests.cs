@@ -21,7 +21,7 @@ public class BlobContainerClientTests
 
         var account = provider.AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         var client = new InMemoryBlobContainerClient(connectionString, "test", provider);
 
@@ -35,7 +35,7 @@ public class BlobContainerClientTests
 
         var account = provider.AddAccount();
 
-        var client = new InMemoryBlobContainerClient(account.CreateBlobContainerSasUri("test"), provider);
+        var client = new InMemoryBlobContainerClient(account.GetBlobContainerSasUri("test"), provider);
 
         AssertClientProperties(client, "test", account);
     }

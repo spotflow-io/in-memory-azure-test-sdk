@@ -19,7 +19,7 @@ public class BlobClientTests_GenericBlobClient
 
         var account = provider.AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         var client = new InMemoryBlobClient(connectionString, "test-container", "test-blob", provider);
 
@@ -33,7 +33,7 @@ public class BlobClientTests_GenericBlobClient
 
         var account = provider.AddAccount();
 
-        var client = new InMemoryBlobClient(account.CreateBlobSasUri("test-container", "test-blob"), provider);
+        var client = new InMemoryBlobClient(account.GetBlobSasUri("test-container", "test-blob"), provider);
 
         AssertClientProperties(client, "test-container", "test-blob", account);
     }
@@ -59,7 +59,7 @@ public class BlobClientTests_GenericBlobClient
 
         var account = provider.AddAccount();
 
-        var act = () => new InMemoryBlobClient(account.CreateBlobContainerSasUri("test"), provider);
+        var act = () => new InMemoryBlobClient(account.GetBlobContainerSasUri("test"), provider);
 
         act.Should()
             .Throw<InvalidOperationException>()

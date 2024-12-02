@@ -29,14 +29,13 @@ public class InMemoryStorageAccount
     internal InMemoryTableService TableService { get; }
     internal InMemoryBlobService BlobService { get; }
 
-    public Uri CreateBlobContainerSasUri(string blobContainerName) => BlobService.CreateContainerSasUri(blobContainerName);
+    public Uri GetBlobContainerSasUri(string blobContainerName) => BlobService.GetContainerSasUri(blobContainerName);
 
-    public Uri CreateBlobSasUri(string blobContainerName, string blobName) => BlobService.CreateBlobSasUri(blobContainerName, blobName);
+    public Uri GetBlobSasUri(string blobContainerName, string blobName) => BlobService.GetBlobSasUri(blobContainerName, blobName);
 
-    public Uri CreateTableSasUri(string tableName) => TableService.CreateTableSasUri(tableName);
+    public Uri GetTableSasUri(string tableName) => TableService.GetTableSasUri(tableName);
 
-
-    public string CreateConnectionString() => StorageConnectionStringUtils.CreateConnectionString(this);
+    public string GetConnectionString() => StorageConnectionStringUtils.GetConnectionString(this);
 
     public Uri BlobServiceUri => BlobService.Uri;
     public Uri TableServiceUri => TableService.Uri;

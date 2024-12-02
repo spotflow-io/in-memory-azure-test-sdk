@@ -32,7 +32,7 @@ public class TableClientTests
 
         var account = provider.AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         var client = new InMemoryTableClient(connectionString, "test", provider);
 
@@ -46,7 +46,7 @@ public class TableClientTests
 
         var account = provider.AddAccount();
 
-        var client = new InMemoryTableClient(account.CreateTableSasUri("test"), provider);
+        var client = new InMemoryTableClient(account.GetTableSasUri("test"), provider);
 
         AssertClientProperties(client, "test", account);
     }
