@@ -16,7 +16,7 @@ public class BlobServiceClientTests
 
         var account = provider.AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         var client = new InMemoryBlobServiceClient(connectionString, provider);
 

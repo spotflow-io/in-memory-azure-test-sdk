@@ -11,7 +11,7 @@ public class ServiceBusNamespaceTests
     public void Connection_String_Should_Be_Returned()
     {
         var ns = new InMemoryServiceBusProvider().AddNamespace();
-        var connectionString = ns.CreateConnectionString();
+        var connectionString = ns.GetConnectionString();
 
         var connection = ServiceBusConnectionStringProperties.Parse(connectionString);
 

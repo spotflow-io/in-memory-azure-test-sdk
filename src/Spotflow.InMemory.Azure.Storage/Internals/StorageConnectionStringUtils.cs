@@ -48,7 +48,7 @@ internal static class StorageConnectionStringUtils
 
     }
 
-    public static string CreateConnectionString(InMemoryStorageAccount account)
+    public static string GetConnectionString(InMemoryStorageAccount account)
     {
         return $"AccountName={account.Name};AccountKey={account.PrimaryAccessKey};DefaultEndpointsProtocol=https;TableEndpoint={account.TableService.Uri};BlobEndpoint={account.BlobService.Uri}";
     }

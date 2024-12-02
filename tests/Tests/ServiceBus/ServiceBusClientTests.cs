@@ -14,7 +14,7 @@ public class ServiceBusClientTests
         var serviceBusProvider = new InMemoryServiceBusProvider();
         var queue = serviceBusProvider.AddNamespace().AddQueue("my-queue");
 
-        await using var client = new InMemoryServiceBusClient(queue.Namespace.CreateConnectionString(), serviceBusProvider);
+        await using var client = new InMemoryServiceBusClient(queue.Namespace.GetConnectionString(), serviceBusProvider);
 
         client.FullyQualifiedNamespace.Should().Be(queue.Namespace.FullyQualifiedNamespace);
         client.IsClosed.Should().BeFalse();

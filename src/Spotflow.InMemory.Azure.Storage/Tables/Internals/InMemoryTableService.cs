@@ -58,5 +58,5 @@ internal class InMemoryTableService
         return new($"https://{accountName}.table.{provider.HostnameSuffix}");
     }
 
-    public Uri CreateTableSasUri(string tableName) => TableUriUtils.UriForTable(Uri, tableName);
+    public Uri GetTableSasUri(string tableName) => TableUriUtils.UriForTable(Uri, tableName);
 }

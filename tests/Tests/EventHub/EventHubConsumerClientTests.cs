@@ -15,7 +15,7 @@ public class EventHubConsumerClientTests
 
         var eventHub = provider.AddNamespace().AddEventHub("test", 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubConsumerClient("cg", connectionString, provider);
 

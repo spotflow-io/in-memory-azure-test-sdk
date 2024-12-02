@@ -19,7 +19,7 @@ public class EventHubTests
             .AddNamespace()
             .AddEventHub("test-eh", 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         var connection = new EventHubConnection(connectionString);
 

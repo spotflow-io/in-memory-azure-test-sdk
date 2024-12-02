@@ -11,7 +11,7 @@ public class EventHubNamespaceTests
     public void ConnectionString_ShouldBeReturned()
     {
         var ns = new InMemoryEventHubProvider().AddNamespace();
-        var connectionString = ns.CreateConnectionString();
+        var connectionString = ns.GetConnectionString();
 
         var connection = new EventHubConnection(connectionString, "test-eh");
 

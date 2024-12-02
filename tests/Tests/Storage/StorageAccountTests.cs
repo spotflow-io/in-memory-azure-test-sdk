@@ -10,7 +10,7 @@ public class StorageAccountTests
     {
         var account = new InMemoryStorageProvider().AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         connectionString
             .Should()

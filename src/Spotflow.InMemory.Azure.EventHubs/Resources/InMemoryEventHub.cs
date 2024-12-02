@@ -59,7 +59,7 @@ public class InMemoryEventHub
 
     public bool HasConsumerGroup(string consumerGroupName) => _consumerGroups.ContainsKey(consumerGroupName);
 
-    public string CreateConnectionString() => EventHubConnectionStringUtils.ForEventHub(this);
+    public string GetConnectionString() => EventHubConnectionStringUtils.ForEventHub(this);
 
     public override string ToString() => $"{Name} [{Namespace}]";
 

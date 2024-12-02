@@ -22,7 +22,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubProducerClient(connectionString, provider);
 
@@ -68,7 +68,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 1);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var producerClient = new InMemoryEventHubProducerClient(connectionString, provider);
         await using var consumerClient = InMemoryPartitionReceiver.FromEventHub("0", EventPosition.Earliest, eventHub);
@@ -183,7 +183,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubProducerClient(connectionString, provider);
 
@@ -213,7 +213,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubProducerClient(connectionString, provider);
 
@@ -260,7 +260,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubProducerClient(connectionString, provider);
 
@@ -302,7 +302,7 @@ public class HooksTests
 
         var eventHub = provider.AddNamespace(namespaceName).AddEventHub(eventHubName, 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryEventHubProducerClient(connectionString, provider);
 

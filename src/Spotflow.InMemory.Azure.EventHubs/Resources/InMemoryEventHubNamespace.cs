@@ -23,7 +23,7 @@ public class InMemoryEventHubNamespace
 
     public InMemoryEventHubProvider Provider { get; }
 
-    public string CreateConnectionString() => EventHubConnectionStringUtils.ForNamespace(this);
+    public string GetConnectionString() => EventHubConnectionStringUtils.ForNamespace(this);
 
     public InMemoryEventHub AddEventHub(string eventHubName, int numberOfPartitions, InMemoryPartitionInitialState? partitionInitialState = null)
     {

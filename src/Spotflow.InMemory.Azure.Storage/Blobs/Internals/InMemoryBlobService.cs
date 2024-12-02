@@ -101,9 +101,9 @@ internal class InMemoryBlobService(InMemoryStorageAccount account)
         return true;
     }
 
-    public Uri CreateBlobSasUri(string blobContainerName, string blobName) => BlobUriUtils.UriForBlob(Uri, blobContainerName, blobName);
+    public Uri GetBlobSasUri(string blobContainerName, string blobName) => BlobUriUtils.UriForBlob(Uri, blobContainerName, blobName);
 
-    public Uri CreateContainerSasUri(string blobContainerName) => BlobUriUtils.UriForContainer(Uri, blobContainerName);
+    public Uri GetContainerSasUri(string blobContainerName) => BlobUriUtils.UriForContainer(Uri, blobContainerName);
 
     public abstract class CreateContainerError
     {

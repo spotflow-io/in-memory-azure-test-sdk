@@ -16,7 +16,7 @@ public class TableServiceClientTests
 
         var account = provider.AddAccount();
 
-        var connectionString = account.CreateConnectionString();
+        var connectionString = account.GetConnectionString();
 
         var client = new InMemoryTableServiceClient(connectionString, provider);
 

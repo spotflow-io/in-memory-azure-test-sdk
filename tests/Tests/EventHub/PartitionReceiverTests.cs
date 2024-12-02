@@ -22,7 +22,7 @@ public class PartitionReceiverTests
 
         var eventHub = provider.AddNamespace().AddEventHub("test", 2);
 
-        var connectionString = eventHub.CreateConnectionString();
+        var connectionString = eventHub.GetConnectionString();
 
         await using var client = new InMemoryPartitionReceiver("cg", "pid", EventPosition.Earliest, connectionString, provider);
 

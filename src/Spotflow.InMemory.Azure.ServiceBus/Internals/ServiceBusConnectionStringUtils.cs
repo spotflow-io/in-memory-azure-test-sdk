@@ -7,7 +7,7 @@ namespace Spotflow.InMemory.Azure.ServiceBus.Internals;
 
 internal static class ServiceBusConnectionStringUtils
 {
-    public static string CreateConnectionString(InMemoryServiceBusNamespace ns)
+    public static string ForNamespace(InMemoryServiceBusNamespace ns)
     {
         return $"Endpoint={ns.FullyQualifiedNamespace};SharedAccessKeyName=<empty>;SharedAccessKey=<empty>";
     }

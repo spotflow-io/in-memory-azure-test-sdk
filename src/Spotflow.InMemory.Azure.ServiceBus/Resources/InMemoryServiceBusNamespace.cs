@@ -19,7 +19,7 @@ public class InMemoryServiceBusNamespace(string namespaceName, InMemoryServiceBu
 
     public TimeProvider TimeProvider => Provider.TimeProvider;
 
-    public string CreateConnectionString() => ServiceBusConnectionStringUtils.CreateConnectionString(this);
+    public string GetConnectionString() => ServiceBusConnectionStringUtils.ForNamespace(this);
 
     public InMemoryServiceBusEntity? FindEntity(string entityName) => _entities.TryGetValue(entityName, out var entity) ? entity : null;
 
