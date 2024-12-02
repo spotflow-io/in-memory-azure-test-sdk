@@ -31,7 +31,30 @@ See how the in-memory Azure SDKs can be used in your code, for example with Azur
 
 ![Design](./docs/images/intro.excalidraw.svg)
 
+With production code that looks like this:
+
 ```csharp
+using Azure.Storage.Blobs;
+
+public static class ExampleClass
+{
+    public static async Task PrintBlobAsync(BlobContainerClient container)
+    {
+        var blob = container.GetBlobClient("my-blob");
+    
+        var response = await blob.DownloadContentAsync();
+    
+        Console.WriteLine(response.Value.Content.ToString());
+    }
+}
+```
+
+the associated test code can be as simple as following:
+
+```csharp
+using Spotflow.InMemory.Azure.Storage;
+using Spotflow.InMemory.Azure.Storage.Blobs;
+
 var storageAccount = new InMemoryStorageProvider().AddAccount();
 
 // The InMemoryBlobContainerClient inherits from BlobContainerClient (from the official SDK)
@@ -45,17 +68,7 @@ await containerClient.UploadBlobAsync("my-blob", BinaryData.FromString("Hello Wo
 
 // The `containerClient` can now be used in your code as if it was a real BlobContainerClient:
 
-await PrintBlobAsync(containerClient);
-
-async Task PrintBlobAsync(BlobContainerClient container)
-{
-    var blob = container.GetBlobClient("my-blob");
-
-    var response = await blob.DownloadContentAsync();
-
-    Console.WriteLine(response.Value.Content.ToString());
-    // Output: Hello World!
-}
+await ExampleClass.PrintBlobAsync(containerClient); // Output: Hello World!
 ```
 
 This design allows you to create a factory for SDK clients with two implementations: one that provides the official Azure SDK clients and another that provides in-memory clients.
