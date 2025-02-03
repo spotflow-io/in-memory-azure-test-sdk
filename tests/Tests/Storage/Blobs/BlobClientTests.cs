@@ -473,6 +473,27 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void GenerateSasUri_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var sasUri = blobClient.GenerateSasUri(Azure.Storage.Sas.BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        var expectedUri = $"{containerClient.Uri}/{blobName}?sv=2024-05-04&se=2025-01-03T17%3a46%3a00.000Z&sr=b&sp=r&sig=xxx";
+
+        sasUri.ToString().Should().StartWith(expectedUri.ToString());
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void OpenRead_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();

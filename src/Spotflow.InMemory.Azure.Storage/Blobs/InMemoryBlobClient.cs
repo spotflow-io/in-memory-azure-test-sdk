@@ -1,3 +1,5 @@
+using System.Web;
+
 using Azure;
 using Azure.Storage;
 using Azure.Storage.Blobs;
@@ -45,7 +47,7 @@ public class InMemoryBlobClient : BlobClient
     public override string AccountName => _core.AccountName;
     public override string BlobContainerName => _core.BlobContainerName;
     public override string Name => _core.Name;
-    public override bool CanGenerateSasUri => false;
+    public override bool CanGenerateSasUri => true;
 
     #endregion
 
@@ -611,12 +613,22 @@ public class InMemoryBlobClient : BlobClient
 
     public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn)
     {
-        throw BlobExceptionFactory.MethodNotSupported();
+        var uriBuilder = new UriBuilder(Uri)
+        {
+            Query = $"sv=2024-05-04&se={HttpUtility.UrlEncode(expiresOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}&sr=b&sp=r&sig=xxx"
+        };
+
+        return uriBuilder.Uri;
     }
 
     public override Uri GenerateSasUri(BlobSasBuilder builder)
     {
-        throw BlobExceptionFactory.MethodNotSupported();
+        var uriBuilder = new UriBuilder(Uri)
+        {
+            Query = $"sv=2024-05-04&se={HttpUtility.UrlEncode(builder.ExpiresOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}&sr=b&sp=r&sig=xxx"
+        };
+
+        return uriBuilder.Uri;
     }
 
     protected override BlobClient WithClientSideEncryptionOptionsCore(ClientSideEncryptionOptions clientSideEncryptionOptions)

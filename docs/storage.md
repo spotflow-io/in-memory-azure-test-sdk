@@ -265,7 +265,7 @@ Clients are thread-safe.
 | ------------------- | ----------------------- |
 | `AccountName`       |                         |
 | `BlobContainerName` |                         |
-| `CanGenerateSasUri` | Always returns `false`. |
+| `CanGenerateSasUri` | Always returns `true`. |
 | `Name`              |                         |
 | `Uri`               |                         |
 
@@ -300,7 +300,7 @@ Clients are thread-safe.
 | `BlockBlobMaxStageBlockBytes`     |                         |
 | `BlockBlobMaxStageBlockLongBytes` |                         |
 | `BlockBlobMaxBlocks`              |                         |
-| `CanGenerateSasUri`               | Always returns `false`. |
+| `CanGenerateSasUri`               | Always returns `true`. |
 | `Name`                            |                         |
 | `Uri`                             |                         |
 

@@ -91,7 +91,7 @@ public class BlobClientTests_BlockBlobClient
         client.AccountName.Should().Be(account.Name);
         client.BlobContainerName.Should().Be(expectedContainerName);
         client.Name.Should().Be(expectedBlobName);
-        client.CanGenerateSasUri.Should().BeFalse();
+        client.CanGenerateSasUri.Should().BeTrue();
     }
 
     [TestMethod]
