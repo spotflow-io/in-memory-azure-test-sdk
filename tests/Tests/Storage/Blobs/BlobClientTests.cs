@@ -4,6 +4,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage.FluentAssertions;
 
@@ -473,27 +474,6 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
-    public void GenerateSasUri_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
-    {
-        var containerClient = ImplementationProvider.GetBlobContainerClient();
-
-        containerClient.CreateIfNotExists();
-
-        var blobName = Guid.NewGuid().ToString();
-
-        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
-
-        var sasUri = blobClient.GenerateSasUri(Azure.Storage.Sas.BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
-
-        var expectedUri = $"{containerClient.Uri}/{blobName}?sv=2024-05-04&se=2025-01-03T17%3a46%3a00.000Z&sr=b&sp=r&sig=xxx";
-
-        sasUri.ToString().Should().Be(expectedUri);
-    }
-
-    [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
-    [DataRow(BlobClientType.Generic)]
-    [DataRow(BlobClientType.Block)]
     public void OpenRead_For_Existing_Blob_Should_Succeed(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -609,6 +589,25 @@ public class BlobClientTests
                 .Where(e => e.Status == 412)
                 .Where(e => e.ErrorCode == "ConditionNotMet");
         }
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void GenerateSasUri_Without_Key_Should_Throw(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var act = () => blobClient.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("Cannot generate a SAS token without an account key.");
     }
 
     public enum BlobClientType

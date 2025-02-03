@@ -1,8 +1,11 @@
+using Azure.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage.Internals;
 
 namespace Spotflow.InMemory.Azure.Storage.Blobs.Internals;
+
 internal static class BlobUriUtils
 {
     public static BlobUriBuilder BuilderForBlob(string? connectionString, Uri? uri, string? blobContainerName, string? blobName, InMemoryStorageProvider provider)
@@ -54,6 +57,30 @@ internal static class BlobUriUtils
         var builder = Builder(null, blobServiceUri, blobContainerName, null, null);
 
         return builder.ToUri();
+    }
+
+    public static Uri GenerateBlobSasUri(Uri blobUri, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey)
+    {
+        var queryParameters = sasBuilder.ToSasQueryParameters(sharedKey);
+
+        var uriBuilder = new UriBuilder(blobUri)
+        {
+            Query = queryParameters.ToString()
+        };
+
+        return uriBuilder.Uri;
+    }
+
+    public static Uri GenerateContainerSasUri(Uri containerUri, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey)
+    {
+        var queryParameters = sasBuilder.ToSasQueryParameters(sharedKey);
+
+        var uriBuilder = new UriBuilder(containerUri)
+        {
+            Query = queryParameters.ToString()
+        };
+
+        return uriBuilder.Uri;
     }
 
     private static BlobUriBuilder Builder(string? connectionString, Uri? uri, string? blobContainerName, string? blobName, InMemoryStorageProvider? provider)

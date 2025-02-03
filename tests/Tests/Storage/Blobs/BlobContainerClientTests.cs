@@ -2,6 +2,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -25,7 +26,7 @@ public class BlobContainerClientTests
 
         var client = new InMemoryBlobContainerClient(connectionString, "test", provider);
 
-        AssertClientProperties(client, "test", account);
+        AssertClientProperties(client, "test", account, canGenerateSasUri: true);
     }
 
     [TestMethod]
@@ -64,14 +65,14 @@ public class BlobContainerClientTests
         AssertClientProperties(client, "test", account);
     }
 
-    private static void AssertClientProperties(InMemoryBlobContainerClient client, string expectedContainerName, InMemoryStorageAccount account)
+    private static void AssertClientProperties(InMemoryBlobContainerClient client, string expectedContainerName, InMemoryStorageAccount account, bool canGenerateSasUri = false)
     {
         var expectedUri = new Uri(account.BlobServiceUri, expectedContainerName);
 
         client.Uri.Should().Be(expectedUri);
         client.AccountName.Should().Be(account.Name);
         client.Name.Should().Be(expectedContainerName);
-        client.CanGenerateSasUri.Should().BeFalse();
+        client.CanGenerateSasUri.Should().Be(canGenerateSasUri);
     }
 
     [TestMethod]
@@ -422,6 +423,17 @@ public class BlobContainerClientTests
         };
 
         await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: null);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GenerateSasUri_Without_Key_Should_Throw()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        var act = () => containerClient.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("Cannot generate a SAS token without an account key.");
     }
 
 
