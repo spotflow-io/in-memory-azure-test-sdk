@@ -487,7 +487,7 @@ public class BlobClientTests
 
         var expectedUri = $"{containerClient.Uri}/{blobName}?sv=2024-05-04&se=2025-01-03T17%3a46%3a00.000Z&sr=b&sp=r&sig=xxx";
 
-        sasUri.ToString().Should().StartWith(expectedUri.ToString());
+        sasUri.ToString().Should().Be(expectedUri);
     }
 
     [TestMethod]
