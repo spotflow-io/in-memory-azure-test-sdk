@@ -28,12 +28,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            6.x.x
-            8.x.x
-            9.x.x
       - name: Install dotnet-gitversion
         run: |
           echo ":/github/home/.dotnet/tools" >> $GITHUB_PATH
@@ -60,6 +54,12 @@ jobs:
       Version: ${{ needs.init.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.x.x
+            8.x.x
+            9.x.x
       - name: Restore
         run: dotnet restore
       - name: Check Format
