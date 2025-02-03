@@ -607,7 +607,7 @@ public class BlobClientTests
 
         var act = () => blobClient.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("Cannot generate a SAS token without an account key.");
+        act.Should().Throw<ArgumentNullException>().WithMessage("Value cannot be null. (Parameter 'sharedKeyCredential')");
     }
 
     public enum BlobClientType

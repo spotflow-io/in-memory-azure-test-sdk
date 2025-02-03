@@ -176,4 +176,9 @@ internal static class BlobExceptionFactory
 
         return exception;
     }
+
+    public static ArgumentNullException SharedKeyCredentialNotSet()
+    {
+        return new(paramName: "sharedKeyCredential");
+    }
 }

@@ -485,7 +485,7 @@ public class BlobClientTests_BlockBlobClient
     }
 
     [TestMethod]
-    public void GenerateSasUri_For_Existing_Blob_Should_Succeed()
+    public void GenerateSasUri_Should_Succeed()
     {
         var provider = new InMemoryStorageProvider();
 
@@ -497,7 +497,7 @@ public class BlobClientTests_BlockBlobClient
 
         var sasUri = client.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
 
-        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container/test-blob?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=c&sp=r&sig=*";
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container/test-blob?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=b&sp=r&sig=*";
 
         sasUri.ToString().Should().Match(expectedUri);
     }

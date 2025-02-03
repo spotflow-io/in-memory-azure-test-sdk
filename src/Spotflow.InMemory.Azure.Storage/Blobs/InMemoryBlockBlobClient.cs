@@ -23,9 +23,7 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     private readonly StorageSharedKeyCredential? _sharedKey;
 
     public InMemoryBlockBlobClient(string connectionString, string blobContainerName, string blobName, InMemoryStorageProvider provider)
-        : this(connectionString, null, blobContainerName, blobName, provider)
-    {
-    }
+        : this(connectionString, null, blobContainerName, blobName, provider) { }
 
     public InMemoryBlockBlobClient(Uri blobUri, InMemoryStorageProvider provider)
         : this(null, blobUri, null, null, provider) { }
@@ -428,10 +426,10 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     {
         if (!CanGenerateSasUri)
         {
-            throw new InvalidOperationException("Cannot generate a SAS token without an account key.");
+            throw BlobExceptionFactory.SharedKeyCredentialNotSet();
         }
 
-        return BlobUriUtils.GenerateBlobSasUri(Uri, builder, _sharedKey);
+        return BlobUriUtils.GenerateBlobSasUri(Uri, BlobContainerName, Name, builder, _sharedKey);
     }
 
     #endregion

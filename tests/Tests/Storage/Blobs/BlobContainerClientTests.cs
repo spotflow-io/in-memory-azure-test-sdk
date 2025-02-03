@@ -426,6 +426,24 @@ public class BlobContainerClientTests
     }
 
     [TestMethod]
+    public void GenerateSasUri_Should_Succeed()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var account = provider.AddAccount("testaccount");
+
+        var connectionString = account.GetConnectionString();
+
+        var client = new InMemoryBlobContainerClient(connectionString, "test-container", provider);
+
+        var sasUri = client.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=c&sp=r&sig=*";
+
+        sasUri.ToString().Should().Match(expectedUri);
+    }
+
+    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public void GenerateSasUri_Without_Key_Should_Throw()
     {
@@ -433,10 +451,8 @@ public class BlobContainerClientTests
 
         var act = () => containerClient.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("Cannot generate a SAS token without an account key.");
+        act.Should().Throw<ArgumentNullException>().WithMessage("Value cannot be null. (Parameter 'sharedKeyCredential')");
     }
-
-
 
     private static async Task ShouldHaveBlobsHierarchyAsync(IReadOnlyList<string> blobs, IReadOnlyList<(bool IsPrefix, string Value)> expectedItems, string? delimiter, string? prefix)
     {
