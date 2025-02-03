@@ -19,8 +19,13 @@ public class InMemoryBlobClient : BlobClient
 
     #region Constructors
 
+    private readonly bool _usesConnectionString;
+
     public InMemoryBlobClient(string connectionString, string blobContainerName, string blobName, InMemoryStorageProvider provider)
-        : this(connectionString, null, blobContainerName, blobName, provider) { }
+        : this(connectionString, null, blobContainerName, blobName, provider)
+    {
+        _usesConnectionString = true;
+    }
 
     public InMemoryBlobClient(Uri blobUri, InMemoryStorageProvider provider)
         : this(null, blobUri, null, null, provider) { }
@@ -29,6 +34,7 @@ public class InMemoryBlobClient : BlobClient
     {
         var builder = BlobUriUtils.BuilderForBlob(connectionString, uri, blobContainerName, blobName, provider);
         _core = new(builder, provider);
+        _usesConnectionString = true;
     }
 
     public static InMemoryBlobClient FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName)
@@ -47,7 +53,7 @@ public class InMemoryBlobClient : BlobClient
     public override string AccountName => _core.AccountName;
     public override string BlobContainerName => _core.BlobContainerName;
     public override string Name => _core.Name;
-    public override bool CanGenerateSasUri => true;
+    public override bool CanGenerateSasUri => _usesConnectionString;
 
     #endregion
 
