@@ -28,6 +28,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x.x'
       - name: Install dotnet-gitversion
         run: |
           echo ":/github/home/.dotnet/tools" >> $GITHUB_PATH
