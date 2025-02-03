@@ -162,5 +162,6 @@ public class InMemoryBlobServiceClient : BlobServiceClient
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }
+
     #endregion
 }
