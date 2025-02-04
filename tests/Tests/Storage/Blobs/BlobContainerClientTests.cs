@@ -65,6 +65,16 @@ public class BlobContainerClientTests
         AssertClientProperties(client, "test", account);
     }
 
+    [TestMethod]
+    public void Construct_From_Account_With_Connection_String_Should_Succeed()
+    {
+        var account = new InMemoryStorageProvider().AddAccount();
+
+        var client = InMemoryBlobContainerClient.FromAccount(account, "test", useConnectionString: true);
+
+        AssertClientProperties(client, "test", account, canGenerateSasUri: true);
+    }
+
     private static void AssertClientProperties(InMemoryBlobContainerClient client, string expectedContainerName, InMemoryStorageAccount account, bool canGenerateSasUri = false)
     {
         var expectedUri = new Uri(account.BlobServiceUri, expectedContainerName);

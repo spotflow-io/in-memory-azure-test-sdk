@@ -24,9 +24,16 @@ public class InMemoryBlobServiceClient : BlobServiceClient
         Provider = provider;
     }
 
-    public static InMemoryBlobServiceClient FromAccount(InMemoryStorageAccount account)
+    public static InMemoryBlobServiceClient FromAccount(InMemoryStorageAccount account, bool useConnectionString = false)
     {
-        return new(account.BlobServiceUri, account.Provider);
+        if (useConnectionString)
+        {
+            return new(connectionString: account.GetConnectionString(), account.Provider);
+        }
+        else
+        {
+            return new(account.BlobServiceUri, account.Provider);
+        }
     }
 
     #endregion

@@ -31,10 +31,17 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     public InMemoryBlobContainerClient(Uri blobContainerUri, InMemoryStorageProvider provider)
         : this(null, blobContainerUri, null, provider) { }
 
-    public static InMemoryBlobContainerClient FromAccount(InMemoryStorageAccount account, string blobContainerName)
+    public static InMemoryBlobContainerClient FromAccount(InMemoryStorageAccount account, string blobContainerName, bool useConnectionString = false)
     {
-        var blobContainerUri = BlobUriUtils.UriForContainer(account.BlobServiceUri, blobContainerName);
-        return new(blobContainerUri, account.Provider);
+        if (useConnectionString)
+        {
+            return new(connectionString: account.GetConnectionString(), blobContainerName, account.Provider);
+        }
+        else
+        {
+            var blobContainerUri = BlobUriUtils.UriForContainer(account.BlobServiceUri, blobContainerName);
+            return new(blobContainerUri, account.Provider);
+        }
     }
 
     private InMemoryBlobContainerClient(string? connectionString, Uri? uri, string? blobContainerName, InMemoryStorageProvider provider)
