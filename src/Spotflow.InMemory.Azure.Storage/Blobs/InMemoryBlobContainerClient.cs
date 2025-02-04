@@ -1,4 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Azure;
+using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
@@ -19,6 +22,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     private readonly BlobContainerScope _scope;
 
+    private readonly StorageSharedKeyCredential? _sharedKey;
     #region Constructors
 
     public InMemoryBlobContainerClient(string connectionString, string blobContainerName, InMemoryStorageProvider provider)
@@ -42,16 +46,25 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         Name = builder.BlobContainerName;
         Provider = provider;
         _scope = new(builder.AccountName, builder.BlobContainerName);
+
+        if (connectionString is not null && StorageConnectionStringUtils.TryGetSharedKey(connectionString, out var sharedKey))
+        {
+            _sharedKey = sharedKey;
+        }
+
     }
 
     #endregion
+
 
     #region Properties
 
     public override Uri Uri { get; }
     public override string AccountName { get; }
     public override string Name { get; }
-    public override bool CanGenerateSasUri => false;
+
+    [MemberNotNullWhen(true, nameof(_sharedKey))]
+    public override bool CanGenerateSasUri => _sharedKey is not null;
 
     #endregion
 
@@ -386,6 +399,26 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     #endregion
 
+    #region SAS
+
+    public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn)
+    {
+        var blobSasBuilder = new BlobSasBuilder(permissions, expiresOn);
+        return GenerateSasUri(blobSasBuilder);
+    }
+
+    public override Uri GenerateSasUri(BlobSasBuilder builder)
+    {
+        if (!CanGenerateSasUri)
+        {
+            throw BlobExceptionFactory.SharedKeyCredentialNotSet();
+        }
+
+        return BlobUriUtils.GenerateContainerSasUri(Uri, Name, builder, _sharedKey);
+    }
+
+    #endregion
+
     private InMemoryBlobService GetBlobService()
     {
         if (!Provider.TryGetAccount(AccountName, out var account))
@@ -495,16 +528,6 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     }
 
     public override AsyncPageable<TaggedBlobItem> FindBlobsByTagsAsync(string tagFilterSqlExpression, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Uri GenerateSasUri(BlobSasBuilder builder)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

@@ -2,6 +2,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -25,7 +26,7 @@ public class BlobContainerClientTests
 
         var client = new InMemoryBlobContainerClient(connectionString, "test", provider);
 
-        AssertClientProperties(client, "test", account);
+        AssertClientProperties(client, "test", account, canGenerateSasUri: true);
     }
 
     [TestMethod]
@@ -64,14 +65,14 @@ public class BlobContainerClientTests
         AssertClientProperties(client, "test", account);
     }
 
-    private static void AssertClientProperties(InMemoryBlobContainerClient client, string expectedContainerName, InMemoryStorageAccount account)
+    private static void AssertClientProperties(InMemoryBlobContainerClient client, string expectedContainerName, InMemoryStorageAccount account, bool canGenerateSasUri = false)
     {
         var expectedUri = new Uri(account.BlobServiceUri, expectedContainerName);
 
         client.Uri.Should().Be(expectedUri);
         client.AccountName.Should().Be(account.Name);
         client.Name.Should().Be(expectedContainerName);
-        client.CanGenerateSasUri.Should().BeFalse();
+        client.CanGenerateSasUri.Should().Be(canGenerateSasUri);
     }
 
     [TestMethod]
@@ -424,7 +425,34 @@ public class BlobContainerClientTests
         await ShouldHaveBlobsHierarchyAsync(blobs, expectedItems, delimiter: "/", prefix: null);
     }
 
+    [TestMethod]
+    public void GenerateSasUri_Should_Succeed()
+    {
+        var provider = new InMemoryStorageProvider();
 
+        var account = provider.AddAccount("testaccount");
+
+        var connectionString = account.GetConnectionString();
+
+        var client = new InMemoryBlobContainerClient(connectionString, "test-container", provider);
+
+        var sasUri = client.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=c&sp=r&sig=*";
+
+        sasUri.ToString().Should().Match(expectedUri);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GenerateSasUri_Without_Key_Should_Throw()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        var act = () => containerClient.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        act.Should().Throw<ArgumentNullException>().WithMessage("Value cannot be null. (Parameter 'sharedKeyCredential')");
+    }
 
     private static async Task ShouldHaveBlobsHierarchyAsync(IReadOnlyList<string> blobs, IReadOnlyList<(bool IsPrefix, string Value)> expectedItems, string? delimiter, string? prefix)
     {

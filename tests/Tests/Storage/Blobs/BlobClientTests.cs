@@ -4,6 +4,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage.FluentAssertions;
 
@@ -588,6 +589,25 @@ public class BlobClientTests
                 .Where(e => e.Status == 412)
                 .Where(e => e.ErrorCode == "ConditionNotMet");
         }
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void GenerateSasUri_Without_Key_Should_Throw(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var act = () => blobClient.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        act.Should().Throw<ArgumentNullException>().WithMessage("Value cannot be null. (Parameter 'sharedKeyCredential')");
     }
 
     public enum BlobClientType

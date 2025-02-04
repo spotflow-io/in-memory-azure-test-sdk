@@ -3,6 +3,7 @@ using System.Text;
 using Azure;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -26,7 +27,7 @@ public class BlobClientTests_BlockBlobClient
 
         var client = new InMemoryBlockBlobClient(connectionString, "test-container", "test-blob", provider);
 
-        AssertClientProperties(client, "test-container", "test-blob", account);
+        AssertClientProperties(client, "test-container", "test-blob", account, canGenerateSasUri: true);
     }
 
     [TestMethod]
@@ -83,7 +84,8 @@ public class BlobClientTests_BlockBlobClient
         InMemoryBlockBlobClient client,
         string expectedContainerName,
         string expectedBlobName,
-        InMemoryStorageAccount account)
+        InMemoryStorageAccount account,
+        bool canGenerateSasUri = false)
     {
         var expectedUri = new Uri(account.BlobServiceUri, $"{expectedContainerName}/{expectedBlobName}");
 
@@ -91,7 +93,7 @@ public class BlobClientTests_BlockBlobClient
         client.AccountName.Should().Be(account.Name);
         client.BlobContainerName.Should().Be(expectedContainerName);
         client.Name.Should().Be(expectedBlobName);
-        client.CanGenerateSasUri.Should().BeFalse();
+        client.CanGenerateSasUri.Should().Be(canGenerateSasUri);
     }
 
     [TestMethod]
@@ -480,5 +482,23 @@ public class BlobClientTests_BlockBlobClient
             .Throw<RequestFailedException>()
             .Where(e => e.Status == 404)
             .Where(e => e.ErrorCode == "BlobNotFound");
+    }
+
+    [TestMethod]
+    public void GenerateSasUri_Should_Succeed()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var account = provider.AddAccount("testaccount");
+
+        var connectionString = account.GetConnectionString();
+
+        var client = new InMemoryBlockBlobClient(connectionString, "test-container", "test-blob", provider);
+
+        var sasUri = client.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container/test-blob?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=b&sp=r&sig=*";
+
+        sasUri.ToString().Should().Match(expectedUri);
     }
 }

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Azure;
 using Azure.Storage;
 using Azure.Storage.Blobs;
@@ -7,6 +9,7 @@ using Azure.Storage.Sas;
 
 using Spotflow.InMemory.Azure.Internals;
 using Spotflow.InMemory.Azure.Storage.Blobs.Internals;
+using Spotflow.InMemory.Azure.Storage.Internals;
 using Spotflow.InMemory.Azure.Storage.Resources;
 
 namespace Spotflow.InMemory.Azure.Storage.Blobs;
@@ -16,6 +19,8 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     #region Constructors
 
     private readonly BlobClientCore _core;
+
+    private readonly StorageSharedKeyCredential? _sharedKey;
 
     public InMemoryBlockBlobClient(string connectionString, string blobContainerName, string blobName, InMemoryStorageProvider provider)
         : this(connectionString, null, blobContainerName, blobName, provider) { }
@@ -27,6 +32,11 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     {
         var builder = BlobUriUtils.BuilderForBlob(connectionString, uri, blobContainerName, blobName, provider);
         _core = new(builder, provider);
+
+        if (connectionString is not null && StorageConnectionStringUtils.TryGetSharedKey(connectionString, out var sharedKey))
+        {
+            _sharedKey = sharedKey;
+        }
     }
 
     public static InMemoryBlockBlobClient FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName)
@@ -45,7 +55,9 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     public override string AccountName => _core.AccountName;
     public override string BlobContainerName => _core.BlobContainerName;
     public override string Name => _core.Name;
-    public override bool CanGenerateSasUri => false;
+
+    [MemberNotNullWhen(true, nameof(_sharedKey))]
+    public override bool CanGenerateSasUri => _sharedKey is not null;
 
     public override int BlockBlobMaxUploadBlobBytes => InMemoryBlobService.MaxBlockSize;
 
@@ -402,6 +414,27 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     #endregion
 
+    #region SAS
+
+    public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn)
+    {
+        var blobSasBuilder = new BlobSasBuilder(permissions, expiresOn);
+        return GenerateSasUri(blobSasBuilder);
+    }
+
+    public override Uri GenerateSasUri(BlobSasBuilder builder)
+    {
+        if (!CanGenerateSasUri)
+        {
+            throw BlobExceptionFactory.SharedKeyCredentialNotSet();
+        }
+
+        return BlobUriUtils.GenerateBlobSasUri(Uri, BlobContainerName, Name, builder, _sharedKey);
+    }
+
+    #endregion
+
+
     #region Unsupported
 
     protected override BlobLeaseClient GetBlobLeaseClientCore(string leaseId)
@@ -665,16 +698,6 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     }
 
     public override Task<Response<BlobLegalHoldResult>> SetLegalHoldAsync(bool hasLegalHold, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Uri GenerateSasUri(BlobSasBuilder builder)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

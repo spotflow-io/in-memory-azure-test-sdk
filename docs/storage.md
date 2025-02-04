@@ -234,7 +234,7 @@ Clients are thread-safe.
 | Property            | Note                    |
 | ------------------- | ----------------------- |
 | `AccountName`       |                         |
-| `CanGenerateSasUri` | Always returns `false`. |
+| `CanGenerateSasUri` |                         |
 | `Name`              |                         |
 | `Uri`               |                         |
 
@@ -245,6 +245,7 @@ Clients are thread-safe.
 | `DeleteBlob`                 |                                                                                                |
 | `DeleteBlobIfExists`         |                                                                                                |
 | `Exists`                     |                                                                                                |
+| `GenerateSasUri`             |                                                                                                |
 | `GetBlobClient`              |                                                                                                |
 | `GetBlockBlobClient`         |                                                                                                |
 | `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
@@ -265,7 +266,7 @@ Clients are thread-safe.
 | ------------------- | ----------------------- |
 | `AccountName`       |                         |
 | `BlobContainerName` |                         |
-| `CanGenerateSasUri` | Always returns `false`. |
+| `CanGenerateSasUri` |                         |
 | `Name`              |                         |
 | `Uri`               |                         |
 
@@ -277,6 +278,7 @@ Clients are thread-safe.
 | `DownloadStreaming`            | Overloads with `HttpRange` parameter are not supported.     |
 | `DownloadContent`              | Overloads with `HttpRange` parameter are not supported.     |
 | `Exists`                       |                                                             |
+| `GenerateSasUri`               |                                                             |
 | `GetParentBlobContainerClient` |                                                             |
 | `GetProperties`                |                                                             |
 | `OpenRead`                     | Seeking on the returned stream is not supported.            |
@@ -300,7 +302,7 @@ Clients are thread-safe.
 | `BlockBlobMaxStageBlockBytes`     |                         |
 | `BlockBlobMaxStageBlockLongBytes` |                         |
 | `BlockBlobMaxBlocks`              |                         |
-| `CanGenerateSasUri`               | Always returns `false`. |
+| `CanGenerateSasUri`               |                         |
 | `Name`                            |                         |
 | `Uri`                             |                         |
 
@@ -313,6 +315,7 @@ Clients are thread-safe.
 | `DownloadContent`              | Overloads with `HttpRange` parameter are not supported. |
 | `DownloadStreaming`            | Overloads with `HttpRange` parameter are not supported. |
 | `Exists`                       |                                                         |
+| `GenerateSasUri`               |                                                         |
 | `GetBlockList`                 |                                                         |
 | `GetParentBlobContainerClient` |                                                         |
 | `GetProperties`                |                                                         |
