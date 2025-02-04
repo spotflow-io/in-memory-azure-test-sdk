@@ -1,7 +1,7 @@
 ![](HeroImage.jpg)
 
 <h1 align="center">Azure In-Memory SDKs for Testing</h1>
-<p align="center">Drop-in fakes of Azure .NET SDKs to make your test blazing-fast and reliable.</p>
+<p align="center">Drop-in fakes of Azure .NET SDKs to make your tests runnable locally, without real infrastructure, blazing-fast and reliable.</p>
 
 <p align="center">
     <a href="#supported-sdks">Supported SDKs</a> |
