@@ -80,6 +80,16 @@ public class BlobClientTests_BlockBlobClient
         AssertClientProperties(client, "test-container", "test-blob", account);
     }
 
+    [TestMethod]
+    public void Construct_From_Account_With_Connection_String_Should_Succeed()
+    {
+        var account = new InMemoryStorageProvider().AddAccount();
+
+        var client = InMemoryBlockBlobClient.FromAccount(account, "test-container", "test-blob", useConnectionString: true);
+
+        AssertClientProperties(client, "test-container", "test-blob", account, canGenerateSasUri: true);
+    }
+
     private static void AssertClientProperties(
         InMemoryBlockBlobClient client,
         string expectedContainerName,

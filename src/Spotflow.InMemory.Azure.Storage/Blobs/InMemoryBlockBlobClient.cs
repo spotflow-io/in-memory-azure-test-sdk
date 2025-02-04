@@ -39,10 +39,17 @@ public class InMemoryBlockBlobClient : BlockBlobClient
         }
     }
 
-    public static InMemoryBlockBlobClient FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName)
+    public static InMemoryBlockBlobClient FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName, bool useConnectionString = false)
     {
-        var blobUri = BlobUriUtils.UriForBlob(account.BlobServiceUri, blobContainerName, blobName);
-        return new(blobUri, account.Provider);
+        if (useConnectionString)
+        {
+            return new(connectionString: account.GetConnectionString(), blobContainerName, blobName, account.Provider);
+        }
+        else
+        {
+            var blobUri = BlobUriUtils.UriForBlob(account.BlobServiceUri, blobContainerName, blobName);
+            return new(blobUri, account.Provider);
+        }
     }
 
     #endregion
