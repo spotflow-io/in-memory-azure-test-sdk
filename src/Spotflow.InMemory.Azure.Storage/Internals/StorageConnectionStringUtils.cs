@@ -12,8 +12,38 @@ internal static class StorageConnectionStringUtils
 {
     public static string GetAccountNameFromConnectionString(string connectionString)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+
         var props = ParseProperties(connectionString);
 
+        return GetAccountNameFromConnectionString(props);
+    }
+
+    public static string GetConnectionString(InMemoryStorageAccount account)
+    {
+        return $"AccountName={account.Name};AccountKey={account.PrimaryAccessKey};DefaultEndpointsProtocol=https;TableEndpoint={account.TableService.Uri};BlobEndpoint={account.BlobService.Uri}";
+    }
+
+    public static bool TryGetSharedKey(string connectionString, [NotNullWhen(true)] out StorageSharedKeyCredential? result)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+
+        var props = ParseProperties(connectionString);
+
+        var accountName = GetAccountNameFromConnectionString(props);
+
+        if (!props.TryGetValue("AccountKey", out var accountKey))
+        {
+            result = null;
+            return false;
+        }
+
+        result = new StorageSharedKeyCredential(accountName, accountKey);
+        return true;
+    }
+
+    private static string GetAccountNameFromConnectionString(IReadOnlyDictionary<string, string> props)
+    {
         if (props.TryGetValue("AccountName", out var accountName))
         {
             return accountName;
@@ -30,52 +60,23 @@ internal static class StorageConnectionStringUtils
         }
 
         throw new InvalidOperationException("Storage account name could not be resolved.");
-
-    }
-
-    public static string GetConnectionString(InMemoryStorageAccount account)
-    {
-        return $"AccountName={account.Name};AccountKey={account.PrimaryAccessKey};DefaultEndpointsProtocol=https;TableEndpoint={account.TableService.Uri};BlobEndpoint={account.BlobService.Uri}";
-    }
-
-    public static bool TryGetSharedKey(string connectionString, [NotNullWhen(true)] out StorageSharedKeyCredential? result)
-    {
-        var props = ParseProperties(connectionString);
-
-        if (!props.TryGetValue("AccountName", out var accountName))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!props.TryGetValue("AccountKey", out var accountKey))
-        {
-            result = null;
-            return false;
-        }
-
-        result = new StorageSharedKeyCredential(accountName, accountKey);
-        return true;
     }
 
     private static IReadOnlyDictionary<string, string> ParseProperties(string connectionString)
     {
-        var options = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
-
-        var pairs = connectionString.Split(';', options);
+        var pairs = connectionString.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
         var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var pair in pairs)
         {
-            KeyValuePair<string, string>? kv = pair.Split('=', options) switch
-            {
-            [var k, var v] => new(k, v),
-                _ => null
-            };
+            var keyValue = pair.Split('=');
 
-            if (kv is not null)
+            if (keyValue.Length >= 2)
             {
-                props.Add(kv.Value.Key, kv.Value.Value);
+                var key = keyValue[0].Trim();
+                var value = string.Join('=', keyValue[1..]).Trim();
+                props.Add(key, value);
             }
         }
 
