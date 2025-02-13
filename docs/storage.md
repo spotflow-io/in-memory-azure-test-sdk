@@ -22,6 +22,7 @@ To get started, add `Spotflow.InMemory.Azure.Storage` package to your project.
 ```shell
 dotnet add Spotflow.InMemory.Azure.Storage
 ```
+
 This package provides in-memory implementation of Azure Storage SDK clients and models.
 These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
 There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
@@ -58,10 +59,9 @@ services.AddSingleton<ExampleService>();
 var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
 ```
 
-*Note:
+_Note:
 Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
-This is just an example of one of many ways how the in-memory clients can be used.*
-
+This is just an example of one of many ways how the in-memory clients can be used._
 
 To inject the in-memory implementation of `BlobContainerClient` to the `ExampleService` during test,
 the `InMemoryBlobContainerClient` can be simply substituted for the real `BlobContainerClient` in the DI container:
@@ -231,12 +231,12 @@ Clients are thread-safe.
 
 #### `InMemoryBlobContainerClient: BlobContainerClient`
 
-| Property            | Note                    |
-| ------------------- | ----------------------- |
-| `AccountName`       |                         |
-| `CanGenerateSasUri` |                         |
-| `Name`              |                         |
-| `Uri`               |                         |
+| Property            | Note |
+| ------------------- | ---- |
+| `AccountName`       |      |
+| `CanGenerateSasUri` |      |
+| `Name`              |      |
+| `Uri`               |      |
 
 | Method group                 | Note                                                                                           |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -262,13 +262,13 @@ Clients are thread-safe.
 
 #### `InMemoryBlobClient: BlobClient`
 
-| Property            | Note                    |
-| ------------------- | ----------------------- |
-| `AccountName`       |                         |
-| `BlobContainerName` |                         |
-| `CanGenerateSasUri` |                         |
-| `Name`              |                         |
-| `Uri`               |                         |
+| Property            | Note |
+| ------------------- | ---- |
+| `AccountName`       |      |
+| `BlobContainerName` |      |
+| `CanGenerateSasUri` |      |
+| `Name`              |      |
+| `Uri`               |      |
 
 | Method group                   | Note                                                        |
 | ------------------------------ | ----------------------------------------------------------- |
@@ -293,18 +293,18 @@ Clients are thread-safe.
 
 #### `InMemoryBlockBlobClient: BlockBlobClient`
 
-| Property                          | Note                    |
-| --------------------------------- | ----------------------- |
-| `AccountName`                     |                         |
-| `BlobContainerName`               |                         |
-| `BlockBlobMaxUploadBlobBytes`     |                         |
-| `BlockBlobMaxUploadBlobLongBytes` |                         |
-| `BlockBlobMaxStageBlockBytes`     |                         |
-| `BlockBlobMaxStageBlockLongBytes` |                         |
-| `BlockBlobMaxBlocks`              |                         |
-| `CanGenerateSasUri`               |                         |
-| `Name`                            |                         |
-| `Uri`                             |                         |
+| Property                          | Note |
+| --------------------------------- | ---- |
+| `AccountName`                     |      |
+| `BlobContainerName`               |      |
+| `BlockBlobMaxUploadBlobBytes`     |      |
+| `BlockBlobMaxUploadBlobLongBytes` |      |
+| `BlockBlobMaxStageBlockBytes`     |      |
+| `BlockBlobMaxStageBlockLongBytes` |      |
+| `BlockBlobMaxBlocks`              |      |
+| `CanGenerateSasUri`               |      |
+| `Name`                            |      |
+| `Uri`                             |      |
 
 | Method group                   | Note                                                    |
 | ------------------------------ | ------------------------------------------------------- |
@@ -388,9 +388,12 @@ Clients are thread-safe.
 | `AccountName` |      |
 | `Uri`         |      |
 
-| Method group     | Note |
-| ---------------- | ---- |
-| `GetTableClient` |      |
+| Method group             | Note |
+| ------------------------ | ---- |
+| `GetTableClient`         |      |
+| `CreateTable`            |      |
+| `CreateTableIfNotExists` |      |
+| `DeleteTable`            |      |
 
 | Constructor                 | Note                          |
 | --------------------------- | ----------------------------- |

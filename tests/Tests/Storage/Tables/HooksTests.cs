@@ -53,6 +53,44 @@ public class HooksTests
     }
 
     [TestMethod]
+    public async Task Table_Create_Via_Service_Client_Hooks_Should_Execute()
+    {
+        const string accountName = "test-account";
+        const string tableName = "test-table";
+        var provider = new InMemoryStorageProvider();
+
+        TableCreateBeforeHookContext? capturedBeforeContext = null;
+        TableCreateAfterHookContext? capturedAfterContext = null;
+
+        provider.AddHook(builder => builder.ForTableService().ForTableOperations().BeforeCreate(ctx =>
+        {
+            capturedBeforeContext = ctx;
+            return Task.CompletedTask;
+        }));
+
+        provider.AddHook(builder => builder.ForTableService().ForTableOperations().AfterCreate(ctx =>
+        {
+            capturedAfterContext = ctx;
+            return Task.CompletedTask;
+        }));
+
+        var account = provider.AddAccount(accountName);
+        var serviceClient = InMemoryTableServiceClient.FromAccount(account);
+
+        await serviceClient.CreateTableAsync(tableName);
+
+        capturedBeforeContext.Should().NotBeNull();
+        capturedBeforeContext?.StorageAccountName.Should().Be(accountName);
+        capturedBeforeContext?.TableName.Should().BeEquivalentTo(tableName);
+        capturedBeforeContext?.Operation.Should().Be(TableOperations.Create);
+
+        capturedAfterContext.Should().NotBeNull();
+        capturedAfterContext?.StorageAccountName.Should().Be(accountName);
+        capturedAfterContext?.TableName.Should().Be(tableName);
+        capturedAfterContext?.Operation.Should().Be(TableOperations.Create);
+    }
+
+    [TestMethod]
     public void Table_Query_Hooks_Should_Execute()
     {
         var provider = new InMemoryStorageProvider();
@@ -144,7 +182,7 @@ public class HooksTests
     }
 
     [TestMethod]
-    public async Task Targeted_Hooks__Should_Execute()
+    public async Task Targeted_Hooks_Should_Execute()
     {
         const string accountName = "test-account";
         const string tableName = "test-table";

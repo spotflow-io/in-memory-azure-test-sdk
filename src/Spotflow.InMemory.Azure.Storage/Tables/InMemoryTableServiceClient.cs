@@ -48,6 +48,48 @@ public class InMemoryTableServiceClient : TableServiceClient
         return new InMemoryTableClient(uriBuilder.ToUri(), Provider);
     }
 
+    #region Create Table
+
+    public override Response<TableItem> CreateTable(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return client.Create(cancellationToken);
+    }
+
+    public override async Task<Response<TableItem>> CreateTableAsync(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return await client.CreateAsync(cancellationToken);
+    }
+
+    public override Response<TableItem> CreateTableIfNotExists(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return client.CreateIfNotExists(cancellationToken);
+    }
+
+    public override async Task<Response<TableItem>> CreateTableIfNotExistsAsync(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return await client.CreateIfNotExistsAsync(cancellationToken);
+    }
+
+    #endregion
+
+    #region Delete Table
+    public override Response DeleteTable(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return client.Delete(cancellationToken);
+    }
+
+    public override async Task<Response> DeleteTableAsync(string tableName, CancellationToken cancellationToken = default)
+    {
+        var client = GetTableClient(tableName);
+        return await client.DeleteAsync(cancellationToken);
+    }
+    #endregion
+
     #region Unsupported
 
     public override TableAccountSasBuilder GetSasBuilder(TableAccountSasPermissions permissions, TableAccountSasResourceTypes resourceTypes, DateTimeOffset expiresOn)
@@ -86,36 +128,6 @@ public class InMemoryTableServiceClient : TableServiceClient
     }
 
     public override Pageable<TableItem> Query(Expression<Func<TableItem, bool>> filter, int? maxPerPage = null, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<TableItem> CreateTable(string tableName, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<TableItem>> CreateTableAsync(string tableName, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<TableItem> CreateTableIfNotExists(string tableName, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<TableItem>> CreateTableIfNotExistsAsync(string tableName, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response DeleteTable(string tableName, CancellationToken cancellationToken = default)
-    {
-        throw TableExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response> DeleteTableAsync(string tableName, CancellationToken cancellationToken = default)
     {
         throw TableExceptionFactory.MethodNotSupported();
     }
