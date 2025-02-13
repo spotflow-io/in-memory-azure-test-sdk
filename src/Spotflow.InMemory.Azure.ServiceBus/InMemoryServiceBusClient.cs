@@ -164,7 +164,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
         if (!store.TryAcquireSession(sessionId, out var session))
         {
             throw ServiceBusExceptionFactory.SessionNotFound(FullyQualifiedNamespace, queue.EntityPath, sessionId);
-        };
+        }
 
         return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
 
