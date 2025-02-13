@@ -502,7 +502,7 @@ public class InMemoryTableClient : TableClient
 
         if (!service.TryDeleteTable(Name))
         {
-            throw TableExceptionFactory.TableNotFound(Name, service);
+            throw TableExceptionFactory.TableNotFound(AccountName, Name);
         }
 
         return new InMemoryResponse(204);
@@ -531,7 +531,7 @@ public class InMemoryTableClient : TableClient
     {
         if (!TryGetTable(out var service, out var table))
         {
-            throw TableExceptionFactory.TableNotFound(Name, service);
+            throw TableExceptionFactory.TableNotFound(AccountName, Name);
         }
 
         return table;
