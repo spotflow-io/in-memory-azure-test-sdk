@@ -302,7 +302,7 @@ public class BlobContainerClientTests
         {
             Metadata = new Dictionary<string, string>()
             {
-                ["My-Property"] = "test"
+                ["myProperty"] = "test"
             }
         });
 
@@ -320,7 +320,7 @@ public class BlobContainerClientTests
         blob.Properties.ContentEncoding.Should().BeNull();
         blob.Metadata.Should().Contain(new Dictionary<string, string>()
         {
-            ["My-Property"] = "test"
+            ["myProperty"] = "test"
         });
     }
 
