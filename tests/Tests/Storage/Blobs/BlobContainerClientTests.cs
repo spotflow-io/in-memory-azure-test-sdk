@@ -284,7 +284,7 @@ public class BlobContainerClientTests
         }
     }
 
-mm    [TestMethod]
+    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public void GetBlobs_With_Metadata_Traits_Should_Return_Blobs_With_Metadata()
     {
