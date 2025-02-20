@@ -227,7 +227,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix, states);
+        var blobs = GetBlobsCore(prefix, traits, states);
         return new InMemoryPageable.YieldingAsync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
@@ -237,38 +237,53 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix, states);
+        var blobs = GetBlobsCore(prefix, traits, states);
         return new InMemoryPageable.Sync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
 
-    private IReadOnlyList<BlobItem> GetBlobsCore(string? prefix, BlobStates? states)
+    private IReadOnlyList<BlobItem> GetBlobsCore(string? prefix, BlobTraits traits, BlobStates states)
     {
         var container = GetContainer();
 
-        return container.GetBlobs(prefix, states);
+        return container.GetBlobs(prefix, traits, states);
     }
 
     #endregion
 
     #region Get Blobs By Hierarchy
-    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
+    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(
+        BlobTraits traits = BlobTraits.None,
+        BlobStates states = BlobStates.None,
+        string? delimiter = null,
+        string? prefix = null,
+        CancellationToken cancellationToken = default)
     {
-        var items = GetBlobsByHierarchyCoreAsync(states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        var items = GetBlobsByHierarchyCoreAsync(traits,states, delimiter, prefix, cancellationToken).EnsureCompleted();
         return new InMemoryPageable.Sync<BlobHierarchyItem>(items, _defaultMaxPageSize);
     }
 
-    public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(BlobTraits traits = BlobTraits.None, BlobStates states = BlobStates.None, string? delimiter = null, string? prefix = null, CancellationToken cancellationToken = default)
+    public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(
+        BlobTraits traits = BlobTraits.None,
+        BlobStates states = BlobStates.None,
+        string? delimiter = null,
+        string? prefix = null,
+        CancellationToken cancellationToken = default)
     {
-        var items = GetBlobsByHierarchyCoreAsync(states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        var items = GetBlobsByHierarchyCoreAsync(traits,states, delimiter, prefix, cancellationToken).EnsureCompleted();
         return new InMemoryPageable.YieldingAsync<BlobHierarchyItem>(items, _defaultMaxPageSize);
     }
 
-    private async Task<IReadOnlyList<BlobHierarchyItem>> GetBlobsByHierarchyCoreAsync(BlobStates states, string? delimiter, string? prefix, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<BlobHierarchyItem>> GetBlobsByHierarchyCoreAsync(
+        BlobTraits traits,
+        BlobStates states,
+        string? delimiter,
+        string? prefix,
+        CancellationToken cancellationToken)
     {
         await Task.Yield();
 
-        var blobs = GetBlobsCore(prefix, states);
+        var blobs = GetBlobsCore(prefix, traits,states);
 
         if (delimiter is null)
         {

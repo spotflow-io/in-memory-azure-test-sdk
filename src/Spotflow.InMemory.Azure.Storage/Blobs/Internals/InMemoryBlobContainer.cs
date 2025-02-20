@@ -31,14 +31,30 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     public override string? ToString() => $"{Service} / {Name}";
 
-    public IReadOnlyList<BlobItem> GetBlobs(string? prefix, BlobStates? states)
+    public IReadOnlyList<BlobItem> GetBlobs(string? prefix, BlobTraits traits, BlobStates states)
     {
+        if (traits.HasFlag(BlobTraits.CopyStatus) ||
+            traits.HasFlag(BlobTraits.ImmutabilityPolicy) ||
+            traits.HasFlag(BlobTraits.LegalHold) ||
+            traits.HasFlag(BlobTraits.Tags))
+        {
+            throw new NotSupportedException($"{nameof(BlobTraits.CopyStatus)}, {nameof(BlobTraits.ImmutabilityPolicy)}, {nameof(BlobTraits.LegalHold)}, and {nameof(BlobTraits.Tags)} are not supported.");
+        }
+
+        if (states.HasFlag(BlobStates.Deleted) ||
+            states.HasFlag(BlobStates.DeletedWithVersions) ||
+            states.HasFlag(BlobStates.Snapshots) ||
+            states.HasFlag(BlobStates.Version))
+        {
+            throw new NotSupportedException($"{nameof(BlobStates.Deleted)}, {nameof(BlobStates.DeletedWithVersions)}, {nameof(BlobStates.Snapshots)}, and {nameof(BlobStates.Version)} are not supported.");
+        }
+
         lock (_lock)
         {
             return _blobEntries
                 .Values
                 .Where(entry => filter(entry.Blob))
-                .Select(entry => BlobsModelFactory.BlobItem(entry.Blob.Name))
+                .Select(createBlobItem)
                 .ToList();
         }
 
@@ -46,12 +62,58 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
         {
             var result = true;
 
-            result &= blob.Exists || (states?.HasFlag(BlobStates.Uncommitted) is true && blob.HasUncommittedBlocks);
+            result &= blob.Exists || (states.HasFlag(BlobStates.Uncommitted) is true && blob.HasUncommittedBlocks);
             result &= prefix is null || blob.Name.StartsWith(prefix);
 
             return result;
         }
 
+        BlobItem createBlobItem(BlobEntry entry)
+        {
+            IDictionary<string, string>? metadata = null;
+            BlobItemProperties? itemProperties = null;
+
+            if (traits.HasFlag(BlobTraits.Metadata))
+            {
+                if (entry.Blob.Exists)
+                {
+                    if (!entry.Blob.TryGetProperties(null, out var properties, out var error))
+                    {
+                        throw error.GetClientException();
+                    }
+
+                    metadata = properties.Metadata;
+
+                    itemProperties = BlobsModelFactory.BlobItemProperties(
+                        accessTierInferred: false,
+                        contentType: properties.ContentType,
+                        contentEncoding: properties.ContentEncoding,
+                        contentLength: properties.ContentLength,
+                        lastModified: properties.LastModified,
+                        eTag: properties.ETag,
+                        createdOn: properties.CreatedOn
+                    );
+                }
+                else
+                {
+                    metadata = new Dictionary<string, string>();
+                    itemProperties = BlobsModelFactory.BlobItemProperties(
+                        accessTierInferred: false,
+                        contentType: null,
+                        contentEncoding: null,
+                        contentLength: 0,
+                        lastModified: new DateTimeOffset(),
+                        eTag: new ETag(),
+                        createdOn: null
+                    );
+                }
+            }
+
+            return BlobsModelFactory.BlobItem(
+                entry.Blob.Name,
+                properties: itemProperties,
+                metadata: metadata);
+        }
     }
 
     public AcquiredBlob AcquireBlob(string blobName, CancellationToken cancellationToken)

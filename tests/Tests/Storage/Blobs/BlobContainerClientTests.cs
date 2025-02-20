@@ -1,8 +1,12 @@
+using System.Text;
+
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
+
+using Microsoft.Azure.Amqp.Framing;
 
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
@@ -280,7 +284,94 @@ public class BlobContainerClientTests
                 return client.GetBlobs().AsPages(continuationToken, pageSizeHint).ElementAt(pageIndex);
             }
         }
+    }
 
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GetBlobs_With_Metadata_Traits_Should_Return_Blobs_With_Metadata()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobNamePrefix = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobClient(blobNamePrefix);
+        blobClient.Upload(BinaryData.FromString("test"), new BlobUploadOptions()
+        {
+            Metadata = new Dictionary<string, string>()
+            {
+                ["My-Property"] = "test"
+            }
+        });
+
+        var blobs = containerClient.GetBlobs(prefix: blobNamePrefix, traits: BlobTraits.Metadata).ToList();
+
+        blobs.Should().HaveCount(1);
+        var blob = blobs[0];
+
+        blob.Name.Should().Be(blobNamePrefix);
+        blob.Properties.ETag.Should().NotBeNull();
+        blob.Properties.CreatedOn.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromHours(1));
+        blob.Properties.LastModified.Should().Be(blob.Properties.CreatedOn);
+        blob.Properties.ContentLength.Should().Be(4);
+        blob.Properties.ContentType.Should().BeNull();
+        blob.Properties.ContentEncoding.Should().BeNull();
+        blob.Metadata.Should().Contain(new Dictionary<string, string>()
+        {
+            ["My-Property"] = "test"
+        });
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GetBlobs_With_Metadata_Traits_And_Uncommitted_States_Should_Return_Blobs_With_Empty_Metadata()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobNamePrefix = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobNamePrefix);
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+        blobClient.StageBlock(blockId, BinaryData.FromString("test").ToStream());
+
+        var blobs = containerClient.GetBlobs(prefix: blobNamePrefix, traits: BlobTraits.Metadata, states: BlobStates.Uncommitted).ToList();
+
+        blobs.Should().HaveCount(1);
+        var blob = blobs[0];
+
+        blob.Name.Should().Be(blobNamePrefix);
+        blob.Properties.ETag.Should().Be(default(ETag));
+        blob.Properties.CreatedOn.Should().Be(null);
+        blob.Properties.LastModified.Should().Be(default(DateTimeOffset));
+        blob.Properties.ContentLength.Should().Be(0);
+        blob.Properties.ContentType.Should().BeNull();
+        blob.Properties.ContentEncoding.Should().BeNull();
+        blob.Metadata.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobTraits.CopyStatus, null)]
+    [DataRow(BlobTraits.ImmutabilityPolicy, null)]
+    [DataRow(BlobTraits.LegalHold, null)]
+    [DataRow(BlobTraits.Tags, null)]
+    [DataRow(null, BlobStates.Deleted)]
+    [DataRow(null, BlobStates.DeletedWithVersions)]
+    [DataRow(null, BlobStates.Snapshots)]
+    [DataRow(null, BlobStates.Version)]
+    public void GetBlobs_With_Unsupported_Flag_Should_Result_In_Not_Supported_Exception(BlobTraits? traits, BlobStates? states)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var act = () => containerClient.GetBlobs(prefix: "", traits: traits ?? BlobTraits.None, states: states ?? BlobStates.None).ToList();
+
+        act.Should().Throw<NotSupportedException>();
     }
 
     [TestMethod]
