@@ -74,7 +74,8 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
                     itemProperties = BlobsModelFactory.BlobItemProperties(
                         accessTierInferred: false,
                         contentType: properties.ContentType,
-                        contentEncoding: properties.ContentEncoding,
+                        // Empty contentEncoding is represented here as an empty string but in GetProperties* methods it's represented as null
+                        contentEncoding: properties.ContentEncoding ?? string.Empty,
                         contentLength: properties.ContentLength,
                         lastModified: properties.LastModified,
                         eTag: properties.ETag,

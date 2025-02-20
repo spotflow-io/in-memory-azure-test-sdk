@@ -314,7 +314,7 @@ public class BlobContainerClientTests
         blob.Properties.LastModified.Should().Be(blob.Properties.CreatedOn);
         blob.Properties.ContentLength.Should().Be(4);
         blob.Properties.ContentType.Should().Be("application/octet-stream");
-        blob.Properties.ContentEncoding.Should().BeNull();
+        blob.Properties.ContentEncoding.Should().Be("");
         blob.Metadata.Should().Contain(new Dictionary<string, string>()
         {
             ["myProperty"] = "test"
