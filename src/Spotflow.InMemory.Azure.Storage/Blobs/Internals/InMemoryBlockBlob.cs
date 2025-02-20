@@ -349,7 +349,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             metadata: metadata ?? _properties?.Metadata ?? new Dictionary<string, string>(),
             eTag: new ETag(Guid.NewGuid().ToString()),
             lastModified: now,
-            contentType: headers?.ContentType ?? _properties?.ContentType,
+            contentType: headers?.ContentType ?? _properties?.ContentType ?? "application/octet-stream",
             contentEncoding: headers?.ContentEncoding ?? _properties?.ContentEncoding,
             createdOn: createdOn
             );

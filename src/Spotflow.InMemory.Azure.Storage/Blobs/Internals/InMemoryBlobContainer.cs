@@ -31,24 +31,11 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     public override string? ToString() => $"{Service} / {Name}";
 
-    public IReadOnlyList<BlobItem> GetBlobs(string? prefix, BlobTraits traits, BlobStates states)
+    public IReadOnlyList<BlobItem> GetBlobs(
+        string? prefix,
+        bool includeMetadata = false,
+        bool includeUncommittedBlobs = false)
     {
-        if (traits.HasFlag(BlobTraits.CopyStatus) ||
-            traits.HasFlag(BlobTraits.ImmutabilityPolicy) ||
-            traits.HasFlag(BlobTraits.LegalHold) ||
-            traits.HasFlag(BlobTraits.Tags))
-        {
-            throw new NotSupportedException($"{nameof(BlobTraits.CopyStatus)}, {nameof(BlobTraits.ImmutabilityPolicy)}, {nameof(BlobTraits.LegalHold)}, and {nameof(BlobTraits.Tags)} are not supported.");
-        }
-
-        if (states.HasFlag(BlobStates.Deleted) ||
-            states.HasFlag(BlobStates.DeletedWithVersions) ||
-            states.HasFlag(BlobStates.Snapshots) ||
-            states.HasFlag(BlobStates.Version))
-        {
-            throw new NotSupportedException($"{nameof(BlobStates.Deleted)}, {nameof(BlobStates.DeletedWithVersions)}, {nameof(BlobStates.Snapshots)}, and {nameof(BlobStates.Version)} are not supported.");
-        }
-
         lock (_lock)
         {
             return _blobEntries
@@ -62,7 +49,7 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
         {
             var result = true;
 
-            result &= blob.Exists || (states.HasFlag(BlobStates.Uncommitted) is true && blob.HasUncommittedBlocks);
+            result &= blob.Exists || (includeUncommittedBlobs && blob.HasUncommittedBlocks);
             result &= prefix is null || blob.Name.StartsWith(prefix);
 
             return result;
@@ -73,13 +60,13 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
             IDictionary<string, string>? metadata = null;
             BlobItemProperties? itemProperties = null;
 
-            if (traits.HasFlag(BlobTraits.Metadata))
+            if (includeMetadata)
             {
                 if (entry.Blob.Exists)
                 {
                     if (!entry.Blob.TryGetProperties(null, out var properties, out var error))
                     {
-                        throw error.GetClientException();
+                        throw new InvalidOperationException("Since blob exists and we don't use any conditions properties should be returned without problem.");
                     }
 
                     metadata = properties.Metadata;

@@ -284,8 +284,7 @@ public class BlobContainerClientTests
         }
     }
 
-
-    [TestMethod]
+mm    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public void GetBlobs_With_Metadata_Traits_Should_Return_Blobs_With_Metadata()
     {
@@ -362,13 +361,13 @@ public class BlobContainerClientTests
     [DataRow(null, BlobStates.Snapshots)]
     [DataRow(null, BlobStates.Version)]
     [DataRow(null, BlobStates.All)]
-    public void GetBlobs_With_Unsupported_Flag_Should_Result_In_Not_Supported_Exception(BlobTraits? traits, BlobStates? states)
+    public void GetBlobs_With_Unsupported_Flag_Should_Result_In_Not_Supported_Exception(BlobTraits traits, BlobStates states)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 
         containerClient.CreateIfNotExists();
 
-        var act = () => containerClient.GetBlobs(prefix: "", traits: traits ?? BlobTraits.None, states: states ?? BlobStates.None).ToList();
+        var act = () => containerClient.GetBlobs(prefix: "", traits: traits, states: states).ToList();
 
         act.Should().Throw<NotSupportedException>();
     }
