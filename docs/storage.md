@@ -388,9 +388,12 @@ Clients are thread-safe.
 | `AccountName` |      |
 | `Uri`         |      |
 
-| Method group     | Note |
-| ---------------- | ---- |
-| `GetTableClient` |      |
+| Method group             | Note |
+| ------------------------ | ---- |
+| `GetTableClient`         |      |
+| `CreateTable`            |      |
+| `CreateTableIfNotExists` |      |
+| `DeleteTable`            |      |
 
 | Constructor                 | Note                          |
 | --------------------------- | ----------------------------- |

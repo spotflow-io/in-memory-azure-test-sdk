@@ -14,9 +14,9 @@ internal static class TableExceptionFactory
         return new($"Host '{InMemoryTableService.CreateServiceUriFromAccountName(accountName, provider)}' not found.");
     }
 
-    public static RequestFailedException TableNotFound(string tableName, InMemoryTableService tableService)
+    public static RequestFailedException TableNotFound(string accountName, string tableName)
     {
-        return new(404, $"Table '{tableName}' not found in '{tableService}'.", TableErrorCode.ResourceNotFound.ToString(), null);
+        return new(404, $"Table '{tableName}' not found in account '{accountName}'.", TableErrorCode.ResourceNotFound.ToString(), null);
     }
 
     public static RequestFailedException TableAlreadyExists(string accountName, string tableName)
