@@ -354,7 +354,6 @@ public class BlobContainerClientTests
     }
 
     [TestMethod]
-    [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobTraits.CopyStatus, null)]
     [DataRow(BlobTraits.ImmutabilityPolicy, null)]
     [DataRow(BlobTraits.LegalHold, null)]
