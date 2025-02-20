@@ -31,14 +31,17 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     public override string? ToString() => $"{Service} / {Name}";
 
-    public IReadOnlyList<BlobItem> GetBlobs(string? prefix, BlobStates? states)
+    public IReadOnlyList<BlobItem> GetBlobs(
+        string? prefix,
+        bool includeMetadata,
+        bool includeUncommittedBlobs)
     {
         lock (_lock)
         {
             return _blobEntries
                 .Values
                 .Where(entry => filter(entry.Blob))
-                .Select(entry => BlobsModelFactory.BlobItem(entry.Blob.Name))
+                .Select(createBlobItem)
                 .ToList();
         }
 
@@ -46,12 +49,59 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
         {
             var result = true;
 
-            result &= blob.Exists || (states?.HasFlag(BlobStates.Uncommitted) is true && blob.HasUncommittedBlocks);
+            result &= blob.Exists || (includeUncommittedBlobs && blob.HasUncommittedBlocks);
             result &= prefix is null || blob.Name.StartsWith(prefix);
 
             return result;
         }
 
+        BlobItem createBlobItem(BlobEntry entry)
+        {
+            IDictionary<string, string>? metadata = null;
+            BlobItemProperties? itemProperties = null;
+
+            if (includeMetadata)
+            {
+                if (entry.Blob.Exists)
+                {
+                    if (!entry.Blob.TryGetProperties(null, out var properties, out var error))
+                    {
+                        throw new InvalidOperationException("Since blob exists and we don't use any conditions properties should be returned without problem.");
+                    }
+
+                    metadata = properties.Metadata;
+
+                    itemProperties = BlobsModelFactory.BlobItemProperties(
+                        accessTierInferred: false,
+                        contentType: properties.ContentType,
+                        // Empty contentEncoding is represented here as an empty string but in GetProperties* methods it's represented as null
+                        contentEncoding: properties.ContentEncoding ?? string.Empty,
+                        contentLength: properties.ContentLength,
+                        lastModified: properties.LastModified,
+                        eTag: properties.ETag,
+                        createdOn: properties.CreatedOn
+                    );
+                }
+                else
+                {
+                    metadata = new Dictionary<string, string>();
+                    itemProperties = BlobsModelFactory.BlobItemProperties(
+                        accessTierInferred: false,
+                        contentType: null,
+                        contentEncoding: null,
+                        contentLength: 0,
+                        lastModified: new DateTimeOffset(),
+                        eTag: new ETag(),
+                        createdOn: null
+                    );
+                }
+            }
+
+            return BlobsModelFactory.BlobItem(
+                entry.Blob.Name,
+                properties: itemProperties,
+                metadata: metadata);
+        }
     }
 
     public AcquiredBlob AcquireBlob(string blobName, CancellationToken cancellationToken)
