@@ -359,10 +359,12 @@ public class BlobContainerClientTests
     [DataRow(BlobTraits.ImmutabilityPolicy, null)]
     [DataRow(BlobTraits.LegalHold, null)]
     [DataRow(BlobTraits.Tags, null)]
+    [DataRow(BlobTraits.All, null)]
     [DataRow(null, BlobStates.Deleted)]
     [DataRow(null, BlobStates.DeletedWithVersions)]
     [DataRow(null, BlobStates.Snapshots)]
     [DataRow(null, BlobStates.Version)]
+    [DataRow(null, BlobStates.All)]
     public void GetBlobs_With_Unsupported_Flag_Should_Result_In_Not_Supported_Exception(BlobTraits? traits, BlobStates? states)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
