@@ -6,8 +6,6 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 
-using Microsoft.Azure.Amqp.Framing;
-
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
 using Spotflow.InMemory.Azure.Storage.Resources;
@@ -316,7 +314,7 @@ public class BlobContainerClientTests
         blob.Properties.CreatedOn.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromHours(1));
         blob.Properties.LastModified.Should().Be(blob.Properties.CreatedOn);
         blob.Properties.ContentLength.Should().Be(4);
-        blob.Properties.ContentType.Should().BeNull();
+        blob.Properties.ContentType.Should().Be("application/octet-stream");
         blob.Properties.ContentEncoding.Should().BeNull();
         blob.Metadata.Should().Contain(new Dictionary<string, string>()
         {
@@ -350,7 +348,7 @@ public class BlobContainerClientTests
         blob.Properties.ContentLength.Should().Be(0);
         blob.Properties.ContentType.Should().BeNull();
         blob.Properties.ContentEncoding.Should().BeNull();
-        blob.Metadata.Should().BeEmpty();
+        blob.Metadata.Should().NotBeNull().And.BeEmpty();
     }
 
     [TestMethod]
