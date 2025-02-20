@@ -33,8 +33,8 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     public IReadOnlyList<BlobItem> GetBlobs(
         string? prefix,
-        bool includeMetadata = false,
-        bool includeUncommittedBlobs = false)
+        bool includeMetadata,
+        bool includeUncommittedBlobs)
     {
         lock (_lock)
         {
