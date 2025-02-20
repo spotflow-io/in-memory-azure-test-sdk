@@ -248,12 +248,12 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
         if (traits != BlobTraits.Metadata && traits != BlobTraits.None)
         {
-            throw new NotSupportedException($"Only {nameof(BlobTraits.Metadata)} traits flag is supported.");
+            throw BlobExceptionFactory.FeatureNotSupported($"Traits flags other than {nameof(BlobTraits.Metadata)}");
         }
 
         if (states != BlobStates.Uncommitted && states != BlobStates.None)
         {
-            throw new NotSupportedException($"Only {nameof(BlobStates.Uncommitted)} states flag is supported.");
+            throw BlobExceptionFactory.FeatureNotSupported($"States flags other than {nameof(BlobStates.Uncommitted)}");
         }
 
         return container.GetBlobs(
