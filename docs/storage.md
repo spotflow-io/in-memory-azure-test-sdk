@@ -238,21 +238,21 @@ Clients are thread-safe.
 | `Name`              |      |
 | `Uri`               |      |
 
-| Method group                 | Note                                                                                           |
-| ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| `Create`                     |                                                                                                |
-| `CreateIfNotExists`          |                                                                                                |
-| `DeleteBlob`                 |                                                                                                |
-| `DeleteBlobIfExists`         |                                                                                                |
-| `Exists`                     |                                                                                                |
-| `GenerateSasUri`             |                                                                                                |
-| `GetBlobClient`              |                                                                                                |
-| `GetBlockBlobClient`         |                                                                                                |
-| `GetBlobs`                   | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
-| `GetBlobsByHierarchy`        | The `BlobTraits` and `BlobStates` parameters are ignored except `BlobStates.Uncommitted` flag. |
-| `GetParentBlobServiceClient` |                                                                                                |
-| `GetProperties`              |                                                                                                |
-| `UploadBlob`                 |                                                                                                |
+| Method group                 | Note                                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Create`                     |                                                                                                                                    |
+| `CreateIfNotExists`          |                                                                                                                                    |
+| `DeleteBlob`                 |                                                                                                                                    |
+| `DeleteBlobIfExists`         |                                                                                                                                    |
+| `Exists`                     |                                                                                                                                    |
+| `GenerateSasUri`             |                                                                                                                                    |
+| `GetBlobClient`              |                                                                                                                                    |
+| `GetBlockBlobClient`         |                                                                                                                                    |
+| `GetBlobs`                   | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
+| `GetBlobsByHierarchy`        | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
+| `GetParentBlobServiceClient` |                                                                                                                                    |
+| `GetProperties`              |                                                                                                                                    |
+| `UploadBlob`                 |                                                                                                                                    |
 
 | Constructors & factory methods                                          | Note                          |
 | ----------------------------------------------------------------------- | ----------------------------- |

@@ -35,9 +35,13 @@ We use `dotnet-format` to format the code. Code formatting is checked in the CI 
 
 All new code must be covered by tests. Prefer adding new tests specific for the new code, but feel free to extend existing tests if it makes sense.
 
-### Documentation & changelog
+### Documentation
 
-All new features and changes must be reflected in the documentation [README.md](./README.md) and/or [docs](./docs). Also, make sure to update the [CHANGELOG.md](./CHANGELOG.md) file with a brief description of the changes. The changelog follows the [Keep a Changelog](https://keepachangelog.com) format.
+All new features and changes must be reflected in the documentation [README.md](./README.md) and/or [docs](./docs).
+
+### Releases & changelog
+
+Project uses [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) and semi-automatic release notes generation to keep track of changes.
 
 ## Architecture of in-memory clients
 
