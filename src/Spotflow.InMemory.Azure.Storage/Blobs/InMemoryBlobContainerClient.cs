@@ -259,7 +259,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var items = GetBlobsByHierarchyCoreAsync(traits,states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        var items = GetBlobsByHierarchyCoreAsync(traits, states, delimiter, prefix, cancellationToken).EnsureCompleted();
         return new InMemoryPageable.Sync<BlobHierarchyItem>(items, _defaultMaxPageSize);
     }
 
@@ -270,7 +270,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var items = GetBlobsByHierarchyCoreAsync(traits,states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        var items = GetBlobsByHierarchyCoreAsync(traits, states, delimiter, prefix, cancellationToken).EnsureCompleted();
         return new InMemoryPageable.YieldingAsync<BlobHierarchyItem>(items, _defaultMaxPageSize);
     }
 
@@ -283,7 +283,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     {
         await Task.Yield();
 
-        var blobs = GetBlobsCore(prefix, traits,states);
+        var blobs = GetBlobsCore(prefix, traits, states);
 
         if (delimiter is null)
         {
