@@ -215,6 +215,7 @@ public class BlobClientTests_BlockBlobClient
     }
 
     [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public void StageBlockFromUri_From_Another_Container()
     {
         var serviceClient = ImplementationProvider.GetBlobServiceClient();
