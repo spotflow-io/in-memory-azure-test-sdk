@@ -228,7 +228,6 @@ public class BlobClientTests_BlockBlobClient
 
         var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
         sourceBlobClient.Upload(BinaryData.FromString("test-data"));
-        var sourceBlobToken = sourceBlobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
 
         var blobName = Guid.NewGuid().ToString();
 
@@ -237,7 +236,7 @@ public class BlobClientTests_BlockBlobClient
         var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
 
         blobClient
-            .StageBlockFromUri(sourceBlobToken, blockId)
+            .StageBlockFromUri(sourceBlobClient.Uri, blockId)
             .GetRawResponse()
             .Status
             .Should()
