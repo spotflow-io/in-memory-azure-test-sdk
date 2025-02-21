@@ -59,7 +59,7 @@ internal static class ImplementationProvider
         else
         {
             var account = new InMemoryStorageProvider().AddAccount();
-            return InMemoryBlobServiceClient.FromAccount(account, useConnectionString: true);
+            return InMemoryBlobServiceClient.FromAccount(account);
         }
     }
 
