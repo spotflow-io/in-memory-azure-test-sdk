@@ -446,7 +446,11 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
     {
         var sourceClient = new InMemoryBlobClient(sourceUri, Provider);
-        var downloadResponse = sourceClient.DownloadContent(
+        BinaryData sourceData;
+
+        try
+        {
+            var downloadResponse = sourceClient.DownloadContent(
             new BlobDownloadOptions()
             {
                 Range = options?.SourceRange ?? new HttpRange(),
@@ -459,9 +463,15 @@ public class InMemoryBlockBlobClient : BlockBlobClient
                 }
             }, cancellationToken);
 
-        if (downloadResponse.GetRawResponse().Status == 404)
+            sourceData = downloadResponse.Value.Content;
+        }
+        catch (RequestFailedException ex)
         {
-            throw BlobExceptionFactory.SourceBlobNotFound();
+            if (ex.Status == 404)
+            {
+                throw BlobExceptionFactory.SourceBlobNotFound();
+            }
+            throw;
         }
 
         var stageOptions = new BlockBlobStageBlockOptions
@@ -469,7 +479,7 @@ public class InMemoryBlockBlobClient : BlockBlobClient
             Conditions = options?.DestinationConditions ?? new BlobRequestConditions(),
         };
 
-        using var sourceStream = downloadResponse.Value.Content.ToStream();
+        using var sourceStream = sourceData.ToStream();
 
         return StageBlock(base64BlockId, sourceStream, stageOptions, cancellationToken);
     }
