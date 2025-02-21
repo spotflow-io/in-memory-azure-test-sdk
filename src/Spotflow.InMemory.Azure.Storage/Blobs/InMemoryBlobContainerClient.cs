@@ -22,7 +22,9 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     private readonly BlobContainerScope _scope;
 
+    private readonly string? _connectionString;
     private readonly StorageSharedKeyCredential? _sharedKey;
+
     #region Constructors
 
     public InMemoryBlobContainerClient(string connectionString, string blobContainerName, InMemoryStorageProvider provider)
@@ -53,6 +55,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         Name = builder.BlobContainerName;
         Provider = provider;
         _scope = new(builder.AccountName, builder.BlobContainerName);
+        _connectionString = connectionString;
 
         if (connectionString is not null && StorageConnectionStringUtils.TryGetSharedKey(connectionString, out var sharedKey))
         {
@@ -87,6 +90,11 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     public override BlobClient GetBlobClient(string blobName)
     {
+        if (_connectionString is not null)
+        {
+            return new InMemoryBlobClient(_connectionString, _scope.ContainerName, blobName, Provider);
+        }
+
         var blobUri = BlobUriUtils.UriForBlob(Uri, Name, blobName);
         return new InMemoryBlobClient(blobUri, Provider);
     }
@@ -95,6 +103,11 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     protected override BlockBlobClient GetBlockBlobClientCore(string blobName)
     {
+        if (_connectionString is not null)
+        {
+            return new InMemoryBlockBlobClient(_connectionString, _scope.ContainerName, blobName, Provider);
+        }
+
         var blobUri = BlobUriUtils.UriForBlob(Uri, Name, blobName);
         return new InMemoryBlockBlobClient(blobUri, Provider);
     }
