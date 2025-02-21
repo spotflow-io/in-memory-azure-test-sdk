@@ -150,7 +150,7 @@ public class BlobClientTests_GenericBlobClient
     }
 
     [TestMethod]
-    public void GenerateSasUri_Should_Succeed()
+    public void GenerateSasUri_With_Manually_Created_Client_Should_Succeed()
     {
         var provider = new InMemoryStorageProvider();
 
@@ -159,6 +159,24 @@ public class BlobClientTests_GenericBlobClient
         var connectionString = account.GetConnectionString();
 
         var client = new InMemoryBlobClient(connectionString, "test-container", "test-blob", provider);
+
+        var sasUri = client.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
+
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container/test-blob?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=b&sp=r&sig=*";
+
+        sasUri.ToString().Should().Match(expectedUri);
+    }
+
+    [TestMethod]
+    public void GenerateSasUri_With_Client_Created_From_Container_Should_Succeed()
+    {
+        var provider = new InMemoryStorageProvider();
+
+        var account = provider.AddAccount("testaccount");
+
+        var container = InMemoryBlobContainerClient.FromAccount(account, "test-container", useConnectionString: true);
+
+        var client = container.GetBlobClient("test-blob");
 
         var sasUri = client.GenerateSasUri(BlobSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
 
