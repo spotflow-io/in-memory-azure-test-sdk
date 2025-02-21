@@ -227,7 +227,7 @@ public class BlobClientTests_BlockBlobClient
         containerClient.CreateIfNotExists();
 
         var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
-        sourceBlobClient.Upload(BinaryData.FromString("test-data"));
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
 
         var blobName = Guid.NewGuid().ToString();
 
