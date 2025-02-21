@@ -39,6 +39,11 @@ internal static class BlobExceptionFactory
         return new(404, $"Blob '{blobName}' not found in container '{blobContainerName}' in account '{accountName}'.", BlobErrorCode.BlobNotFound.ToString(), null);
     }
 
+    public static RequestFailedException SourceBlobNotFound()
+    {
+        return new(404, "Source blob not found", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
     public static RequestFailedException BlockCountExceeded(string accountName, string blobContainerName, string blobName, int limit, int actualCount)
     {
         return new(

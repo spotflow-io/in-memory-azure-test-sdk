@@ -215,6 +215,39 @@ public class BlobClientTests_BlockBlobClient
     }
 
     [TestMethod]
+    public void StageBlockFromUri_From_Another_Container()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"));
+        var sourceBlobToken = sourceBlobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1));
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        blobClient
+            .StageBlockFromUri(sourceBlobToken, blockId)
+            .GetRawResponse()
+            .Status
+            .Should()
+            .Be(201);
+
+        blobClient.CommitBlockList([blockId]);
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().Be("test-data");
+    }
+
+    [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public void CommitBlockList_With_Existing_Blocks_Should_Create_Blob_And_Clear_Uncommited_Blocks()
     {

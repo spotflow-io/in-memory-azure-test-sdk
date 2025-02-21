@@ -359,7 +359,7 @@ If the given feature is not supported, than the method will just ignore any para
 | Public access                    | ❌           |
 | Query                            | ❌           |
 | Ranges                           | ❌           |
-| SAS URI signature validation     | ❌           |
+| SAS URI query parameters (including signature) validation     | ❌           |
 | Server-side copy                 | ❌           |
 | Snapshots                        | ❌           |
 | Soft delete                      | ❌           |
