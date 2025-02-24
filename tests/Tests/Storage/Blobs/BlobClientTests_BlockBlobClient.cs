@@ -276,7 +276,6 @@ public class BlobClientTests_BlockBlobClient
             .Where(e => e.ErrorCode == "CannotVerifyCopySource");
     }
 
-
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     public void CommitBlockList_With_Existing_Blocks_Should_Create_Blob_And_Clear_Uncommited_Blocks()

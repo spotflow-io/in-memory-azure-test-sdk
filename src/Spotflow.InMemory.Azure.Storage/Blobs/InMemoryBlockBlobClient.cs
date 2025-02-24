@@ -450,18 +450,18 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
         try
         {
-            var downloadResponse = sourceClient.DownloadContent(
-            new BlobDownloadOptions()
+            var downloadOptions = new BlobDownloadOptions()
             {
                 Range = options?.SourceRange ?? new HttpRange(),
-                Conditions = new BlobRequestConditions()
+                Conditions = options?.SourceConditions is null ? null : new BlobRequestConditions()
                 {
-                    IfMatch = options?.SourceConditions.IfMatch,
-                    IfNoneMatch = options?.SourceConditions.IfNoneMatch,
-                    IfModifiedSince = options?.SourceConditions.IfModifiedSince,
-                    IfUnmodifiedSince = options?.SourceConditions.IfUnmodifiedSince,
+                    IfMatch = options.SourceConditions.IfMatch,
+                    IfNoneMatch = options.SourceConditions.IfNoneMatch,
+                    IfModifiedSince = options.SourceConditions.IfModifiedSince,
+                    IfUnmodifiedSince = options.SourceConditions.IfUnmodifiedSince,
                 }
-            }, cancellationToken);
+            };
+            var downloadResponse = sourceClient.DownloadContent(downloadOptions, cancellationToken);
 
             sourceData = downloadResponse.Value.Content;
         }
