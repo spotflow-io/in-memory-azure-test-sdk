@@ -322,6 +322,7 @@ Clients are thread-safe.
 | `OpenRead`                     | Seeking on the returned stream is not supported.        |
 | `OpenWrite`                    |                                                         |
 | `StageBlock`                   |                                                         |
+| `StageBlockFromUri`            |                                                         |
 | `Upload`                       |                                                         |
 
 | Constructors & factory methods                                                           | Note                          |
