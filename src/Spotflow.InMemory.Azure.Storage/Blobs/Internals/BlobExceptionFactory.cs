@@ -66,6 +66,11 @@ internal static class BlobExceptionFactory
         return new(304, "Service request failed.", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
     }
 
+    public static RequestFailedException SourceBlobInvalidRange()
+    {
+        return new(416, "The range specified is invalid for the current size of the resource.", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
     public static RequestFailedException BlockCountExceeded(string accountName, string blobContainerName, string blobName, int limit, int actualCount)
     {
         return new(

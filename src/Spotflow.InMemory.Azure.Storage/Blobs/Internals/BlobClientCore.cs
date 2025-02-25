@@ -351,8 +351,8 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         using (sourceBlob)
         {
             if (!sourceBlob.Value.TryDownload(
-                    options?.SourceConditions.IfMatch,
-                    options?.SourceConditions.IfNoneMatch,
+                    options?.SourceConditions?.IfMatch,
+                    options?.SourceConditions?.IfNoneMatch,
                     out var sourceContent,
                     out _,
                     out var downloadError))
@@ -366,6 +366,17 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
                         BlobExceptionFactory.SourceBlobIfNoneMatchFailed(),
                     _ => throw new InvalidOperationException("Unexpected error")
                 };
+            }
+
+            var sliceResult = SliceContentIfNeeded(sourceContent, options?.SourceRange);
+
+            if (sliceResult is SliceContentResult.Sliced sliced)
+            {
+                sourceContent = sliced.Data;
+            }
+            else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+            {
+                throw BlobExceptionFactory.SourceBlobInvalidRange();
             }
 
             var stageOptions = new BlockBlobStageBlockOptions
