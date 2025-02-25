@@ -226,15 +226,13 @@ public class InMemoryBlobClient : BlobClient
 
     public override async Task<Response<BlobDownloadInfo>> DownloadAsync(CancellationToken cancellationToken)
     {
-        var info = await _core.DownloadAsync(null, cancellationToken: cancellationToken)
+return await _core.DownloadAsync(null, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        return InMemoryResponse.FromValue(info, 200);
     }
 
     public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(BlobDownloadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var result = await _core.DownloadStreamingAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        return InMemoryResponse.FromValue(result, 200);
+        return await _core.DownloadStreamingAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
     }
 
     public override Response<BlobDownloadResult> DownloadContent() => DownloadContent((BlobDownloadOptions?) null, default);
@@ -256,8 +254,7 @@ public class InMemoryBlobClient : BlobClient
 
     public override async Task<Response<BlobDownloadResult>> DownloadContentAsync(BlobDownloadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var content = await _core.DownloadContentAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        return InMemoryResponse.FromValue(content, 200);
+        return await _core.DownloadContentAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
     }
 
     public override Response<BlobDownloadInfo> Download(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
@@ -267,9 +264,7 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
-        var info = _core.DownloadAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
-
-        return InMemoryResponse.FromValue(info, 200);
+        return _core.DownloadAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlobDownloadInfo>> DownloadAsync(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
@@ -279,9 +274,7 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
-        var info = await _core.DownloadAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-
-        return InMemoryResponse.FromValue(info, 200);
+        return await _core.DownloadAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
     }
 
     public override Response<BlobDownloadStreamingResult> DownloadStreaming(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
@@ -291,9 +284,7 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
-        var info =  _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
-
-        return InMemoryResponse.FromValue(info, 200);
+        return _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
@@ -303,9 +294,7 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
-        var info = await _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-
-        return InMemoryResponse.FromValue(info, 200);
+        return await _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
     }
 
     #endregion

@@ -386,8 +386,33 @@ public class BlobClientTests
         });
 
         response.GetRawResponse().Status.Should().Be(206);
-        response.Value.Content.Position.Should().Be(7);
+        response.Value.Content.Position.Should().Be(0);
         new StreamReader(response.Value.Content).ReadToEnd().Should().Be("World");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadContent_With_Range_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var response = blobClient.DownloadContent(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(7, 5)
+        });
+
+        response.GetRawResponse().Status.Should().Be(206);
+        response.Value.Content.ToString().Should().Be("World");
     }
 
     [TestMethod]

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 using Azure;
 using Azure.Storage.Blobs;
@@ -20,29 +21,55 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
     private readonly BlobScope _scope = new(uriBuilder.AccountName, uriBuilder.BlobContainerName, uriBuilder.BlobName);
 
-    public async Task<BlobDownloadInfo> DownloadAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    public async Task<Response<BlobDownloadInfo>> DownloadAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var (content, properties) = await DownloadCoreAsync(options, cancellationToken);
-        var stream = new BlobReadStream(options?.Conditions, 0, content, properties, GetContent, allowModifications: false);
-        return GetDownloadInfo(content, properties, stream);
+        var (info, partialContent) = await DownloadStreamingCoreAsync(options, cancellationToken);
+
+        return InMemoryResponse.FromValue(info, partialContent ? 206 : 200);
     }
 
-    public async Task<BlobDownloadStreamingResult> DownloadStreamingAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    public async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var info = await DownloadAsync(options, cancellationToken);
-        return BlobsModelFactory.BlobDownloadStreamingResult(info.Content, info.Details);
+        var (info, partialContent) = await DownloadStreamingCoreAsync(options, cancellationToken);
+
+        return InMemoryResponse.FromValue(
+            BlobsModelFactory.BlobDownloadStreamingResult(info.Content, info.Details),
+            partialContent ? 206 : 200);
     }
 
-    public async Task<BlobDownloadResult> DownloadContentAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    private async Task<(BlobDownloadInfo Info, bool PartialContent)> DownloadStreamingCoreAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
-        var (content, properties) = await DownloadCoreAsync(options, cancellationToken);
+        var (content, properties, partialContent) = await DownloadCoreAsync(options, cancellationToken);
+        var getContent = (RequestConditions? conditions, CancellationToken cancellationToken) =>
+        {
+            var streamContent = GetContent(conditions, cancellationToken);
+            var sliceResult = SliceContentIfNeeded(streamContent, options?.Range);
+
+            if (sliceResult is SliceContentResult.Sliced sliced)
+            {
+                streamContent = sliced.Data;
+            }
+
+            return streamContent;
+        };
+        var stream = new BlobReadStream(options?.Conditions, 0, content, properties, getContent, allowModifications: false);
+        var info = GetDownloadInfo(content, properties, stream);
+
+        return (info, partialContent);
+    }
+
+    public async Task<Response<BlobDownloadResult>> DownloadContentAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    {
+        var (content, properties, partialContent) = await DownloadCoreAsync(options, cancellationToken);
 
         var details = GetDownloadInfo(content, properties, null).Details;
 
-        return BlobsModelFactory.BlobDownloadResult(content, details);
+        return InMemoryResponse.FromValue(
+            BlobsModelFactory.BlobDownloadResult(content, details),
+            partialContent ? 206 : 200);
     }
 
-    private async Task<BlobContentWithProperties> DownloadCoreAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
+    private async Task<DownloadCoreResult> DownloadCoreAsync(BlobDownloadOptions? options, CancellationToken cancellationToken)
     {
         var beforeContext = new BlobDownloadBeforeHookContext(_scope, Provider, cancellationToken)
         {
@@ -51,7 +78,16 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        var (content, properties) = GetContentWithProperties(options?.Conditions, options?.Range, cancellationToken);
+        var (content, properties) = GetContentWithProperties(options?.Conditions, cancellationToken);
+
+        var partialContent = false;
+        var sliceResult = SliceContentIfNeeded(content, options?.Range);
+
+        if (sliceResult is SliceContentResult.Sliced sliced)
+        {
+            content = sliced.Data;
+            partialContent = true;
+        }
 
         var afterContext = new BlobDownloadAfterHookContext(beforeContext)
         {
@@ -61,7 +97,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        return new(content, properties);
+        return new(content, properties, partialContent);
     }
 
     public BlobProperties GetProperties(BlobRequestConditions? conditions, CancellationToken cancellationToken)
@@ -272,7 +308,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteBeforeHooksAsync(beforeContext);
 
-        var (content, properties) = GetContentWithProperties(options.Conditions, null, cancellationToken);
+        var (content, properties) = GetContentWithProperties(options.Conditions, cancellationToken);
 
         var allowModifications = ReflectionUtils.ReadInternalValueProperty<bool>(options, "AllowModifications");
 
@@ -333,7 +369,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         }
     }
 
-    private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, HttpRange? range, CancellationToken cancellationToken)
+    private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, CancellationToken cancellationToken)
     {
         using var blob = AcquireBlob(cancellationToken);
 
@@ -345,14 +381,25 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return new(content, properties);
     }
 
-    private BinaryData GetContent(RequestConditions? conditions, HttpRange? range, CancellationToken cancellationToken)
+    private static SliceContentResult SliceContentIfNeeded(BinaryData data, HttpRange? range)
     {
-        return GetContentWithProperties(conditions, range,cancellationToken).Content;
+        if (range is null || range is { Offset: 0, Length: null })
+        {
+            return new SliceContentResult.NotNeeded();
+        }
+
+        var bytes = data.ToMemory()[(int) range.Value.Offset..];
+        if (range.Value.Length is not null)
+        {
+            bytes = bytes[..(int) range.Value.Length.Value];
+        }
+
+        return new SliceContentResult.Sliced(BinaryData.FromBytes(bytes));
     }
 
     private BinaryData GetContent(RequestConditions? conditions, CancellationToken cancellationToken)
     {
-        return GetContentWithProperties(conditions, null, cancellationToken).Content;
+        return GetContentWithProperties(conditions, cancellationToken).Content;
     }
 
     private static BlobDownloadInfo GetDownloadInfo(BinaryData content, BlobProperties properties, Stream? contentStream)
@@ -443,4 +490,16 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
                 BlobExceptionFactory.ContainerNotFound(containerName, service);
         }
     }
+
+    private abstract class SliceContentResult
+    {
+        public class NotNeeded() : SliceContentResult;
+
+        public class Sliced(BinaryData data) : SliceContentResult
+        {
+            public BinaryData Data { get; } = data;
+        }
+    }
+
+    private record DownloadCoreResult(BinaryData Content, BlobProperties Properties, bool partialContent);
 }
