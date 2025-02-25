@@ -450,21 +450,23 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         }
     }
 
-    public abstract record DownloadError
+    public abstract class DownloadError
     {
         public abstract RequestFailedException GetClientException();
 
-        public record BlobNotFound(InMemoryBlockBlob Blob) : DownloadError
+        public class BlobNotFound(InMemoryBlockBlob blob) : DownloadError
         {
             public override RequestFailedException GetClientException()
             {
-                return BlobExceptionFactory.BlobNotFound(Blob.AccountName, Blob.ContainerName, Blob.Name);
+                return BlobExceptionFactory.BlobNotFound(blob.AccountName, blob.ContainerName, blob.Name);
             }
         }
 
-        public record ConditionNotMet(InMemoryBlockBlob Blob, ConditionError Error) : DownloadError
+        public class ConditionNotMet(InMemoryBlockBlob blob, ConditionError error) : DownloadError
         {
-            public override RequestFailedException GetClientException() => BlobExceptionFactory.ConditionNotMet(Blob.AccountName, Blob.ContainerName, Blob.Name, Error);
+            public ConditionError Error { get; } = error;
+
+            public override RequestFailedException GetClientException() => BlobExceptionFactory.ConditionNotMet(blob.AccountName, blob.ContainerName, blob.Name, Error);
         }
     }
 

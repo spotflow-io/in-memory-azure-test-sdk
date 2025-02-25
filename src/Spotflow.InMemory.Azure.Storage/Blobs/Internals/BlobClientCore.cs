@@ -329,8 +329,6 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
                 Conditions = options?.DestinationConditions ?? new BlobRequestConditions(),
             };
 
-            using var sourceStream = sourceContent.ToStream();
-
             return StageBlock(base64BlockId, sourceContent, stageOptions, cancellationToken);
         }
     }
@@ -424,20 +422,20 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return Provider.ExecuteHooksAsync(context);
     }
 
-    private abstract record AcquireBlobError
+    private abstract class AcquireBlobError
     {
         public abstract Exception GetClientException();
 
-        public record BlobServiceNotFound(string AccountName, InMemoryStorageProvider Provider) : AcquireBlobError
+        public class BlobServiceNotFound(string accountName, InMemoryStorageProvider provider) : AcquireBlobError
         {
             public override Exception GetClientException() =>
-                BlobExceptionFactory.BlobServiceNotFound(AccountName, Provider);
+                BlobExceptionFactory.BlobServiceNotFound(accountName, provider);
         }
 
-        public record ContainerNotFound(string ContainerName, InMemoryBlobService Service) : AcquireBlobError
+        public class ContainerNotFound(string containerName, InMemoryBlobService service) : AcquireBlobError
         {
             public override Exception GetClientException() =>
-                BlobExceptionFactory.ContainerNotFound(ContainerName, Service);
+                BlobExceptionFactory.ContainerNotFound(containerName, service);
         }
     }
 }
