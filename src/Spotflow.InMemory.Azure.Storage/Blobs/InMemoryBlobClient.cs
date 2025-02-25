@@ -260,6 +260,54 @@ public class InMemoryBlobClient : BlobClient
         return InMemoryResponse.FromValue(content, 200);
     }
 
+    public override Response<BlobDownloadInfo> Download(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
+    {
+        var options = new BlobDownloadOptions()
+        {
+            Range = range,
+            Conditions = conditions
+        };
+        var info = _core.DownloadAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
+
+        return InMemoryResponse.FromValue(info, 200);
+    }
+
+    public override async Task<Response<BlobDownloadInfo>> DownloadAsync(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
+    {
+        var options = new BlobDownloadOptions()
+        {
+            Range = range,
+            Conditions = conditions
+        };
+        var info = await _core.DownloadAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+
+        return InMemoryResponse.FromValue(info, 200);
+    }
+
+    public override Response<BlobDownloadStreamingResult> DownloadStreaming(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
+    {
+        var options = new BlobDownloadOptions()
+        {
+            Range = range,
+            Conditions = conditions
+        };
+        var info =  _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
+
+        return InMemoryResponse.FromValue(info, 200);
+    }
+
+    public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
+    {
+        var options = new BlobDownloadOptions()
+        {
+            Range = range,
+            Conditions = conditions
+        };
+        var info = await _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+
+        return InMemoryResponse.FromValue(info, 200);
+    }
+
     #endregion
 
     #region Delete
@@ -383,26 +431,6 @@ public class InMemoryBlobClient : BlobClient
     }
 
     protected override BlobLeaseClient GetBlobLeaseClientCore(string leaseId)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<BlobDownloadInfo> Download(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<BlobDownloadInfo>> DownloadAsync(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<BlobDownloadStreamingResult> DownloadStreaming(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

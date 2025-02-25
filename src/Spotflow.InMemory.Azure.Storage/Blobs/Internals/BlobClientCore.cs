@@ -51,7 +51,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        var (content, properties) = GetContentWithProperties(options?.Conditions, cancellationToken);
+        var (content, properties) = GetContentWithProperties(options?.Conditions, options?.Range, cancellationToken);
 
         var afterContext = new BlobDownloadAfterHookContext(beforeContext)
         {
@@ -272,7 +272,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         await ExecuteBeforeHooksAsync(beforeContext);
 
-        var (content, properties) = GetContentWithProperties(options.Conditions, cancellationToken);
+        var (content, properties) = GetContentWithProperties(options.Conditions, null, cancellationToken);
 
         var allowModifications = ReflectionUtils.ReadInternalValueProperty<bool>(options, "AllowModifications");
 
@@ -333,7 +333,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         }
     }
 
-    private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, CancellationToken cancellationToken)
+    private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, HttpRange? range, CancellationToken cancellationToken)
     {
         using var blob = AcquireBlob(cancellationToken);
 
@@ -345,9 +345,14 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return new(content, properties);
     }
 
+    private BinaryData GetContent(RequestConditions? conditions, HttpRange? range, CancellationToken cancellationToken)
+    {
+        return GetContentWithProperties(conditions, range,cancellationToken).Content;
+    }
+
     private BinaryData GetContent(RequestConditions? conditions, CancellationToken cancellationToken)
     {
-        return GetContentWithProperties(conditions, cancellationToken).Content;
+        return GetContentWithProperties(conditions, null, cancellationToken).Content;
     }
 
     private static BlobDownloadInfo GetDownloadInfo(BinaryData content, BlobProperties properties, Stream? contentStream)

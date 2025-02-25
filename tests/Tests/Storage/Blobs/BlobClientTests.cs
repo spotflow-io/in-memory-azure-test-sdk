@@ -364,12 +364,37 @@ public class BlobClientTests
         blobClient.Should().HaveCommittedBlocks(3);
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_With_Range_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var response = blobClient.DownloadStreaming(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(7, 5)
+        });
+
+        response.GetRawResponse().Status.Should().Be(200);
+        response.Value.Content.Position.Should().Be(7);
+        new StreamReader(response.Value.Content).ReadToEnd().Should().Be("World");
+    }
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
-    public void Download_Streaming_For_Non_Existing_Blob_Should_Fail(BlobClientType clientType)
+    public void DownloadStreaming_For_Non_Existing_Blob_Should_Fail(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 
