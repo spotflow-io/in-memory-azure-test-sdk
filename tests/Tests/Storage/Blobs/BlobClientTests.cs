@@ -385,7 +385,7 @@ public class BlobClientTests
             Range = new HttpRange(7, 5)
         });
 
-        response.GetRawResponse().Status.Should().Be(200);
+        response.GetRawResponse().Status.Should().Be(206);
         response.Value.Content.Position.Should().Be(7);
         new StreamReader(response.Value.Content).ReadToEnd().Should().Be("World");
     }
