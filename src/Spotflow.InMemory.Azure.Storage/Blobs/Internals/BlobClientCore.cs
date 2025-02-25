@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -287,11 +289,57 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return stream;
     }
 
+    public BlockInfo StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options, CancellationToken cancellationToken)
+    {
+        var sourceUriBuilder = new BlobUriBuilder(sourceUri);
+        var sourceClient = new BlobClientCore(sourceUriBuilder, Provider);
+
+        if (!sourceClient.TryAcquireBlob(out var sourceBlob, out var acquireError, cancellationToken))
+        {
+            throw acquireError switch
+            {
+                AcquireBlobError.BlobServiceNotFound => BlobExceptionFactory.SourceBlobServiceNotFound(),
+                AcquireBlobError.ContainerNotFound => BlobExceptionFactory.SourceBlobContainerNotFound(),
+                _ => throw new InvalidOperationException("Unexpected error")
+            };
+        }
+
+        using (sourceBlob)
+        {
+            if (!sourceBlob.Value.TryDownload(
+                    options?.SourceConditions.IfMatch,
+                    options?.SourceConditions.IfNoneMatch,
+                    out var sourceContent,
+                    out _,
+                    out var downloadError))
+            {
+                throw downloadError switch
+                {
+                    InMemoryBlockBlob.DownloadError.BlobNotFound => BlobExceptionFactory.SourceBlobNotFound(),
+                    InMemoryBlockBlob.DownloadError.ConditionNotMet { Error: { ConditionType: Storage.Internals.ConditionType.IfMatch } } =>
+                        BlobExceptionFactory.SourceBlobIfMatchFailed(),
+                    InMemoryBlockBlob.DownloadError.ConditionNotMet { Error: { ConditionType: Storage.Internals.ConditionType.IfNoneMatch } } =>
+                        BlobExceptionFactory.SourceBlobIfNoneMatchFailed(),
+                    _ => throw new InvalidOperationException("Unexpected error")
+                };
+            }
+
+            var stageOptions = new BlockBlobStageBlockOptions
+            {
+                Conditions = options?.DestinationConditions ?? new BlobRequestConditions(),
+            };
+
+            using var sourceStream = sourceContent.ToStream();
+
+            return StageBlock(base64BlockId, sourceContent, stageOptions, cancellationToken);
+        }
+    }
+
     private BlobContentWithProperties GetContentWithProperties(RequestConditions? conditions, CancellationToken cancellationToken)
     {
         using var blob = AcquireBlob(cancellationToken);
 
-        if (!blob.Value.TryDownload(conditions, out var content, out var properties, out var error))
+        if (!blob.Value.TryDownload(conditions?.IfMatch, conditions?.IfNoneMatch, out var content, out var properties, out var error))
         {
             throw error.GetClientException();
         }
@@ -334,17 +382,36 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
     private InMemoryBlobContainer.AcquiredBlob AcquireBlob(CancellationToken cancellationToken)
     {
+        if (!TryAcquireBlob(out var blob, out var error, cancellationToken))
+        {
+            throw error.GetClientException();
+        }
+
+        return blob;
+    }
+
+    private bool TryAcquireBlob(
+        [NotNullWhen(true)] out InMemoryBlobContainer.AcquiredBlob? blob,
+        [NotNullWhen(false)] out AcquireBlobError? error,
+        CancellationToken cancellationToken)
+    {
         if (!Provider.TryGetAccount(AccountName, out var account))
         {
-            throw BlobExceptionFactory.BlobServiceNotFound(AccountName, Provider);
+            error = new AcquireBlobError.BlobServiceNotFound(AccountName, Provider);
+            blob = null;
+            return false;
         }
 
         if (!account.BlobService.TryGetBlobContainer(BlobContainerName, out var container))
         {
-            throw BlobExceptionFactory.ContainerNotFound(BlobContainerName, account.BlobService);
+            error = new AcquireBlobError.ContainerNotFound(BlobContainerName, account.BlobService);
+            blob = null;
+            return false;
         }
 
-        return container.AcquireBlob(Name, cancellationToken);
+        blob = container.AcquireBlob(Name, cancellationToken);
+        error = null;
+        return true;
     }
 
     private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : BlobBeforeHookContext
@@ -357,7 +424,20 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return Provider.ExecuteHooksAsync(context);
     }
 
+    private abstract record AcquireBlobError
+    {
+        public abstract Exception GetClientException();
 
+        public record BlobServiceNotFound(string AccountName, InMemoryStorageProvider Provider) : AcquireBlobError
+        {
+            public override Exception GetClientException() =>
+                BlobExceptionFactory.BlobServiceNotFound(AccountName, Provider);
+        }
+
+        public record ContainerNotFound(string ContainerName, InMemoryBlobService Service) : AcquireBlobError
+        {
+            public override Exception GetClientException() =>
+                BlobExceptionFactory.ContainerNotFound(ContainerName, Service);
+        }
+    }
 }
-
-

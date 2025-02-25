@@ -278,6 +278,40 @@ public class BlobClientTests_BlockBlobClient
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_Source_IfNoneMatch_Condition_Not_Met()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient(Guid.NewGuid().ToString());
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        var act = () => blobClient.StageBlockFromUri(sourceBlobClient.Uri, blockId, new StageBlockFromUriOptions()
+        {
+            SourceConditions = new RequestConditions()
+            {
+                IfNoneMatch = sourceBlobClient.GetProperties().Value.ETag
+            }
+        });
+
+        act.Should().Throw<RequestFailedException>()
+            .Where(e => e.Status == 304)
+            .Where(e => e.ErrorCode == "CannotVerifyCopySource");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public void CommitBlockList_With_Existing_Blocks_Should_Create_Blob_And_Clear_Uncommited_Blocks()
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();

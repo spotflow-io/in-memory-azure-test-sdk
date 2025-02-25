@@ -186,7 +186,8 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
     }
 
     public bool TryDownload(
-        RequestConditions? conditions,
+        ETag? ifMatch,
+        ETag? ifNoneMatch,
         [NotNullWhen(true)] out BinaryData? content,
         [NotNullWhen(true)] out BlobProperties? properties,
         [NotNullWhen(false)] out DownloadError? error)
@@ -199,7 +200,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             return false;
         }
 
-        if (!ConditionChecker.CheckConditions(_properties.ETag, conditions?.IfMatch, conditions?.IfNoneMatch, out var conditionError))
+        if (!ConditionChecker.CheckConditions(_properties.ETag, ifMatch, ifNoneMatch, out var conditionError))
         {
             error = new DownloadError.ConditionNotMet(this, conditionError);
             content = null;
@@ -449,21 +450,21 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         }
     }
 
-    public abstract class DownloadError
+    public abstract record DownloadError
     {
         public abstract RequestFailedException GetClientException();
 
-        public class BlobNotFound(InMemoryBlockBlob blob) : DownloadError
+        public record BlobNotFound(InMemoryBlockBlob Blob) : DownloadError
         {
             public override RequestFailedException GetClientException()
             {
-                return BlobExceptionFactory.BlobNotFound(blob.AccountName, blob.ContainerName, blob.Name);
+                return BlobExceptionFactory.BlobNotFound(Blob.AccountName, Blob.ContainerName, Blob.Name);
             }
         }
 
-        public class ConditionNotMet(InMemoryBlockBlob blob, ConditionError error) : DownloadError
+        public record ConditionNotMet(InMemoryBlockBlob Blob, ConditionError Error) : DownloadError
         {
-            public override RequestFailedException GetClientException() => BlobExceptionFactory.ConditionNotMet(blob.AccountName, blob.ContainerName, blob.Name, error);
+            public override RequestFailedException GetClientException() => BlobExceptionFactory.ConditionNotMet(Blob.AccountName, Blob.ContainerName, Blob.Name, Error);
         }
     }
 

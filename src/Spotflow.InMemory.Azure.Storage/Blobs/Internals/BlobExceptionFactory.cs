@@ -44,6 +44,28 @@ internal static class BlobExceptionFactory
         return new(404, "Source blob not found", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
     }
 
+    public static RequestFailedException SourceBlobContainerNotFound()
+    {
+        return new(404, "The specified container does not exist.", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
+    public static RequestFailedException SourceBlobServiceNotFound()
+    {
+        return new(409, "Could not verify copy source", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
+    public static RequestFailedException SourceBlobIfMatchFailed()
+    {
+        return new(412, "The condition specified using HTTP conditional header(s) is not met.", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
+    public static RequestFailedException SourceBlobIfNoneMatchFailed()
+    {
+        // The actual response is different than in documentation https://learn.microsoft.com/en-us/rest/api/storageservices/put-blob-from-url?tabs=microsoft-entra-id#request-headers
+        // But the status code 304 Not Modified does make sense.
+        return new(304, "Service request failed.", BlobErrorCode.CannotVerifyCopySource.ToString(), null);
+    }
+
     public static RequestFailedException BlockCountExceeded(string accountName, string blobContainerName, string blobName, int limit, int actualCount)
     {
         return new(

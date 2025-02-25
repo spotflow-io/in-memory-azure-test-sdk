@@ -445,43 +445,8 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var sourceClient = new InMemoryBlobClient(sourceUri, Provider);
-        BinaryData sourceData;
-
-        try
-        {
-            var downloadOptions = new BlobDownloadOptions()
-            {
-                Range = options?.SourceRange ?? new HttpRange(),
-                Conditions = options?.SourceConditions is null ? null : new BlobRequestConditions()
-                {
-                    IfMatch = options.SourceConditions.IfMatch,
-                    IfNoneMatch = options.SourceConditions.IfNoneMatch,
-                    IfModifiedSince = options.SourceConditions.IfModifiedSince,
-                    IfUnmodifiedSince = options.SourceConditions.IfUnmodifiedSince,
-                }
-            };
-            var downloadResponse = sourceClient.DownloadContent(downloadOptions, cancellationToken);
-
-            sourceData = downloadResponse.Value.Content;
-        }
-        catch (RequestFailedException ex)
-        {
-            if (ex.Status == 404)
-            {
-                throw BlobExceptionFactory.SourceBlobNotFound();
-            }
-            throw;
-        }
-
-        var stageOptions = new BlockBlobStageBlockOptions
-        {
-            Conditions = options?.DestinationConditions ?? new BlobRequestConditions(),
-        };
-
-        using var sourceStream = sourceData.ToStream();
-
-        return StageBlock(base64BlockId, sourceStream, stageOptions, cancellationToken);
+        var properties = _core.StageBlockFromUri(sourceUri, base64BlockId, options, cancellationToken);
+        return InMemoryResponse.FromValue(properties, 201);
     }
 
     public override async Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
