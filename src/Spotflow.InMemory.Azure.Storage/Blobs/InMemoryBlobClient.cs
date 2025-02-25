@@ -226,8 +226,8 @@ public class InMemoryBlobClient : BlobClient
 
     public override async Task<Response<BlobDownloadInfo>> DownloadAsync(CancellationToken cancellationToken)
     {
-return await _core.DownloadAsync(null, cancellationToken: cancellationToken)
-            .ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        return await _core.DownloadAsync(null, cancellationToken: cancellationToken)
+                    .ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
     }
 
     public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(BlobDownloadOptions? options = null, CancellationToken cancellationToken = default)

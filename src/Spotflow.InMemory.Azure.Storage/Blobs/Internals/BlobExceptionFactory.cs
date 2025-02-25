@@ -129,6 +129,15 @@ internal static class BlobExceptionFactory
             null);
     }
 
+    public static RequestFailedException InvalidRange()
+    {
+        return new(
+            416,
+            "The range specified is invalid for the current size of the resource.",
+            BlobErrorCode.InvalidRange.ToString(),
+            null);
+    }
+
     public static RequestFailedException InvalidQueryParameterValue(
         string accountName,
         string blobContainerName,

@@ -49,6 +49,10 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             {
                 streamContent = sliced.Data;
             }
+            else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+            {
+                throw invalidRange.GetClientException();
+            }
 
             return streamContent;
         };
@@ -87,6 +91,10 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         {
             content = sliced.Data;
             partialContent = true;
+        }
+        else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+        {
+            throw invalidRange.GetClientException();
         }
 
         var afterContext = new BlobDownloadAfterHookContext(beforeContext)
@@ -388,10 +396,18 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             return new SliceContentResult.NotNeeded();
         }
 
-        var bytes = data.ToMemory()[(int) range.Value.Offset..];
+        var bytes = data.ToMemory();
+
+        if (range.Value.Offset > (bytes.Length - 1))
+        {
+            return new SliceContentResult.InvalidRange();
+        }
+
+        bytes = data.ToMemory()[(int) range.Value.Offset..];
+
         if (range.Value.Length is not null)
         {
-            bytes = bytes[..(int) range.Value.Length.Value];
+            bytes = bytes[..Math.Min((int) range.Value.Length.Value, bytes.Length)];
         }
 
         return new SliceContentResult.Sliced(BinaryData.FromBytes(bytes));
@@ -498,6 +514,11 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         public class Sliced(BinaryData data) : SliceContentResult
         {
             public BinaryData Data { get; } = data;
+        }
+
+        public class InvalidRange() : SliceContentResult
+        {
+            public Exception GetClientException() => BlobExceptionFactory.InvalidRange();
         }
     }
 
