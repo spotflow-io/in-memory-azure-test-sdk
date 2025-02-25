@@ -9,6 +9,8 @@ namespace Spotflow.InMemory.Azure.Storage.Blobs;
 
 public class InMemoryBlobServiceClient : BlobServiceClient
 {
+    private readonly string? _connectionString;
+
     #region Constructors
 
     public InMemoryBlobServiceClient(string connectionString, InMemoryStorageProvider provider) : this(connectionString, null, provider) { }
@@ -18,6 +20,8 @@ public class InMemoryBlobServiceClient : BlobServiceClient
 
     private InMemoryBlobServiceClient(string? connectionString, Uri? uri, InMemoryStorageProvider provider)
     {
+        _connectionString = connectionString;
+
         var builder = BlobUriUtils.BuilderForService(connectionString, uri, provider);
 
         Uri = builder.ToUri();
@@ -44,6 +48,11 @@ public class InMemoryBlobServiceClient : BlobServiceClient
 
     public override BlobContainerClient GetBlobContainerClient(string blobContainerName)
     {
+        if (_connectionString is not null)
+        {
+            return new InMemoryBlobContainerClient(_connectionString, blobContainerName, Provider);
+        }
+
         var blobContainerUri = BlobUriUtils.UriForContainer(Uri, blobContainerName);
         return new InMemoryBlobContainerClient(blobContainerUri, Provider);
     }

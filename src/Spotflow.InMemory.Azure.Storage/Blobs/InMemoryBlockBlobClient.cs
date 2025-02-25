@@ -441,6 +441,39 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     #endregion
 
+    #region StageBlockFromUri
+
+    public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var properties = _core.StageBlockFromUri(sourceUri, base64BlockId, options, cancellationToken);
+        return InMemoryResponse.FromValue(properties, 201);
+    }
+
+    public override async Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return StageBlockFromUri(sourceUri, base64BlockId, options, cancellationToken);
+    }
+
+    public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
+    {
+        return StageBlockFromUri(sourceUri, base64BlockId, new StageBlockFromUriOptions()
+        {
+            SourceRange = sourceRange,
+            SourceContentHash = sourceContentHash,
+            SourceConditions = sourceConditions,
+            DestinationConditions = conditions
+        }, cancellationToken);
+    }
+
+    public override async Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+        return StageBlockFromUri(sourceUri, base64BlockId, sourceRange, sourceContentHash, sourceConditions, conditions, cancellationToken);
+    }
+
+    #endregion
+
 
     #region Unsupported
 
@@ -705,26 +738,6 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     }
 
     public override Task<Response<BlobLegalHoldResult>> SetLegalHoldAsync(bool hasLegalHold, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

@@ -216,6 +216,102 @@ public class BlobClientTests_BlockBlobClient
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_From_Another_Container()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        blobClient
+            .StageBlockFromUri(sourceBlobClient.Uri, blockId)
+            .GetRawResponse()
+            .Status
+            .Should()
+            .Be(201);
+
+        blobClient.CommitBlockList([blockId]);
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().Be("test-data");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_When_Source_Blob_Does_Not_Exist_Should_Fail()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var sourceBlob = new Uri(string.Join("/", sourceContainerClient.Uri.ToString(), "missing-blob"));
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        var act = () => blobClient.StageBlockFromUri(sourceBlob, blockId);
+
+        act
+            .Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 404)
+            .Where(e => e.ErrorCode == "CannotVerifyCopySource");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_Source_IfNoneMatch_Condition_Not_Met()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient(Guid.NewGuid().ToString());
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        var act = () => blobClient.StageBlockFromUri(sourceBlobClient.Uri, blockId, new StageBlockFromUriOptions()
+        {
+            SourceConditions = new RequestConditions()
+            {
+                IfNoneMatch = sourceBlobClient.GetProperties().Value.ETag
+            }
+        });
+
+        act.Should().Throw<RequestFailedException>()
+            .Where(e => e.Status == 304)
+            .Where(e => e.ErrorCode == "CannotVerifyCopySource");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public void CommitBlockList_With_Existing_Blocks_Should_Create_Blob_And_Clear_Uncommited_Blocks()
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();

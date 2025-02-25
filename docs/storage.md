@@ -322,6 +322,7 @@ Clients are thread-safe.
 | `OpenRead`                     | Seeking on the returned stream is not supported.        |
 | `OpenWrite`                    |                                                         |
 | `StageBlock`                   |                                                         |
+| `StageBlockFromUri`            |                                                         |
 | `Upload`                       |                                                         |
 
 | Constructors & factory methods                                                           | Note                          |
@@ -336,38 +337,39 @@ For the supported methods enumerated above, not all features are fully implement
 
 If the given feature is not supported, than the method will just ignore any parameters related to that feature.
 
-| Feature                          | Is Supported |
-| -------------------------------- | ------------ |
-| Access tiers                     | ❌           |
-| Client-side encryption           | ❌           |
-| Condition - `IfMatch`            | ✅           |
-| Condition - `IfModifiedSince`    | ❌           |
-| Condition - `IfNoneMatch`        | ✅           |
-| Condition - `IfUnmodifiedSince`  | ❌           |
-| Connection string key validation | ❌           |
-| CORS                             | ❌           |
-| Encryption scopes                | ❌           |
-| Header - `Content-Encoding`      | ✅           |
-| Header - `Content-Type`          | ✅           |
-| Header - Others                  | ❌           |
-| Immutability policies            | ❌           |
-| Leases                           | ❌           |
-| Legal holds                      | ❌           |
-| Metadata (blob)                  | ✅           |
-| Metadata (container)             | ✅           |
-| Progress handling                | ❌           |
-| Public access                    | ❌           |
-| Query                            | ❌           |
-| Ranges                           | ❌           |
-| SAS URI signature validation     | ❌           |
-| Server-side copy                 | ❌           |
-| Snapshots                        | ❌           |
-| Soft delete                      | ❌           |
-| Static website                   | ❌           |
-| Tags                             | ❌           |
-| Transfer (validation) options    | ❌           |
-| Transfer options                 | ❌           |
-| Versions                         | ❌           |
+| Feature                                                   | Is Supported |
+| --------------------------------------------------------- | ------------ |
+| Access tiers                                              | ❌           |
+| Client-side encryption                                    | ❌           |
+| Condition - `IfMatch`                                     | ✅           |
+| Condition - `IfModifiedSince`                             | ❌           |
+| Condition - `IfNoneMatch`                                 | ✅           |
+| Condition - `IfUnmodifiedSince`                           | ❌           |
+| Connection string key validation                          | ❌           |
+| CORS                                                      | ❌           |
+| Encryption scopes                                         | ❌           |
+| Header - `Content-Encoding`                               | ✅           |
+| Header - `Content-Type`                                   | ✅           |
+| Header - Others                                           | ❌           |
+| Immutability policies                                     | ❌           |
+| Leases                                                    | ❌           |
+| Legal holds                                               | ❌           |
+| Metadata (blob)                                           | ✅           |
+| Metadata (container)                                      | ✅           |
+| Progress handling                                         | ❌           |
+| Public access                                             | ❌           |
+| Query                                                     | ❌           |
+| Ranges                                                    | ❌           |
+| SAS URI query parameters (including signature) validation | ❌           |
+| Server-side copy                                          | ❌           |
+| Server-side block staging                                 | ✅           |
+| Snapshots                                                 | ❌           |
+| Soft delete                                               | ❌           |
+| Static website                                            | ❌           |
+| Tags                                                      | ❌           |
+| Transfer (validation) options                             | ❌           |
+| Transfer options                                          | ❌           |
+| Versions                                                  | ❌           |
 
 ## Supported APIs and features for Tables
 
