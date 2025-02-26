@@ -171,7 +171,7 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
 
         var messages = new List<ServiceBusReceivedMessage>();
 
-        await foreach (var item in ServiceBusClientUtils.ReceiveAsAsyncEnumerable(_getStore(), ReceiveMode, cancellationToken).ConfigureAwait(false))
+        await foreach (var item in ServiceBusClientUtils.ReceiveAsAsyncEnumerable(_getStore(), ReceiveMode, cancellationToken))
         {
             messages.Add(item);
             yield return item;

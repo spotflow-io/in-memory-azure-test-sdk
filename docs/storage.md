@@ -204,7 +204,8 @@ response.Value.LastModified.Should().Be(timeProvider.GetUtcNow());
 
 Following SDK clients and their method groups and properties are supported.
 
-Async versions of these methods are also supported. All supported async methods starts with [Task.Yield()](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task.yield) to force the method to complete asynchronously.
+Async versions of these methods are also supported. All supported async methods are guaranteed executed truly asynchronously by using [Task.Yield()](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task.yield).
+
 
 Other methods and properties are not supported and will throw `NotSupportedException`.
 

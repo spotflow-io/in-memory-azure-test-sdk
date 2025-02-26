@@ -46,7 +46,7 @@ public class InMemoryBlobServiceClient : BlobServiceClient
     public InMemoryStorageProvider Provider { get; }
     public override bool CanGenerateAccountSasUri => false;
 
-    public override BlobContainerClient GetBlobContainerClient(string blobContainerName)
+    public override InMemoryBlobContainerClient GetBlobContainerClient(string blobContainerName)
     {
         if (_connectionString is not null)
         {

@@ -31,7 +31,7 @@ internal class HooksExecutor<TFilter, TBaseContext>
                 continue;
             }
 
-            await scopedHooks.InvokeAsync(context).ConfigureAwait(ConfigureAwaitOptions.None);
+            await scopedHooks.InvokeAsync(context);
         }
     }
 
@@ -71,7 +71,7 @@ internal class HooksExecutor<TFilter, TBaseContext>
 
             foreach (var hook in hooksLocal)
             {
-                await hook.InvokeAsync(context).ConfigureAwait(ConfigureAwaitOptions.None);
+                await hook.InvokeAsync(context);
             }
 
         }
@@ -157,7 +157,7 @@ internal class HooksExecutor<TFilter, TBaseContext>
 
             }
 
-            await hook(context).ConfigureAwait(ConfigureAwaitOptions.None);
+            await hook(context);
 
         }
 

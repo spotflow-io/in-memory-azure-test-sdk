@@ -102,16 +102,18 @@ public class InMemoryServiceBusSender : ServiceBusSender
             throw ServiceBusExceptionFactory.FeatureNotSupported(e);
         }
 
-        await SendBatchCoreAsync(messages, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await SendBatchCoreAsync(messages, cancellationToken);
     }
 
     public override async Task SendMessagesAsync(IEnumerable<ServiceBusMessage> messages, CancellationToken cancellationToken = default)
     {
-        await SendBatchCoreAsync(messages.ToList(), cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await SendBatchCoreAsync(messages.ToList(), cancellationToken);
     }
 
     private async Task SendBatchCoreAsync(IReadOnlyList<ServiceBusMessage> messages, CancellationToken cancellationToken = default)
     {
+        await Task.Yield();
+
         var beforeContext = new SendBatchBeforeHookContext(_scope, Provider, cancellationToken)
         {
             Messages = messages

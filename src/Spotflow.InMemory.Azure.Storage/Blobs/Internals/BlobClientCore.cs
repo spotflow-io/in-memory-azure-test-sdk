@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 
 using Azure;
 using Azure.Storage.Blobs;
@@ -43,13 +42,13 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         var getContent = (RequestConditions? conditions, CancellationToken cancellationToken) =>
         {
             var streamContent = GetContent(conditions, cancellationToken);
-            var sliceResult = SliceContentIfNeeded(streamContent, options?.Range);
+            var sliceResult = SliceContentRangeIfNeeded(streamContent, options?.Range);
 
-            if (sliceResult is SliceContentResult.Sliced sliced)
+            if (sliceResult is ContentRangeResult.Sliced sliced)
             {
                 streamContent = sliced.Data;
             }
-            else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+            else if (sliceResult is ContentRangeResult.InvalidRange invalidRange)
             {
                 throw invalidRange.GetClientException();
             }
@@ -80,19 +79,19 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             Options = options
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var (content, properties) = GetContentWithProperties(options?.Conditions, cancellationToken);
 
         var partialContent = false;
-        var sliceResult = SliceContentIfNeeded(content, options?.Range);
+        var sliceResult = SliceContentRangeIfNeeded(content, options?.Range);
 
-        if (sliceResult is SliceContentResult.Sliced sliced)
+        if (sliceResult is ContentRangeResult.Sliced sliced)
         {
             content = sliced.Data;
             partialContent = true;
         }
-        else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+        else if (sliceResult is ContentRangeResult.InvalidRange invalidRange)
         {
             throw invalidRange.GetClientException();
         }
@@ -103,7 +102,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             Content = content
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return new(content, properties, partialContent);
     }
@@ -148,7 +147,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             Options = options
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         RequestConditions? conditions = options?.Conditions;
 
@@ -188,7 +187,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             Content = content
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return result;
     }
@@ -296,7 +295,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
     }
 
 
-    public BlobContainerClient GetParentContainerClient()
+    public InMemoryBlobContainerClient GetParentContainerClient()
     {
         var containerUriBuilder = new BlobUriBuilder(Uri)
         {
@@ -368,13 +367,13 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
                 };
             }
 
-            var sliceResult = SliceContentIfNeeded(sourceContent, options?.SourceRange);
+            var sliceResult = SliceContentRangeIfNeeded(sourceContent, options?.SourceRange);
 
-            if (sliceResult is SliceContentResult.Sliced sliced)
+            if (sliceResult is ContentRangeResult.Sliced sliced)
             {
                 sourceContent = sliced.Data;
             }
-            else if (sliceResult is SliceContentResult.InvalidRange invalidRange)
+            else if (sliceResult is ContentRangeResult.InvalidRange invalidRange)
             {
                 throw BlobExceptionFactory.SourceBlobInvalidRange();
             }
@@ -400,18 +399,18 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return new(content, properties);
     }
 
-    private static SliceContentResult SliceContentIfNeeded(BinaryData data, HttpRange? range)
+    private static ContentRangeResult SliceContentRangeIfNeeded(BinaryData data, HttpRange? range)
     {
         if (range is null || range is { Offset: 0, Length: null })
         {
-            return new SliceContentResult.NotNeeded();
+            return ContentRangeResult.NotNeeded.Instance;
         }
 
         var bytes = data.ToMemory();
 
         if (range.Value.Offset > (bytes.Length - 1))
         {
-            return new SliceContentResult.InvalidRange();
+            return new ContentRangeResult.InvalidRange();
         }
 
         bytes = data.ToMemory()[(int) range.Value.Offset..];
@@ -421,7 +420,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             bytes = bytes[..Math.Min((int) range.Value.Length.Value, bytes.Length)];
         }
 
-        return new SliceContentResult.Sliced(BinaryData.FromBytes(bytes));
+        return new ContentRangeResult.Sliced(BinaryData.FromBytes(bytes));
     }
 
     private BinaryData GetContent(RequestConditions? conditions, CancellationToken cancellationToken)
@@ -518,16 +517,19 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         }
     }
 
-    private abstract class SliceContentResult
+    private abstract class ContentRangeResult
     {
-        public class NotNeeded() : SliceContentResult;
-
-        public class Sliced(BinaryData data) : SliceContentResult
+        public class NotNeeded : ContentRangeResult
+        {
+            private NotNeeded() { }
+            public static NotNeeded Instance { get; } = new();
+        }
+        public class Sliced(BinaryData data) : ContentRangeResult
         {
             public BinaryData Data { get; } = data;
         }
 
-        public class InvalidRange() : SliceContentResult
+        public class InvalidRange : ContentRangeResult
         {
             public Exception GetClientException() => BlobExceptionFactory.InvalidRange();
         }

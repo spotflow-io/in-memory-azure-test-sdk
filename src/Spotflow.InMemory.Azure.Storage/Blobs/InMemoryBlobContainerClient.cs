@@ -82,13 +82,13 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     #region Get Client
 
-    protected override BlobServiceClient GetParentBlobServiceClientCore()
+    protected override InMemoryBlobServiceClient GetParentBlobServiceClientCore()
     {
         var serviceUri = Provider.GetAccount(AccountName).BlobServiceUri;
         return new InMemoryBlobServiceClient(serviceUri, Provider);
     }
 
-    public override BlobClient GetBlobClient(string blobName)
+    public override InMemoryBlobClient GetBlobClient(string blobName)
     {
         if (_connectionString is not null)
         {
@@ -99,9 +99,9 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         return new InMemoryBlobClient(blobUri, Provider);
     }
 
-    protected override BlobBaseClient GetBlobBaseClientCore(string blobName) => GetBlobClient(blobName);
+    protected override InMemoryBlobClient GetBlobBaseClientCore(string blobName) => GetBlobClient(blobName);
 
-    protected override BlockBlobClient GetBlockBlobClientCore(string blobName)
+    protected override InMemoryBlockBlobClient GetBlockBlobClientCore(string blobName)
     {
         if (_connectionString is not null)
         {
@@ -123,7 +123,9 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     public override async Task<Response<BlobContainerInfo>> CreateIfNotExistsAsync(PublicAccessType publicAccessType = PublicAccessType.None, IDictionary<string, string>? metadata = null, BlobContainerEncryptionScopeOptions? encryptionScopeOptions = null, CancellationToken cancellationToken = default)
     {
-        (var info, var added) = await CreateIfNotExistsCoreAsync(metadata, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        (var info, var added) = await CreateIfNotExistsCoreAsync(metadata, cancellationToken);
 
         return added switch
         {
@@ -149,7 +151,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
             CreateIfNotExists = true
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var blobService = GetBlobService();
 
@@ -170,7 +172,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
             ContainerInfo = containerInfo
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return (containerInfo, true);
 
@@ -193,7 +195,9 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     public override async Task<Response<BlobContainerInfo>> CreateAsync(PublicAccessType publicAccessType = PublicAccessType.None, IDictionary<string, string>? metadata = null, BlobContainerEncryptionScopeOptions? encryptionScopeOptions = null, CancellationToken cancellationToken = default)
     {
-        var info = await CreateCoreAsync(metadata, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        var info = await CreateCoreAsync(metadata, cancellationToken);
         return InMemoryResponse.FromValue(info, 201);
     }
 
@@ -209,7 +213,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
             CreateIfNotExists = false
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var blobService = GetBlobService();
 
@@ -225,7 +229,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
             ContainerInfo = result
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return result;
     }
@@ -399,8 +403,10 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     public override async Task<Response<BlobContentInfo>> UploadBlobAsync(string blobName, Stream content, CancellationToken cancellationToken = default)
     {
+        await Task.Yield();
+
         var blobClient = GetBlobClient(blobName);
-        return await blobClient.UploadAsync(content, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        return await blobClient.UploadAsync(content, cancellationToken);
     }
 
     public override Response<BlobContentInfo> UploadBlob(string blobName, BinaryData content, CancellationToken cancellationToken = default)
@@ -411,8 +417,10 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     public override async Task<Response<BlobContentInfo>> UploadBlobAsync(string blobName, BinaryData content, CancellationToken cancellationToken = default)
     {
+        await Task.Yield();
+
         var blobClient = GetBlobClient(blobName);
-        return await blobClient.UploadAsync(content, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        return await blobClient.UploadAsync(content, cancellationToken);
     }
 
     #endregion
