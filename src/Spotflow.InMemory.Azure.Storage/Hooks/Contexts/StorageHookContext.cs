@@ -19,7 +19,7 @@ public abstract class StorageHookContext(string storageAccountName, InMemoryStor
     public async Task DelayAsync(IDelayGenerator delayGenerator)
     {
         var delay = delayGenerator.Next();
-        await Task.Delay(delay, TimeProvider, CancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        await Task.Delay(delay, TimeProvider, CancellationToken);
     }
 
     /// <summary>

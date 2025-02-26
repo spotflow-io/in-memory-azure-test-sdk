@@ -29,7 +29,9 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override async Task<Response<KeyVaultSecret>> GetSecretAsync(string name, string? version = null, CancellationToken cancellationToken = default)
     {
-        return await GetSecretCoreAsync(name, version, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        return await GetSecretCoreAsync(name, version, cancellationToken);
     }
 
     private async Task<Response<KeyVaultSecret>> GetSecretCoreAsync(string name, string? version, CancellationToken cancellationToken)
@@ -41,7 +43,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             RequestedSecretVersion = version
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var vault = GetVault();
 
@@ -55,7 +57,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             Secret = secret
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return InMemoryResponse.FromValue(secret, 200);
     }
@@ -66,7 +68,8 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override async Task<Response<KeyVaultSecret>> SetSecretAsync(KeyVaultSecret secret, CancellationToken cancellationToken = default)
     {
-        return await SetSecretCoreAsync(secret, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+
+        return await SetSecretCoreAsync(secret, cancellationToken);
     }
 
     public override Response<KeyVaultSecret> SetSecret(KeyVaultSecret secret, CancellationToken cancellationToken = default)
@@ -86,6 +89,8 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     private async Task<Response<KeyVaultSecret>> SetSecretCoreAsync(KeyVaultSecret secret, CancellationToken cancellationToken)
     {
+        await Task.Yield();
+
         var scope = new SecretScope(VaultName, secret.Name);
 
         var beforeContext = new SetSecretBeforeHookContext(scope, Provider, cancellationToken)
@@ -93,7 +98,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             Secret = secret
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var vault = GetVault();
 
@@ -107,7 +112,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
             CreatedSecret = createdSecret
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(ConfigureAwaitOptions.None);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return InMemoryResponse.FromValue(createdSecret, 200);
     }
@@ -175,7 +180,8 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override async Task<DeleteSecretOperation> StartDeleteSecretAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await StartDeleteSecretCoreAsync(name, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+        return await StartDeleteSecretCoreAsync(name, cancellationToken);
     }
 
     public override DeleteSecretOperation StartDeleteSecret(string name, CancellationToken cancellationToken = default)
@@ -201,7 +207,8 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     public override async Task<Response<SecretProperties>> UpdateSecretPropertiesAsync(SecretProperties properties, CancellationToken cancellationToken = default)
     {
-        return await UpdateSecretPropertiesCoreAsync(properties, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+        return await UpdateSecretPropertiesCoreAsync(properties, cancellationToken);
     }
 
     public override Response<SecretProperties> UpdateSecretProperties(SecretProperties properties, CancellationToken cancellationToken = default)

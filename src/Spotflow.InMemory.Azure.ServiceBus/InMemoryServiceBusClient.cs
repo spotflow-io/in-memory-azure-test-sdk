@@ -75,9 +75,9 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
     #region CreateSender
 
-    public override ServiceBusSender CreateSender(string queueOrTopicName) => CreateSender(queueOrTopicName, new());
+    public override InMemoryServiceBusSender CreateSender(string queueOrTopicName) => CreateSender(queueOrTopicName, new());
 
-    public override ServiceBusSender CreateSender(string queueOrTopicName, ServiceBusSenderOptions options)
+    public override InMemoryServiceBusSender CreateSender(string queueOrTopicName, ServiceBusSenderOptions options)
     {
         return new InMemoryServiceBusSender(this, queueOrTopicName, options);
     }
@@ -86,16 +86,16 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
     #region CreateReceiver
 
-    public override ServiceBusReceiver CreateReceiver(string queueName) => CreateReceiver(queueName, new ServiceBusReceiverOptions());
+    public override InMemoryServiceBusReceiver CreateReceiver(string queueName) => CreateReceiver(queueName, new ServiceBusReceiverOptions());
 
-    public override ServiceBusReceiver CreateReceiver(string queueName, ServiceBusReceiverOptions options)
+    public override InMemoryServiceBusReceiver CreateReceiver(string queueName, ServiceBusReceiverOptions options)
     {
         return new InMemoryServiceBusReceiver(this, queueName, options);
     }
 
-    public override ServiceBusReceiver CreateReceiver(string topicName, string subscriptionName) => CreateReceiver(topicName, subscriptionName, new ServiceBusReceiverOptions());
+    public override InMemoryServiceBusReceiver CreateReceiver(string topicName, string subscriptionName) => CreateReceiver(topicName, subscriptionName, new ServiceBusReceiverOptions());
 
-    public override ServiceBusReceiver CreateReceiver(string topicName, string subscriptionName, ServiceBusReceiverOptions options)
+    public override InMemoryServiceBusReceiver CreateReceiver(string topicName, string subscriptionName, ServiceBusReceiverOptions options)
     {
         return new InMemoryServiceBusReceiver(this, topicName, subscriptionName, options);
     }

@@ -56,7 +56,10 @@ public class FluentAssertionsTests
         }
 
         var message = await consumerClient.ReceiveMessageAsync();
-        await consumerClient.CompleteMessageAsync(message);
+
+        message.Should().NotBeNull();
+
+        await consumerClient.CompleteMessageAsync(message!);
 
         await queue.Should().BeEmptyAsync(maxWaitTime: TimeSpan.FromMilliseconds(100));
     }
@@ -87,7 +90,10 @@ public class FluentAssertionsTests
         }
 
         var message = await consumerClient.ReceiveMessageAsync();
-        await consumerClient.CompleteMessageAsync(message);
+
+        message.Should().NotBeNull();
+
+        await consumerClient.CompleteMessageAsync(message!);
 
         await subscription.Should().BeEmptyAsync(maxWaitTime: TimeSpan.FromMilliseconds(100));
     }

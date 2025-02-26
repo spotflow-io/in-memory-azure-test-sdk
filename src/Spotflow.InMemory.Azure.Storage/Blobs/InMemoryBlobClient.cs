@@ -70,7 +70,7 @@ public class InMemoryBlobClient : BlobClient
 
     #region Clients
 
-    protected override BlobContainerClient GetParentBlobContainerClientCore() => _core.GetParentContainerClient();
+    protected override InMemoryBlobContainerClient GetParentBlobContainerClientCore() => _core.GetParentContainerClient();
 
     #endregion
 
@@ -139,9 +139,11 @@ public class InMemoryBlobClient : BlobClient
         return UploadCore(BinaryData.FromStream(content), options, null, cancellationToken);
     }
 
-    public override Task<Response<BlobContentInfo>> UploadAsync(Stream content, BlobHttpHeaders? httpHeaders = null, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null, IProgress<long>? progressHandler = null, AccessTier? accessTier = null, StorageTransferOptions transferOptions = default, CancellationToken cancellationToken = default)
+    public override async Task<Response<BlobContentInfo>> UploadAsync(Stream content, BlobHttpHeaders? httpHeaders = null, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null, IProgress<long>? progressHandler = null, AccessTier? accessTier = null, StorageTransferOptions transferOptions = default, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(Upload(content, httpHeaders, metadata, conditions, progressHandler, accessTier, transferOptions, cancellationToken));
+        await Task.Yield();
+
+        return Upload(content, httpHeaders, metadata, conditions, progressHandler, accessTier, transferOptions, cancellationToken);
     }
 
     private Response<BlobContentInfo> UploadCore(BinaryData content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)
@@ -152,7 +154,9 @@ public class InMemoryBlobClient : BlobClient
 
     private async Task<Response<BlobContentInfo>> UploadCoreAsync(BinaryData content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)
     {
-        var info = await _core.UploadAsync(content, options, overwrite, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        var info = await _core.UploadAsync(content, options, overwrite, cancellationToken);
         return InMemoryResponse.FromValue(info, 201);
     }
 
@@ -226,13 +230,16 @@ public class InMemoryBlobClient : BlobClient
 
     public override async Task<Response<BlobDownloadInfo>> DownloadAsync(CancellationToken cancellationToken)
     {
-        return await _core.DownloadAsync(null, cancellationToken: cancellationToken)
-                    .ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        return await _core.DownloadAsync(null, cancellationToken: cancellationToken);
     }
 
     public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(BlobDownloadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await _core.DownloadStreamingAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+
+        return await _core.DownloadStreamingAsync(options, cancellationToken);
     }
 
     public override Response<BlobDownloadResult> DownloadContent() => DownloadContent((BlobDownloadOptions?) null, default);
@@ -254,7 +261,8 @@ public class InMemoryBlobClient : BlobClient
 
     public override async Task<Response<BlobDownloadResult>> DownloadContentAsync(BlobDownloadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await _core.DownloadContentAsync(options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        await Task.Yield();
+        return await _core.DownloadContentAsync(options, cancellationToken);
     }
 
     public override Response<BlobDownloadInfo> Download(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
@@ -264,17 +272,21 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
+
         return _core.DownloadAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlobDownloadInfo>> DownloadAsync(HttpRange range = default, BlobRequestConditions? conditions = null, bool rangeGetContentHash = false, CancellationToken cancellationToken = default)
     {
+        await Task.Yield();
+
         var options = new BlobDownloadOptions()
         {
             Range = range,
             Conditions = conditions
         };
-        return await _core.DownloadAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+
+        return await _core.DownloadAsync(options, cancellationToken: cancellationToken);
     }
 
     public override Response<BlobDownloadStreamingResult> DownloadStreaming(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
@@ -284,17 +296,20 @@ public class InMemoryBlobClient : BlobClient
             Range = range,
             Conditions = conditions
         };
+
         return _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlobDownloadStreamingResult>> DownloadStreamingAsync(HttpRange range, BlobRequestConditions conditions, bool rangeGetContentHash, CancellationToken cancellationToken)
     {
+        await Task.Yield();
+
         var options = new BlobDownloadOptions()
         {
             Range = range,
             Conditions = conditions
         };
-        return await _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        return await _core.DownloadStreamingAsync(options, cancellationToken: cancellationToken);
     }
 
     #endregion

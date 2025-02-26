@@ -88,7 +88,7 @@ public class InMemoryTableClient : TableClient
 
         var beforeContext = new TableCreateBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var service = GetService();
 
@@ -99,7 +99,7 @@ public class InMemoryTableClient : TableClient
 
         var afterContext = new TableCreateAfterHookContext(beforeContext);
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         var tableItem = table.AsItem();
 
@@ -173,7 +173,7 @@ public class InMemoryTableClient : TableClient
 
         var beforeContext = new TableQueryBeforeHookContext(_scope, Provider, cancellationToken);
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var table = GetTable();
 
@@ -184,7 +184,7 @@ public class InMemoryTableClient : TableClient
             Entities = entities
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return entities;
     }
@@ -241,7 +241,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         if (ifMatch.IsEmpty())
         {
@@ -260,7 +260,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity,
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return new(204, eTag: eTag.Value);
     }
@@ -317,7 +317,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteBeforeHooksAsync(beforeContext).ConfigureAwait(false);
+        await ExecuteBeforeHooksAsync(beforeContext);
 
         var table = GetTable();
 
@@ -333,7 +333,7 @@ public class InMemoryTableClient : TableClient
             Entity = entity
         };
 
-        await ExecuteAfterHooksAsync(afterContext).ConfigureAwait(false);
+        await ExecuteAfterHooksAsync(afterContext);
 
         return response;
     }

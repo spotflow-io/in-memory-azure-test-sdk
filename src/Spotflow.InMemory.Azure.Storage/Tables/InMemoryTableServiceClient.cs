@@ -38,7 +38,7 @@ public class InMemoryTableServiceClient : TableServiceClient
     public override string AccountName { get; }
     public InMemoryStorageProvider Provider { get; }
 
-    public override TableClient GetTableClient(string tableName)
+    public override InMemoryTableClient GetTableClient(string tableName)
     {
         var uriBuilder = new TableUriBuilder(Uri)
         {
