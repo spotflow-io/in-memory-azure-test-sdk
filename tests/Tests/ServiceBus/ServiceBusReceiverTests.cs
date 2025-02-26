@@ -65,7 +65,9 @@ public class ServiceBusReceiverTests
 
         var receivedMessage = await receivedMessageTask;
 
-        receivedMessage.Body.ToString().Should().Be("Hello, world!");
+        receivedMessage.Should().NotBeNull();
+
+        receivedMessage?.Body.ToString().Should().Be("Hello, world!");
     }
 
     [TestMethod]
@@ -92,8 +94,11 @@ public class ServiceBusReceiverTests
         var receivedMessage1 = await receivedMessageTask1;
         var receivedMessage2 = await receivedMessageTask2;
 
-        receivedMessage1.Body.ToString().Should().Be("Hello, world!");
-        receivedMessage2.Body.ToString().Should().Be("Hello, world!");
+        receivedMessage1.Should().NotBeNull();
+        receivedMessage2.Should().NotBeNull();
+
+        receivedMessage1?.Body.ToString().Should().Be("Hello, world!");
+        receivedMessage2?.Body.ToString().Should().Be("Hello, world!");
 
     }
 
@@ -112,12 +117,13 @@ public class ServiceBusReceiverTests
         await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")));
 
         var receivedMessage = await receiver.ReceiveMessageAsync();
+        receivedMessage.Should().NotBeNull();
 
         var additionalReceivedMessagesBeforeAbandon = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMilliseconds(100));
 
         additionalReceivedMessagesBeforeAbandon.Should().BeEmpty();
 
-        await receiver.AbandonMessageAsync(receivedMessage);
+        await receiver.AbandonMessageAsync(receivedMessage!);
 
         var additionalReceivedMessagesAfterAbandon = await receiver.ReceiveMessagesAsync(1, TimeSpan.FromMinutes(1));
 
@@ -142,8 +148,8 @@ public class ServiceBusReceiverTests
         await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")));
 
         var message = await receiver.ReceiveMessageAsync();
-
-        await receiver.CompleteMessageAsync(message);
+        message.Should().NotBeNull();
+        await receiver.CompleteMessageAsync(message!);
 
         timeProvider.Advance(TimeSpan.FromHours(1));
 
@@ -177,10 +183,11 @@ public class ServiceBusReceiverTests
         await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("Hello, world!")));
 
         var message = await receiver.ReceiveMessageAsync();
+        message.Should().NotBeNull();
 
         timeProvider.Advance(TimeSpan.FromMinutes(3));
 
-        var act = () => receiver.CompleteMessageAsync(message);
+        var act = () => receiver.CompleteMessageAsync(message!);
 
         await act.Should()
             .ThrowAsync<ServiceBusException>()
@@ -210,10 +217,12 @@ public class ServiceBusReceiverTests
 
         var message = await receiver.ReceiveMessageAsync();
 
+        message.Should().NotBeNull();
+
         queue.ActiveMessageCount.Should().Be(1);
         queue.MessageCount.Should().Be(2);
 
-        await receiver.CompleteMessageAsync(message);
+        await receiver.CompleteMessageAsync(message!);
 
         queue.ActiveMessageCount.Should().Be(1);
         queue.MessageCount.Should().Be(1);
@@ -253,10 +262,12 @@ public class ServiceBusReceiverTests
 
         var message = await receiver.ReceiveMessageAsync();
 
+        message.Should().NotBeNull();
+
         subscription.ActiveMessageCount.Should().Be(1);
         subscription.MessageCount.Should().Be(2);
 
-        await receiver.CompleteMessageAsync(message);
+        await receiver.CompleteMessageAsync(message!);
 
         subscription.ActiveMessageCount.Should().Be(1);
         subscription.MessageCount.Should().Be(1);
@@ -307,20 +318,22 @@ public class ServiceBusReceiverTests
 
         using var assertionScope = new AssertionScope();
 
-        receivedMessage.ApplicationProperties.Count.Should().Be(1);
-        receivedMessage.ApplicationProperties["test-app-property"].Should().Be("test-app-property-value");
+        receivedMessage.Should().NotBeNull();
 
-        receivedMessage.Subject.Should().Be("test-subject");
-        receivedMessage.ContentType.Should().Be("test-content-type");
-        receivedMessage.CorrelationId.Should().Be("test-correlation-id");
-        receivedMessage.MessageId.Should().Be("test-message-id");
-        receivedMessage.PartitionKey.Should().Be("test-partition-key");
-        receivedMessage.ReplyTo.Should().Be("test-reply-to");
-        receivedMessage.ReplyToSessionId.Should().Be("test-reply-to-session-id");
+        receivedMessage?.ApplicationProperties.Count.Should().Be(1);
+        receivedMessage?.ApplicationProperties["test-app-property"].Should().Be("test-app-property-value");
 
-        receivedMessage.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
-        receivedMessage.SequenceNumber.Should().Be(0);
-        receivedMessage.SessionId.Should().BeNull();
+        receivedMessage?.Subject.Should().Be("test-subject");
+        receivedMessage?.ContentType.Should().Be("test-content-type");
+        receivedMessage?.CorrelationId.Should().Be("test-correlation-id");
+        receivedMessage?.MessageId.Should().Be("test-message-id");
+        receivedMessage?.PartitionKey.Should().Be("test-partition-key");
+        receivedMessage?.ReplyTo.Should().Be("test-reply-to");
+        receivedMessage?.ReplyToSessionId.Should().Be("test-reply-to-session-id");
+
+        receivedMessage?.EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
+        receivedMessage?.SequenceNumber.Should().Be(0);
+        receivedMessage?.SessionId.Should().BeNull();
 
     }
 
@@ -360,8 +373,8 @@ public class ServiceBusReceiverTests
         await sender.SendMessagesAsync([message]);
 
         var receivedMessage = await receiveTask;
-
-        receivedMessage.Body.ToString().Should().Be("Test payload.");
+        receivedMessage.Should().NotBeNull();
+        receivedMessage?.Body.ToString().Should().Be("Test payload.");
 
     }
 

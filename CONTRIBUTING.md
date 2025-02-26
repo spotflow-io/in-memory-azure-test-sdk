@@ -67,6 +67,10 @@ Project uses [GitHub Releases](https://docs.github.com/en/repositories/releasing
   * Do not use `ConfigureAwait(ConfigureAwaitOptions.ForceYielding)` instead for consistency sake.
 * `ConfigureAwait(false)` or `ConfigureAwait(ConfigureAwaitOptions.None)` are not used. The problems associated with this decision are considered insignificant for this library.
 
+##### Covariant return types
+
+* Where possible, the most specific return type should be used on overridden client methods and properties (using covariant return types).
+
 #### Unsupported client methods & properties
 
 * All unsupported methods should be explicitly overwritten and throw `NotSupportedException` exception. This way, user is not exposed to confusing behavior coming from inherited real clients which are (by design) not properly configured.
