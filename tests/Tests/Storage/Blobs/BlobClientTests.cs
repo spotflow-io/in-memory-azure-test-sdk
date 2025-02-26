@@ -364,12 +364,115 @@ public class BlobClientTests
         blobClient.Should().HaveCommittedBlocks(3);
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_With_Range_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var response = blobClient.DownloadStreaming(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(7, 5)
+        });
+
+        response.GetRawResponse().Status.Should().Be(206);
+        response.Value.Content.Position.Should().Be(0);
+        new StreamReader(response.Value.Content).ReadToEnd().Should().Be("World");
+    }
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
-    public void Download_Streaming_For_Non_Existing_Blob_Should_Fail(BlobClientType clientType)
+    public void DownloadContent_With_Range_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var response = blobClient.DownloadContent(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(7, 5)
+        });
+
+        response.GetRawResponse().Status.Should().Be(206);
+        response.Value.Content.ToString().Should().Be("World");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadContent_With_Range_Length_Larger_Than_Content_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var response = blobClient.DownloadContent(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(7, 50)
+        });
+
+        response.GetRawResponse().Status.Should().Be(206);
+        response.Value.Content.ToString().Should().Be("World!");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadContent_With_Range_Position_Outside_Content_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        var act = () => blobClient.DownloadContent(new BlobDownloadOptions()
+        {
+            Range = new HttpRange(50, 50)
+        });
+
+        act
+            .Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 416)
+            .Where(e => e.ErrorCode == "InvalidRange");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_For_Non_Existing_Blob_Should_Fail(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
 

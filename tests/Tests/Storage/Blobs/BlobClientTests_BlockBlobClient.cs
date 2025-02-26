@@ -312,6 +312,74 @@ public class BlobClientTests_BlockBlobClient
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_Using_Range_Header()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        blobClient
+            .StageBlockFromUri(sourceBlobClient.Uri, blockId, new StageBlockFromUriOptions()
+            {
+                SourceRange = new HttpRange(1, 3)
+            })
+            .GetRawResponse()
+            .Status
+            .Should()
+            .Be(201);
+
+        blobClient.CommitBlockList([blockId]);
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().Be("est");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void StageBlockFromUri_Using_Invalid_Range_Should_Fail()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var sourceContainerClient = serviceClient.GetBlobContainerClient("source");
+        sourceContainerClient.CreateIfNotExists();
+
+        var containerClient = serviceClient.GetBlobContainerClient("target");
+        containerClient.CreateIfNotExists();
+
+        var sourceBlobClient = sourceContainerClient.GetBlobClient("source-blob");
+        sourceBlobClient.Upload(BinaryData.FromString("test-data"), overwrite: true);
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
+
+        var act = () => blobClient.StageBlockFromUri(sourceBlobClient.Uri, blockId, new StageBlockFromUriOptions()
+        {
+            SourceRange = new HttpRange(20, 3)
+        });
+
+        act.Should()
+            .Throw<RequestFailedException>()
+            .Where(e => e.Status == 416)
+            .Where(e => e.ErrorCode == "CannotVerifyCopySource");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public void CommitBlockList_With_Existing_Blocks_Should_Create_Blob_And_Clear_Uncommited_Blocks()
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();

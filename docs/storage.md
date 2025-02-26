@@ -306,24 +306,24 @@ Clients are thread-safe.
 | `Name`                            |      |
 | `Uri`                             |      |
 
-| Method group                   | Note                                                    |
-| ------------------------------ | ------------------------------------------------------- |
-| `CommitBlockList`              |                                                         |
-| `Delete`                       | Only supported for `DeleteSnapshotsOption.None`         |
-| `DeleteIfExistsAsync`          | Only supported for `DeleteSnapshotsOption.None`         |
-| `Download`                     | Overloads with `HttpRange` parameter are not supported. |
-| `DownloadContent`              | Overloads with `HttpRange` parameter are not supported. |
-| `DownloadStreaming`            | Overloads with `HttpRange` parameter are not supported. |
-| `Exists`                       |                                                         |
-| `GenerateSasUri`               |                                                         |
-| `GetBlockList`                 |                                                         |
-| `GetParentBlobContainerClient` |                                                         |
-| `GetProperties`                |                                                         |
-| `OpenRead`                     | Seeking on the returned stream is not supported.        |
-| `OpenWrite`                    |                                                         |
-| `StageBlock`                   |                                                         |
-| `StageBlockFromUri`            |                                                         |
-| `Upload`                       |                                                         |
+| Method group                   | Note                                                          |
+| ------------------------------ | ------------------------------------------------------------- |
+| `CommitBlockList`              |                                                               |
+| `Delete`                       | Only supported for `DeleteSnapshotsOption.None`               |
+| `DeleteIfExistsAsync`          | Only supported for `DeleteSnapshotsOption.None`               |
+| `Download`                     | Overloads with `progressHandler` parameter are not supported. |
+| `DownloadContent`              | Overloads with `progressHandler` parameter are not supported. |
+| `DownloadStreaming`            | Overloads with `progressHandler` parameter are not supported. |
+| `Exists`                       |                                                               |
+| `GenerateSasUri`               |                                                               |
+| `GetBlockList`                 |                                                               |
+| `GetParentBlobContainerClient` |                                                               |
+| `GetProperties`                |                                                               |
+| `OpenRead`                     | Seeking on the returned stream is not supported.              |
+| `OpenWrite`                    |                                                               |
+| `StageBlock`                   |                                                               |
+| `StageBlockFromUri`            |                                                               |
+| `Upload`                       |                                                               |
 
 | Constructors & factory methods                                                           | Note                          |
 | ---------------------------------------------------------------------------------------- | ----------------------------- |
@@ -359,7 +359,7 @@ If the given feature is not supported, than the method will just ignore any para
 | Progress handling                                         | ❌           |
 | Public access                                             | ❌           |
 | Query                                                     | ❌           |
-| Ranges                                                    | ❌           |
+| Ranges                                                    | ✅           |
 | SAS URI query parameters (including signature) validation | ❌           |
 | Server-side copy                                          | ❌           |
 | Server-side block staging                                 | ✅           |
