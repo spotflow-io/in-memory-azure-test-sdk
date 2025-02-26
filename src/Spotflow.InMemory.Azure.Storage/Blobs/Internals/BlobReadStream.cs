@@ -41,12 +41,6 @@ internal class BlobReadStream : Stream
         }
 
         _initialLength = initialContent.ToMemory().Length;
-
-        if (startPosition >= _initialLength)
-        {
-            throw new ArgumentOutOfRangeException($"Start position must be less than content lenght ({_initialLength})");
-        }
-
         _startPosition = (int) startPosition;
         _currentPosition = _startPosition;
         _fetcher = fetcher;
@@ -77,7 +71,7 @@ internal class BlobReadStream : Stream
 
             var remainingBytes = content.Length - _currentPosition;
 
-            if (remainingBytes is 0)
+            if (remainingBytes <= 0)
             {
                 return 0;
             }

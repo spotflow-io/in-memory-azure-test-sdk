@@ -394,6 +394,29 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_For_Empty_Blob_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "");
+
+        var response = blobClient.DownloadStreaming();
+
+        response.GetRawResponse().Status.Should().Be(200);
+        response.Value.Content.Position.Should().Be(0);
+        new StreamReader(response.Value.Content).ReadToEnd().Should().Be("");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void DownloadContent_With_Range_Should_Succeed(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -696,6 +719,48 @@ public class BlobClientTests
                 .Where(e => e.Status == 412)
                 .Where(e => e.ErrorCode == "ConditionNotMet");
         }
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Empty_Blob_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "");
+
+        using var stream = blobClient.OpenRead();
+
+        new StreamReader(stream).ReadToEnd().Should().Be("");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_Blob_Out_Of_Content_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "ab");
+
+        using var stream = blobClient.OpenRead(position: 4);
+
+        new StreamReader(stream).ReadToEnd().Should().Be("");
     }
 
     [TestMethod]
