@@ -208,7 +208,7 @@ public class BlobContainerClientTests
             .Select(i => $"{blobNamePrefix}_{i:D10}")
             .ToList();
 
-        containerClient.GetBlobs().Select(b => b.Name).Should().Equal(blobNamesSorted);
+        containerClient.GetBlobs(prefix: blobNamePrefix).Select(b => b.Name).Should().Equal(blobNamesSorted);
     }
 
 
