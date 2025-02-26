@@ -8,7 +8,7 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
     private readonly TimeProvider _timeProvider = service.Account.Provider.TimeProvider;
 
     private readonly object _lock = new();
-    private readonly Dictionary<string, BlobEntry> _blobEntries = [];
+    private readonly SortedDictionary<string, BlobEntry> _blobEntries = new(StringComparer.Ordinal);
 
     private readonly BlobContainerProperties _properties = BlobsModelFactory.BlobContainerProperties(
             lastModified: service.Account.Provider.TimeProvider.GetUtcNow(),

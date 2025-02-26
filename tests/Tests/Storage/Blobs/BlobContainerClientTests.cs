@@ -184,6 +184,35 @@ public class BlobContainerClientTests
     }
 
     [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task GetBlobs_Should_Return_Blobs_In_Lexicographic_Order()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobNamePrefix = Guid.NewGuid().ToString();
+
+        int[] ordinals = [15, 8, 5, 4, 9, 12, 16, 7, 2, 13, 1, 6, 10, 3, 11, 14];
+
+        var blobNames = ordinals
+            .Select(i => $"{blobNamePrefix}_{i:D10}")
+            .ToList();
+
+        var payload = BinaryData.FromString("test");
+
+        await Task.WhenAll(blobNames.Select(b => containerClient.UploadBlobAsync(b, payload)));
+
+        var blobNamesSorted = ordinals
+            .OrderBy(i => i)
+            .Select(i => $"{blobNamePrefix}_{i:D10}")
+            .ToList();
+
+        containerClient.GetBlobs(prefix: blobNamePrefix).Select(b => b.Name).Should().Equal(blobNamesSorted);
+    }
+
+
+    [TestMethod]
     [DataRow(10_000, 2000, true)]
     [DataRow(10_000, 2000, false)]
     [DataRow(10_000, 128, true)]
