@@ -6,7 +6,7 @@ public sealed class NoOpTokenCredential : TokenCredential
 {
     public static NoOpTokenCredential Instance { get; } = new();
 
-    private NoOpTokenCredential() { }
+    public NoOpTokenCredential() { } // Keep constructor public to allow DI instantiation
 
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
