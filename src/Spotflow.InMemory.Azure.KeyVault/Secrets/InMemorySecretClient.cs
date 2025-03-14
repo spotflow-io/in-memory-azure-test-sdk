@@ -45,7 +45,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
         await ExecuteBeforeHooksAsync(beforeContext);
 
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TryGetSecret(name, version, out var secret, out var error))
         {
@@ -100,7 +100,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
         await ExecuteBeforeHooksAsync(beforeContext);
 
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TrySetSecret(secret, out var createdSecret, out var error, cancellationToken))
         {
@@ -136,7 +136,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     private IReadOnlyList<SecretProperties> GetPropertiesOfSecretsCore()
     {
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TryListSecrets(out var secrets, out var error))
         {
@@ -164,7 +164,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     private IReadOnlyList<SecretProperties> GetPropertiesOfSecretVersionsCoreAsync(string name)
     {
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TryListSecretVersions(name, out var versions, out var error))
         {
@@ -191,7 +191,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     private Task<DeleteSecretOperation> StartDeleteSecretCoreAsync(string name, CancellationToken cancellationToken)
     {
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TryStartDeleteSecret(name, out var operation, out var error, cancellationToken))
         {
@@ -218,7 +218,7 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     private Task<Response<SecretProperties>> UpdateSecretPropertiesCoreAsync(SecretProperties properties, CancellationToken cancellationToken)
     {
-        var vault = GetVault();
+        var vault = GetSecretsService();
 
         if (!vault.TryUpdateSecretVersionProperties(properties, out var updatedProperties, out var error, cancellationToken))
         {
@@ -230,14 +230,14 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
 
     #endregion
 
-    private InMemoryKeyVault GetVault()
+    private InMemoryKeyVaultSecretsService GetSecretsService()
     {
         if (!provider.TryGetVaultByUri(VaultUri, out var vault))
         {
             throw KeyVaultExceptionFactory.KeyVaultNotFound(VaultUri);
         }
 
-        return vault;
+        return vault.Secrets;
     }
 
     private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : SecretBeforeHookContext
