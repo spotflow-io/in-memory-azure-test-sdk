@@ -104,6 +104,42 @@ public class SecretClientTests
         }
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public void GetSecret_Existing_Should_Be_Case_Insensitive()
+    {
+        var client = ImplementationProvider.GetSecretClient();
+
+        var secretNameBase = Guid.NewGuid().ToString();
+
+        var secretName1 = $"{secretNameBase}-abc-1";
+        var secretName1Upper = $"{secretNameBase}-ABC-1";
+
+        var secretName2 = $"{secretNameBase}-abc-2";
+        var secretName2Upper = $"{secretNameBase}-ABC-2";
+
+        try
+        {
+            var setSecret1 = client.SetSecret(secretName1, "test-value-1").Value;
+            var getSecret1 = client.GetSecret(secretName1Upper).Value;
+
+            setSecret1.Name.Should().Be(secretName1);
+            getSecret1.Name.Should().Be(secretName1);
+            getSecret1.Value.Should().Be("test-value-1");
+
+            var setSecret2 = client.SetSecret(secretName2Upper, "test-value-2").Value;
+            var getSecret2 = client.GetSecret(secretName2).Value;
+
+            setSecret2.Name.Should().Be(secretName2Upper);
+            getSecret2.Name.Should().Be(secretName2Upper);
+            getSecret2.Value.Should().Be("test-value-2");
+        }
+        finally
+        {
+            Task.Run(() => client.StartDeleteSecret(secretName1));
+            Task.Run(() => client.StartDeleteSecret(secretName2));
+        }
+    }
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
