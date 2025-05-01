@@ -200,6 +200,87 @@ public class HooksTests
 
     }
 
+
+    [TestMethod]
+    public void Blob_StageBlock_Hooks_Should_Execute()
+    {
+        StorageBeforeHookContext? capturedBeforeContextGeneric = null;
+        BlobStageBlockBeforeHookContext? capturedBeforeContextSpecific = null;
+        StorageAfterHookContext? capturedAfterContextGeneric = null;
+        BlobStageBlockAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryStorageProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().BeforeStageBlock(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().AfterStageBlock(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var account = provider.AddAccount();
+
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test-container");
+
+        containerClient.Create();
+
+        var data = new BinaryData("test");
+
+        var blobName = "test-blob";
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        blobClient.StageBlock(Convert.ToBase64String([0, 1, 2, 3]), data.ToStream());
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<BlobStageBlockBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<BlobStageBlockAfterHookContext>()
+            .Which.BlockInfo.Should().NotBeNull();
+    }
+
+
+    [TestMethod]
+    public void Blob_CommitBlockList_Hooks_Should_Execute()
+    {
+        StorageBeforeHookContext? capturedBeforeContextGeneric = null;
+        BlobCommitBlockListBeforeHookContext? capturedBeforeContextSpecific = null;
+        StorageAfterHookContext? capturedAfterContextGeneric = null;
+        BlobCommitBlockListAfterHookContext? capturedAfterContextSpecific = null;
+
+        var provider = new InMemoryStorageProvider();
+
+        provider.AddHook(hook => hook.Before(ctx => { capturedBeforeContextGeneric = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().BeforeCommitBlockList(ctx => { capturedBeforeContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.ForBlobService().ForBlobOperations().AfterCommitBlockList(ctx => { capturedAfterContextSpecific = ctx; return Task.CompletedTask; }));
+        provider.AddHook(hook => hook.After(ctx => { capturedAfterContextGeneric = ctx; return Task.CompletedTask; }));
+
+        var account = provider.AddAccount();
+
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test-container");
+
+        containerClient.Create();
+
+        var data = new BinaryData("test");
+
+        var blobName = "test-blob";
+
+        var blobClient = containerClient.GetBlockBlobClient(blobName);
+
+        var blockId = Convert.ToBase64String([0, 1, 2, 3]);
+
+        blobClient.StageBlock(blockId, data.ToStream());
+        blobClient.CommitBlockList([blockId]);
+
+        capturedBeforeContextSpecific.Should().NotBeNull();
+        capturedBeforeContextGeneric.Should().BeOfType<BlobCommitBlockListBeforeHookContext>();
+
+        capturedAfterContextSpecific.Should().NotBeNull();
+        capturedAfterContextGeneric.Should()
+            .BeOfType<BlobCommitBlockListAfterHookContext>()
+            .Which.BlobContentInfo.Should().NotBeNull();
+    }
+
     private class TestBlobWriteStreamInterceptor : IBlobWriteStreamInterceptor
     {
         public int DisposeCount { get; private set; }

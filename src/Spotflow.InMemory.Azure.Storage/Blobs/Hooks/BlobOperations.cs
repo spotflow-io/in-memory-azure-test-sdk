@@ -8,5 +8,7 @@ public enum BlobOperations
     Upload = 2,
     OpenRead = 4,
     OpenWrite = 8,
-    All = Download | Upload | OpenRead | OpenWrite
+    StageBlock = 16,
+    CommitBlockList = 32,
+    All = Download | Upload | OpenRead | OpenWrite | StageBlock | CommitBlockList
 }

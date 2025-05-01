@@ -86,6 +86,13 @@ public class BlobServiceHookBuilder
 
         public StorageHook<BlobUploadAfterHookContext> AfterBlobUpload(HookFunc<BlobUploadAfterHookContext> hook) => new(hook, _filter);
 
+        public StorageHook<BlobStageBlockBeforeHookContext> BeforeStageBlock(HookFunc<BlobStageBlockBeforeHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<BlobStageBlockAfterHookContext> AfterStageBlock(HookFunc<BlobStageBlockAfterHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<BlobCommitBlockListBeforeHookContext> BeforeCommitBlockList(HookFunc<BlobCommitBlockListBeforeHookContext> hook) => new(hook, _filter);
+
+        public StorageHook<BlobCommitBlockListAfterHookContext> AfterCommitBlockList(HookFunc<BlobCommitBlockListAfterHookContext> hook) => new(hook, _filter);
 
     }
 
