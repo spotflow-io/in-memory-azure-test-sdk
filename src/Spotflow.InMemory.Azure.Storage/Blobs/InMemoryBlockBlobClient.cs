@@ -103,30 +103,31 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     public override Response<BlockInfo> StageBlock(string base64BlockId, Stream content, BlockBlobStageBlockOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var blockInfo = _core.StageBlock(base64BlockId, BinaryData.FromStream(content), options, cancellationToken);
-        return InMemoryResponse.FromValue(blockInfo, 201);
+        return StageBlockAsync(base64BlockId, content, options, cancellationToken).EnsureCompleted();
     }
 
     public override Response<BlockInfo> StageBlock(string base64BlockId, Stream content, byte[] transactionalContentHash, BlobRequestConditions conditions, IProgress<long> progressHandler, CancellationToken cancellationToken)
     {
-        var options = new BlockBlobStageBlockOptions
-        {
-            Conditions = conditions
-        };
-
-        return StageBlock(base64BlockId, content, options, cancellationToken);
+        return StageBlockAsync(base64BlockId, content, transactionalContentHash, conditions, progressHandler, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlockInfo>> StageBlockAsync(string base64BlockId, Stream content, byte[] transactionalContentHash, BlobRequestConditions conditions, IProgress<long> progressHandler, CancellationToken cancellationToken)
     {
         await Task.Yield();
-        return StageBlock(base64BlockId, content, transactionalContentHash, conditions, progressHandler, cancellationToken);
+
+        var options = new BlockBlobStageBlockOptions
+        {
+            Conditions = conditions
+        };
+
+        return await StageBlockAsync(base64BlockId, content, options, cancellationToken);
     }
 
     public override async Task<Response<BlockInfo>> StageBlockAsync(string base64BlockId, Stream content, BlockBlobStageBlockOptions? options = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return StageBlock(base64BlockId, content, options, cancellationToken);
+        var blockInfo = await _core.StageBlockAsync(base64BlockId, BinaryData.FromStream(content), options, cancellationToken);
+        return InMemoryResponse.FromValue(blockInfo, 201);
     }
 
     #endregion
@@ -138,8 +139,7 @@ public class InMemoryBlockBlobClient : BlockBlobClient
         CommitBlockListOptions options,
         CancellationToken cancellationToken = default)
     {
-        var contentInfo = _core.CommitBlockList(base64BlockIds, options, cancellationToken);
-        return InMemoryResponse.FromValue(contentInfo, 201);
+        return CommitBlockListAsync(base64BlockIds, options, cancellationToken).EnsureCompleted();
     }
 
     public override Response<BlobContentInfo> CommitBlockList(
@@ -150,22 +150,29 @@ public class InMemoryBlockBlobClient : BlockBlobClient
       AccessTier? accessTier = null,
       CancellationToken cancellationToken = default)
     {
-        var options = new CommitBlockListOptions { HttpHeaders = httpHeaders, Metadata = metadata, Conditions = conditions, AccessTier = accessTier };
-
-        return CommitBlockList(base64BlockIds, options, cancellationToken);
+        return CommitBlockListAsync(base64BlockIds, httpHeaders, metadata, conditions, accessTier, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlobContentInfo>> CommitBlockListAsync(IEnumerable<string> base64BlockIds, CommitBlockListOptions options, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return CommitBlockList(base64BlockIds, options, cancellationToken);
-
+        var contentInfo = await _core.CommitBlockListAsync(base64BlockIds, options, cancellationToken);
+        return InMemoryResponse.FromValue(contentInfo, 201);
     }
 
     public override async Task<Response<BlobContentInfo>> CommitBlockListAsync(IEnumerable<string> base64BlockIds, BlobHttpHeaders? httpHeaders = null, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null, AccessTier? accessTier = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return CommitBlockList(base64BlockIds, httpHeaders, metadata, conditions, accessTier, cancellationToken);
+
+        var options = new CommitBlockListOptions
+        {
+            HttpHeaders = httpHeaders,
+            Metadata = metadata,
+            Conditions = conditions,
+            AccessTier = accessTier
+        };
+
+        return await CommitBlockListAsync(base64BlockIds, options, cancellationToken);
     }
 
     #endregion
@@ -491,31 +498,34 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var properties = _core.StageBlockFromUri(sourceUri, base64BlockId, options, cancellationToken);
-        return InMemoryResponse.FromValue(properties, 201);
+        return StageBlockFromUriAsync(sourceUri, base64BlockId, options, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options = null, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return StageBlockFromUri(sourceUri, base64BlockId, options, cancellationToken);
+        var properties = await _core.StageBlockFromUriAsync(sourceUri, base64BlockId, options, cancellationToken);
+        return InMemoryResponse.FromValue(properties, 201);
     }
 
     public override Response<BlockInfo> StageBlockFromUri(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
     {
-        return StageBlockFromUri(sourceUri, base64BlockId, new StageBlockFromUriOptions()
-        {
-            SourceRange = sourceRange,
-            SourceContentHash = sourceContentHash,
-            SourceConditions = sourceConditions,
-            DestinationConditions = conditions
-        }, cancellationToken);
+        return StageBlockFromUriAsync(sourceUri, base64BlockId, sourceRange, sourceContentHash, sourceConditions, conditions, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response<BlockInfo>> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, HttpRange sourceRange, byte[] sourceContentHash, RequestConditions sourceConditions, BlobRequestConditions conditions, CancellationToken cancellationToken)
     {
         await Task.Yield();
-        return StageBlockFromUri(sourceUri, base64BlockId, sourceRange, sourceContentHash, sourceConditions, conditions, cancellationToken);
+
+        var options = new StageBlockFromUriOptions()
+        {
+            SourceRange = sourceRange,
+            SourceContentHash = sourceContentHash,
+            SourceConditions = sourceConditions,
+            DestinationConditions = conditions
+        };
+
+        return await StageBlockFromUriAsync(sourceUri, base64BlockId, options, cancellationToken);
     }
 
     #endregion

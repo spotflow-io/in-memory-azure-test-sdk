@@ -194,18 +194,38 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
 
 
-    public BlobContentInfo CommitBlockList(IEnumerable<string> blockIds, CommitBlockListOptions? options, CancellationToken cancellationToken)
+    public async Task<BlobContentInfo> CommitBlockListAsync(IEnumerable<string> blockIds, CommitBlockListOptions? options, CancellationToken cancellationToken)
     {
+        var beforeContext = new BlobCommitBlockListBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            Options = options
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+
         RequestConditions? conditions = options?.Conditions;
 
         using var blob = AcquireBlob(cancellationToken);
 
-        return CommitBlockListCoreUnsafe(blockIds, blob.Value, conditions, null, options?.HttpHeaders, options?.Metadata);
+        var info = CommitBlockListCoreUnsafe(blockIds, blob.Value, conditions, null, options?.HttpHeaders, options?.Metadata);
+
+        var afterContext = new BlobCommitBlockListAfterHookContext(beforeContext, info);
+
+        await ExecuteAfterHooksAsync(afterContext);
+
+        return info;
     }
 
 
-    public BlockInfo StageBlock(string blockId, BinaryData content, BlockBlobStageBlockOptions? options, CancellationToken cancellationToken)
+    public async Task<BlockInfo> StageBlockAsync(string blockId, BinaryData content, BlockBlobStageBlockOptions? options, CancellationToken cancellationToken)
     {
+        var beforeContext = new BlobStageBlockBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            Options = options
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+
         RequestConditions? conditions = options?.Conditions;
 
         using var blob = AcquireBlob(cancellationToken);
@@ -215,7 +235,13 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             throw stageError.GetClientException();
         }
 
-        return block.GetInfo();
+        var info = block.GetInfo();
+
+        var afterContext = new BlobStageBlockAfterHookContext(beforeContext, info);
+
+        await ExecuteAfterHooksAsync(afterContext);
+
+        return info;
     }
 
     public async Task<Stream> OpenWriteAsync(bool overwrite, BlobOpenWriteOptions? options, CancellationToken cancellationToken)
@@ -332,7 +358,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
         return stream;
     }
 
-    public BlockInfo StageBlockFromUri(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options, CancellationToken cancellationToken)
+    public async Task<BlockInfo> StageBlockFromUriAsync(Uri sourceUri, string base64BlockId, StageBlockFromUriOptions? options, CancellationToken cancellationToken)
     {
         var sourceUriBuilder = new BlobUriBuilder(sourceUri);
         var sourceClient = new BlobClientCore(sourceUriBuilder, Provider);
@@ -383,7 +409,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
                 Conditions = options?.DestinationConditions ?? new BlobRequestConditions(),
             };
 
-            return StageBlock(base64BlockId, sourceContent, stageOptions, cancellationToken);
+            return await StageBlockAsync(base64BlockId, sourceContent, stageOptions, cancellationToken);
         }
     }
 

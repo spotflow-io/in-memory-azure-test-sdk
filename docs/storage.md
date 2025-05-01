@@ -481,6 +481,8 @@ Following hooks are supported in both `Before` and `After` variants:
             -   `Upload`
             -   `OpenRead`
             -   `OpenWrite`
+            -   `StageBlock`
+            -   `CommitBlockList`
         -   All `Container` operations
             -   `Create` / `CreateIfNotExists`
     -   All `Table Service` operations
