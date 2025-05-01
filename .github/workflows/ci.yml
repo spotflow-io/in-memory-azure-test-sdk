@@ -23,7 +23,7 @@ jobs:
     outputs:
       version: ${{ steps.resolve-version.outputs.version }}
       publish-nuget-org: ${{ startsWith(github.ref, 'refs/tags/v') }}
-      publish-github: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+      publish-github: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels, 'publish-artifacts') }}
     steps:
       - uses: actions/checkout@v4
         with:
