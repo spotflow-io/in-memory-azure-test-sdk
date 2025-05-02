@@ -24,15 +24,32 @@ public class InMemoryTableClient : TableClient
 
     #region Constructors
 
-    public InMemoryTableClient(string connectionString, string tableName, InMemoryStorageProvider provider) : this(connectionString, null, tableName, provider) { }
+    public InMemoryTableClient(string connectionString, string tableName, InMemoryStorageProvider provider) : this(
+        connectionString: connectionString ?? throw new ArgumentNullException(nameof(connectionString)),
+        tableOrTableServiceUri: null,
+        tableName: tableName ?? throw new ArgumentNullException(nameof(tableName)),
+        provider)
+    { }
 
-    public InMemoryTableClient(Uri tableServiceUri, string tableName, InMemoryStorageProvider provider) : this(null, tableServiceUri, tableName, provider) { }
+    public InMemoryTableClient(Uri tableServiceUri, string tableName, InMemoryStorageProvider provider) : this(
+        connectionString: null,
+        tableOrTableServiceUri: tableServiceUri ?? throw new ArgumentNullException(nameof(tableServiceUri)),
+        tableName: tableName ?? throw new ArgumentNullException(nameof(tableName)),
+        provider)
+    { }
 
-    public InMemoryTableClient(Uri tableUri, InMemoryStorageProvider provider) : this(null, tableUri, null, provider) { }
+    public InMemoryTableClient(Uri tableUri, InMemoryStorageProvider provider) : this(
+        connectionString: null,
+        tableOrTableServiceUri: tableUri ?? throw new ArgumentNullException(nameof(tableUri)),
+        tableName: null,
+        provider)
+    { }
 
-    private InMemoryTableClient(string? connectionString, Uri? tableUri, string? tableName, InMemoryStorageProvider provider)
+    private InMemoryTableClient(string? connectionString, Uri? tableOrTableServiceUri, string? tableName, InMemoryStorageProvider provider)
     {
-        var builder = TableUriUtils.BuilderForTable(connectionString, tableUri, tableName, provider);
+        ArgumentNullException.ThrowIfNull(provider);
+
+        var builder = TableUriUtils.BuilderForTable(connectionString, tableOrTableServiceUri, tableName, provider);
         Uri = builder.ToUri();
         AccountName = builder.AccountName;
         Name = builder.Tablename;
