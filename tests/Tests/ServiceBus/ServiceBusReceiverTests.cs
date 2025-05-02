@@ -136,7 +136,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue");
 
@@ -171,7 +171,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { LockTime = TimeSpan.FromMinutes(2) });
 
@@ -200,7 +200,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { LockTime = TimeSpan.FromMinutes(2) });
 
@@ -243,7 +243,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var topic = provider.AddNamespace().AddTopic("test-topic");
 
@@ -289,7 +289,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue");
 
@@ -342,7 +342,7 @@ public class ServiceBusReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue");
 
