@@ -9,7 +9,7 @@ using Spotflow.InMemory.Azure.ServiceBus.Hooks.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
-public class InMemoryServiceBusProvider(TimeProvider? timeProvider = null, string? hostnameSuffix = null)
+public class InMemoryServiceBusProvider(string? hostnameSuffix = null, TimeProvider? timeProvider = null)
 {
     private readonly ConcurrentDictionary<string, InMemoryServiceBusNamespace> _namespaces = new();
 

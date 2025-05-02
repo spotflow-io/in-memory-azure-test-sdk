@@ -179,7 +179,7 @@ public class ServiceBusSessionsReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true });
 
@@ -236,7 +236,7 @@ public class ServiceBusSessionsReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, LockTime = TimeSpan.FromMinutes(2) });
 
@@ -284,7 +284,7 @@ public class ServiceBusSessionsReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, LockTime = TimeSpan.FromMinutes(2) });
 
@@ -339,7 +339,7 @@ public class ServiceBusSessionsReceiverTests
     {
         var timeProvider = new FakeTimeProvider();
 
-        var provider = new InMemoryServiceBusProvider(timeProvider);
+        var provider = new InMemoryServiceBusProvider(timeProvider: timeProvider);
 
         var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, LockTime = TimeSpan.FromMinutes(2) });
 

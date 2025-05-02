@@ -10,7 +10,7 @@ using Spotflow.InMemory.Azure.KeyVault.Resources;
 
 namespace Spotflow.InMemory.Azure.KeyVault;
 
-public class InMemoryKeyVaultProvider(TimeProvider? timeProvider = null, string? hostnameSuffix = null)
+public class InMemoryKeyVaultProvider(string? hostnameSuffix = null, TimeProvider? timeProvider = null)
 {
     private readonly ConcurrentDictionary<Uri, InMemoryKeyVault> _keyVaults = [];
 

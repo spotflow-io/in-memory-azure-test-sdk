@@ -10,7 +10,7 @@ using Spotflow.InMemory.Azure.Hooks.Internals;
 
 namespace Spotflow.InMemory.Azure.EventHubs;
 
-public class InMemoryEventHubProvider(TimeProvider? timeProvider = null, string? hostnameSuffix = null)
+public class InMemoryEventHubProvider(string? hostnameSuffix = null, TimeProvider? timeProvider = null)
 {
     private readonly ConcurrentDictionary<string, InMemoryEventHubNamespace> _namespaces = new(StringComparer.OrdinalIgnoreCase);
 
