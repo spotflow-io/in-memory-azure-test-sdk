@@ -186,9 +186,9 @@ public class FluentAssertionsTests
 
         task.IsCompleted.Should().BeFalse();
 
-        while(!task.IsCompleted) // Periodically advance the time to make sure the CTS registrations are triggered no matter the execution order of underlying sync primitives. 
+        while (!task.IsCompleted) // Periodically advance the time to make sure the CTS registrations are triggered no matter the execution order of underlying sync primitives. 
         {
-            timeProvider.Advance(TimeSpan.FromSeconds(1)); 
+            timeProvider.Advance(TimeSpan.FromSeconds(1));
             await Task.Delay(10);
         }
 
