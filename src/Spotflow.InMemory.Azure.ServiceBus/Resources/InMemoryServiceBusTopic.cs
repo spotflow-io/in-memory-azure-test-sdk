@@ -60,6 +60,8 @@ public class InMemoryServiceBusTopic(string topicName, InMemoryServiceBusNamespa
 
     public InMemoryServiceBusSubscription? FindSubscription(string subscriptionName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscriptionName);
+
         if (!_subscriptions.TryGetValue(subscriptionName, out var subscription))
         {
             return null;
@@ -68,8 +70,24 @@ public class InMemoryServiceBusTopic(string topicName, InMemoryServiceBusNamespa
         return subscription;
     }
 
+    public InMemoryServiceBusSubscription GetSubscription(string subscriptionName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscriptionName);
+
+        var sub = FindSubscription(subscriptionName);
+
+        if (sub is null)
+        {
+            throw new InvalidOperationException($"Subscription '{subscriptionName}' not found in topic '{Namespace.Name}/{TopicName}'");
+        }
+
+        return sub;
+    }
+
     public InMemoryServiceBusSubscription AddSubscription(string subscriptionName, InMemoryServiceBusSubscriptionOptions? options = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscriptionName);
+
         var subscription = new InMemoryServiceBusSubscription(subscriptionName, options ?? new(), this);
 
         if (!_subscriptions.TryAdd(subscriptionName, subscription))
