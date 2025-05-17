@@ -259,6 +259,7 @@ There are following assertions available for in-memory service bus types:
 ### `InMemoryServiceBusTopicSubscription`
 
 -   `.Should().BeEmptyAsync()`
+-   `.Should().ReceiveMessageFromSessionAsync(string? sessionId = null, TimeSpan? maxWaitTime = null)`
 
 ## Hooks
 
