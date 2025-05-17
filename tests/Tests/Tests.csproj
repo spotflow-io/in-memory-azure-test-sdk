@@ -17,6 +17,24 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="MSTest.TestAdapter" />
+        <PackageReference Include="MSTest.TestFramework" />
+        <PackageReference Include="coverlet.msbuild">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+        <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+        <Using Include="FluentAssertions" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <ProjectReference Include="..\..\src\Spotflow.InMemory.Azure.EventHubs\Spotflow.InMemory.Azure.EventHubs.csproj" />
         <ProjectReference Include="..\..\src\Spotflow.InMemory.Azure.KeyVault\Spotflow.InMemory.Azure.KeyVault.csproj" />
         <ProjectReference Include="..\..\src\Spotflow.InMemory.Azure.ServiceBus.FluentAssertions\Spotflow.InMemory.Azure.ServiceBus.FluentAssertions.csproj" />
