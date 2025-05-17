@@ -186,12 +186,15 @@ public class FluentAssertionsTests
 
         task.IsCompleted.Should().BeFalse();
 
-        timeProvider.Advance(TimeSpan.FromSeconds(3));
+        while(!task.IsCompleted) // Periodically advance the time to make sure the CTS registrations are triggered no matter the execution order of underlying sync primitives. 
+        {
+            timeProvider.Advance(TimeSpan.FromSeconds(1)); 
+            await Task.Delay(10);
+        }
 
         var act = () => task;
 
         await act.Should().ThrowAsync<OperationCanceledException>().WithMessage("No session message received soon enough.");
-
     }
 
 }
