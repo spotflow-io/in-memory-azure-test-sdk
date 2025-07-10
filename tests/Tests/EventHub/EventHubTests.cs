@@ -62,16 +62,16 @@ public class EventHubTests
         batch1.Should().HaveCount(100);
 
         batch0.ElementAt(0).SequenceNumber.Should().Be(43);
-        batch0.ElementAt(0).Offset.Should().Be(43);
+        batch0.ElementAt(0).OffsetString.Should().Be("43");
         batch0.ElementAt(0).EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         batch0.ElementAt(1).SequenceNumber.Should().Be(44);
-        batch0.ElementAt(1).Offset.Should().Be(72);
+        batch0.ElementAt(1).OffsetString.Should().Be("72");
 
         batch1.ElementAt(0).SequenceNumber.Should().Be(43);
-        batch1.ElementAt(0).Offset.Should().Be(43);
+        batch1.ElementAt(0).OffsetString.Should().Be("43");
         batch1.ElementAt(0).EnqueuedTime.Should().Be(timeProvider.GetUtcNow());
         batch1.ElementAt(1).SequenceNumber.Should().Be(44);
-        batch1.ElementAt(1).Offset.Should().Be(72);
+        batch1.ElementAt(1).OffsetString.Should().Be("72");
 
     }
 
@@ -100,11 +100,11 @@ public class EventHubTests
 
 
         batch0.Single().SequenceNumber.Should().Be(0);
-        batch0.Single().Offset.Should().Be(0);
+        batch0.Single().OffsetString.Should().Be("0");
         batch0.Single().EnqueuedTime.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(2));
 
         batch1.Single().SequenceNumber.Should().Be(0);
-        batch1.Single().Offset.Should().Be(0);
+        batch1.Single().OffsetString.Should().Be("0");
         batch1.Single().EnqueuedTime.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(2));
 
     }

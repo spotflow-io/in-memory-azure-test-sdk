@@ -78,7 +78,7 @@ internal class InMemoryPartition
               isEmpty: currentSegment.Count is 0,
               beginningSequenceNumber: beginningSequenceNumber,
               lastSequenceNumber: _lastSequenceNumber,
-              lastOffset: _lastOffset,
+              lastOffsetString: _lastOffset.ToString(),
               lastEnqueuedTime: _lastEnqueuedTime);
     }
 
@@ -120,7 +120,7 @@ internal class InMemoryPartition
                 systemProperties: eventDataSystemPropertiesCopy,
                 partitionKey: partitionKey,
                 sequenceNumber: _lastSequenceNumber,
-                offset: _lastOffset,
+                offsetString: _lastOffset.ToString(),
                 enqueuedTime: _lastEnqueuedTime
                );
 

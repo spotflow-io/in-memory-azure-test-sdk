@@ -65,15 +65,15 @@ public class EventHubProducerClientTests
 
         await producer.SendAsync([emptyEvent]);
         var emptyEventBatch = await consumer.ReceiveBatchAsync(1, TimeSpan.Zero);
-        emptyEventBatch.Single().Offset.Should().Be(0);
+        emptyEventBatch.Single().OffsetString.Should().Be("0");
 
         await producer.SendAsync([emptyEvent], new SendEventOptions { PartitionKey = "test-pk" });
         var emptyEventWithPartitionKey = await consumer.ReceiveBatchAsync(1, TimeSpan.Zero);
-        emptyEventWithPartitionKey.Single().Offset.Should().Be(26);
+        emptyEventWithPartitionKey.Single().OffsetString.Should().Be("26");
 
         await producer.SendAsync([eventWithBody]);
         var eventWithBodyBatch = await consumer.ReceiveBatchAsync(1, TimeSpan.Zero);
-        eventWithBodyBatch.Single().Offset.Should().Be(59);
+        eventWithBodyBatch.Single().OffsetString.Should().Be("59");
     }
 
     [TestMethod]
