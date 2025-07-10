@@ -17,7 +17,7 @@ internal static class ReflectionUtils
     public static bool TryReadOptionalInternalReferenceProperty<TOut>(object obj, string propertyName, out TOut? value) where TOut : class
     {
         value = null;
-        
+
         if (!TryReadOptionalInternalProperty(obj, propertyName, out var rawValue))
         {
             return false;
