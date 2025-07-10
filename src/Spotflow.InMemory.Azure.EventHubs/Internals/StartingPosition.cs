@@ -45,9 +45,9 @@ internal readonly record struct InMemoryEventPosition(long SequenceNumber, bool 
 
         var isInclusive = ReflectionUtils.ReadInternalValueProperty<bool>(position, "IsInclusive");
 
-        var offsetString = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "OffsetString");
+        var offset = ReflectionUtils.ReadInternalReferenceProperty<object>(position, "Offset");
 
-        if (offsetString is not null)
+        if (offset is not null)
         {
             throw new NotSupportedException("EventPosition with offset is not supported.");
         }

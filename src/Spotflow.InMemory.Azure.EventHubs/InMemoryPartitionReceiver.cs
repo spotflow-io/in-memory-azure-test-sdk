@@ -220,7 +220,7 @@ public class InMemoryPartitionReceiver : PartitionReceiver
                 {
                     _lastEnqueuedEventProperties = new(
                         partitionProperties.LastEnqueuedSequenceNumber,
-                        partitionProperties.LastEnqueuedOffsetString,
+                        partitionProperties.LastEnqueuedOffset,
                         partitionProperties.LastEnqueuedTime,
                         _timeProvider.GetUtcNow());
                 }
