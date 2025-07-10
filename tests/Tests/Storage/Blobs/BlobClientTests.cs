@@ -163,7 +163,7 @@ public class BlobClientTests
             // Intentionally empty
         }
 
-        blobClient.DownloadContent().Value.Content.ToString().Should().BeEmpty();
+        blobClient.DownloadContent().Value.Content.ToArray().Should().BeEmpty();
 
         ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 0, uncommited: 0);
 
@@ -185,7 +185,7 @@ public class BlobClientTests
 
         using var stream = OpenWrite(blobClient, true);
 
-        blobClient.DownloadContent().Value.Content.ToString().Should().BeEmpty();
+        blobClient.DownloadContent().Value.Content.ToArray().Should().BeEmpty();
 
         ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 0, uncommited: 0);
     }
