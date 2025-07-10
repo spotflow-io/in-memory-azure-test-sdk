@@ -235,7 +235,11 @@ public class PartitionReceiverTests
 
         var properties1 = receiver.ReadLastEnqueuedEventProperties();
         properties1.SequenceNumber.Should().Be(0);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+
         properties1.Offset.Should().Be(0);
+        properties1.OffsetString.Should().Be("0");
 
 
         // Send second event
@@ -246,6 +250,7 @@ public class PartitionReceiverTests
         var properties2 = receiver.ReadLastEnqueuedEventProperties();
         properties2.SequenceNumber.Should().Be(0);
         properties2.Offset.Should().Be(0);
+        properties2.OffsetString.Should().Be("0");
 
         _ = await receiver.ReceiveBatchAsync(100, TimeSpan.Zero);
 
@@ -255,6 +260,9 @@ public class PartitionReceiverTests
 
         properties3.SequenceNumber.Should().Be(1);
         properties3.Offset.Should().Be(37);
+        properties3.OffsetString.Should().Be("37");
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
     }
 

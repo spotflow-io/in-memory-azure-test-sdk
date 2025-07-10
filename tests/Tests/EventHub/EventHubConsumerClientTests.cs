@@ -55,17 +55,23 @@ public class EventHubConsumerClientTests
 
         var propertiesBeforeSend = await consumerClient.GetPartitionPropertiesAsync("0");
 
+#pragma warning disable CS0618 // Type or member is obsolete
         propertiesBeforeSend.LastEnqueuedOffset.Should().Be(-1);
+        propertiesBeforeSend.LastEnqueuedOffsetString.Should().Be("-1");
 
         await producerClient.SendAsync([new EventData()], new SendEventOptions { PartitionId = "0" });
 
         var propertiesAfterSend1 = await consumerClient.GetPartitionPropertiesAsync("0");
         propertiesAfterSend1.LastEnqueuedOffset.Should().Be(0);
+        propertiesAfterSend1.LastEnqueuedOffsetString.Should().Be("0");
 
         await producerClient.SendAsync([new EventData()], new SendEventOptions { PartitionId = "0" });
 
         var propertiesAfterSend2 = await consumerClient.GetPartitionPropertiesAsync("0");
         propertiesAfterSend2.LastEnqueuedOffset.Should().Be(26);
+        propertiesAfterSend2.LastEnqueuedOffsetString.Should().Be("26");
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
     }
 }
