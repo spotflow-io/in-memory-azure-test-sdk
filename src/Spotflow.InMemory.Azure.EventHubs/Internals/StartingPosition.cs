@@ -51,6 +51,7 @@ internal readonly record struct InMemoryEventPosition(long SequenceNumber, bool 
             throw new NotSupportedException("EventPosition with offset is not supported.");
         }
 
+        // Offset was renamed to OffsetString after EventHub version 5.12.0, so we check for the old property name as well.
         if (ReflectionUtils.TryReadOptionalInternalReferenceProperty<object>(position, "Offset", out var offset) &&
             offset is not null)
         {
