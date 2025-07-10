@@ -4,28 +4,45 @@ namespace Spotflow.InMemory.Azure.Internals;
 
 internal static class ReflectionUtils
 {
-
     public static TOut? ReadInternalReferenceProperty<TOut>(object obj, string propertyName) where TOut : class
     {
-        var value = ReadInternalProperty(obj, propertyName);
-
-        if (value is null)
+        if (!TryReadOptionalInternalReferenceProperty(obj, propertyName, out TOut? value))
         {
-            return null;
+            throw new InvalidOperationException($"Property '{propertyName}' not found on type {obj.GetType().Name}");
         }
 
-        if (!value.GetType().IsAssignableTo(typeof(TOut)))
+        return value;
+    }
+
+    public static bool TryReadOptionalInternalReferenceProperty<TOut>(object obj, string propertyName, out TOut? value) where TOut : class
+    {
+        value = null;
+
+        if (!TryReadOptionalInternalProperty(obj, propertyName, out var rawValue))
+        {
+            return false;
+        }
+
+        if (rawValue is null)
+        {
+            return true; // null is a valid value for reference types
+        }
+
+        if (!rawValue.GetType().IsAssignableTo(typeof(TOut)))
         {
             throw new InvalidOperationException($"Property '{propertyName}' is not assignable to {typeof(TOut).Name}");
         }
 
-        return (TOut?) value;
-
+        value = (TOut?) rawValue;
+        return true;
     }
 
     public static TOut ReadInternalValueProperty<TOut>(object obj, string propertyName) where TOut : struct
     {
-        var value = ReadInternalProperty(obj, propertyName);
+        if (!TryReadOptionalInternalProperty(obj, propertyName, out var value))
+        {
+            throw new InvalidOperationException($"Property '{propertyName}' not found on type {obj.GetType().Name}");
+        }
 
         if (value is not TOut)
         {
@@ -35,7 +52,7 @@ internal static class ReflectionUtils
         return (TOut) value;
     }
 
-    private static object? ReadInternalProperty(object obj, string propertyName)
+    private static bool TryReadOptionalInternalProperty(object obj, string propertyName, out object? value)
     {
         ArgumentNullException.ThrowIfNull(obj);
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
@@ -46,10 +63,12 @@ internal static class ReflectionUtils
 
         if (property is null)
         {
-            throw new InvalidOperationException($"Property '{propertyName}' not found on type {obj.GetType().Name}");
+            value = null;
+            return false;
         }
 
-        return property.GetValue(obj);
+        value = property.GetValue(obj);
+        return true;
     }
 
 }

@@ -72,6 +72,8 @@ internal class InMemoryPartition
 
         var beginningSequenceNumber = currentSegment.Count > 0 ? currentSegment[0].SequenceNumber : lastSequenceNumber;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
         return EventHubsModelFactory.PartitionProperties(
               eventHubName: name,
               partitionId: PartitionId,
@@ -80,6 +82,8 @@ internal class InMemoryPartition
               lastSequenceNumber: _lastSequenceNumber,
               lastOffset: _lastOffset,
               lastEnqueuedTime: _lastEnqueuedTime);
+
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     public void SendEvent(EventData eventData, string? partitionKey)
@@ -114,6 +118,7 @@ internal class InMemoryPartition
             var eventDataPropertiesCopy = new Dictionary<string, object>(eventData.Properties);
             var eventDataSystemPropertiesCopy = new Dictionary<string, object>(eventData.SystemProperties);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var eventWithSystemProperties = EventHubsModelFactory.EventData(
                 eventBody: new(eventBodyCopy),
                 properties: eventDataPropertiesCopy,
@@ -123,6 +128,7 @@ internal class InMemoryPartition
                 offset: _lastOffset,
                 enqueuedTime: _lastEnqueuedTime
                );
+#pragma warning restore CS0618 // Type or member is obsolete
 
             eventWithSystemProperties.MessageId = eventData.MessageId;
             eventWithSystemProperties.CorrelationId = eventData.CorrelationId;

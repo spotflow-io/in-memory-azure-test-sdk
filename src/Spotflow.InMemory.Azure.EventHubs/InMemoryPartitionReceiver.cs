@@ -218,11 +218,13 @@ public class InMemoryPartitionReceiver : PartitionReceiver
                 }
                 else
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     _lastEnqueuedEventProperties = new(
                         partitionProperties.LastEnqueuedSequenceNumber,
-                        partitionProperties.LastEnqueuedOffset,
+                        lastOffset: partitionProperties.LastEnqueuedOffset,
                         partitionProperties.LastEnqueuedTime,
                         _timeProvider.GetUtcNow());
+#pragma warning restore CS0618 // Type or member is obsolete
                 }
             }
         }
