@@ -195,16 +195,16 @@ public class InMemoryServiceBusClient : ServiceBusClient
     #region CreateProcessors
 
     public override InMemoryServiceBusProcessor CreateProcessor(string queueName) 
-        => new InMemoryServiceBusProcessor(this, queueName);
+        => new (this, queueName);
 
     public override InMemoryServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions options) 
-        => new InMemoryServiceBusProcessor(this, queueName, options);
+        => new (this, queueName, options);
 
     public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName) 
-        => new InMemoryServiceBusProcessor(this, topicName, subscriptionName, new  ServiceBusProcessorOptions());
+        => new (this, topicName, subscriptionName, new  ServiceBusProcessorOptions());
 
     public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options) 
-        => new InMemoryServiceBusProcessor(this, topicName, subscriptionName, options);
+        => new (this, topicName, subscriptionName, options);
 
     #endregion
 

@@ -1,50 +1,73 @@
 ﻿using Azure.Messaging.ServiceBus;
 
-using Spotflow.InMemory.Azure.ServiceBus.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
 
-public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
+public class InMemoryServiceBusProcessor : ServiceBusProcessor
 {
     private readonly TimeSpan _defaultMaxWaitTime;
     private readonly SemaphoreSlim _concurrencySemaphore;
     private readonly SemaphoreSlim _stateSemaphore = new(1, 1);
     private readonly InMemoryServiceBusReceiver _receiver;
+    private readonly bool _autoCompleteMessages;
+    private readonly string _entityPath;
     
     private volatile bool _isClosed;
     private volatile bool _isProcessing;
     private CancellationTokenSource? _processingCts;
     private Task? _processingTask;
+    
+    private readonly string _identifier;
+    private readonly string _fullyQualifiedNamespace;
+    private readonly ServiceBusReceiveMode _receiveMode;
+    private readonly int _prefetchCount;
+    private readonly int _maxConcurrentCalls;
+    private readonly TimeSpan _maxAutoLockRenewalDuration;
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
-        : this(client, queueName, new ServiceBusProcessorOptions()) {}
+        : this(client, queueName, new ServiceBusProcessorOptions()) { }
+
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
-        : base(client, queueName, options)
-    {
-        _receiver = new InMemoryServiceBusReceiver(client, queueName, new ServiceBusReceiverOptions 
-        { 
+        : this(client, queueName, options, new InMemoryServiceBusReceiver(client, queueName, new ServiceBusReceiverOptions()
+        {
             ReceiveMode = options.ReceiveMode,
             PrefetchCount = options.PrefetchCount,
-            Identifier = options.Identifier
-        });
-        _defaultMaxWaitTime = client.DefaultMaxWaitTime;
-        _concurrencySemaphore = new SemaphoreSlim(MaxConcurrentCalls, MaxConcurrentCalls);
-        Provider = client.Provider;
-    }
+            Identifier = $"{options.Identifier}-receiver"
+        })) { }
+    
+    public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
+        : this(client, FormatEntityPath(topicName, subscriptionName), new ServiceBusProcessorOptions()) { }
+
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
-        : base(client, topicName, subscriptionName, options) 
-    {
-        _receiver = new InMemoryServiceBusReceiver(client, topicName, subscriptionName, new ServiceBusReceiverOptions 
+        : this(client, FormatEntityPath(topicName, subscriptionName), options, 
+            new InMemoryServiceBusReceiver(client, topicName, subscriptionName, new ServiceBusReceiverOptions 
         { 
             ReceiveMode = options.ReceiveMode,
             PrefetchCount = options.PrefetchCount,
-            Identifier = options.Identifier
-        });
+            Identifier = $"{options.Identifier}-receiver"
+        })) { }
+
+    private InMemoryServiceBusProcessor(
+        InMemoryServiceBusClient client, 
+        string entityPath, 
+        ServiceBusProcessorOptions options,
+        InMemoryServiceBusReceiver receiver)
+    {
+        _fullyQualifiedNamespace = client.FullyQualifiedNamespace;
+        _identifier = options.Identifier ?? Guid.NewGuid().ToString();
+        _entityPath = entityPath;
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
-        _concurrencySemaphore = new SemaphoreSlim(MaxConcurrentCalls, MaxConcurrentCalls);
+        _autoCompleteMessages = options.AutoCompleteMessages;
+        _receiveMode = options.ReceiveMode;
+        _prefetchCount = options.PrefetchCount;
+        _maxConcurrentCalls = options.MaxConcurrentCalls;
+        _maxAutoLockRenewalDuration = options.MaxAutoLockRenewalDuration;
+        _receiver = receiver;
         Provider = client.Provider;
+        _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
     }
+    
     private static string FormatEntityPath(string topicName, string subscriptionName)
         => InMemoryServiceBusSubscription.FormatEntityPath(topicName, subscriptionName);
     
@@ -53,19 +76,25 @@ public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
         var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
         return new InMemoryServiceBusProcessor(client, queue.QueueName, options ?? new ServiceBusProcessorOptions());
     }
-
+    
     public static InMemoryServiceBusProcessor FromSubscription(InMemoryServiceBusSubscription subscription, ServiceBusProcessorOptions? options = null)
     {
         var client = InMemoryServiceBusClient.FromNamespace(subscription.Topic.Namespace);
         return new InMemoryServiceBusProcessor(client, subscription.TopicName, subscription.SubscriptionName, options ?? new ServiceBusProcessorOptions());
     }
     
-
+    public override bool AutoCompleteMessages => _autoCompleteMessages;
+    public override string FullyQualifiedNamespace => _fullyQualifiedNamespace;
+    public override string EntityPath => _entityPath;
+    public override string Identifier => _identifier;
+    public override ServiceBusReceiveMode ReceiveMode => _receiveMode;
+    public override int PrefetchCount => _prefetchCount;
+    public override int MaxConcurrentCalls => _maxConcurrentCalls;
+    public override TimeSpan MaxAutoLockRenewalDuration => _maxAutoLockRenewalDuration;
     public InMemoryServiceBusProvider Provider { get; }
-
     public override bool IsClosed => _isClosed;
     public override bool IsProcessing => _isProcessing;
-
+    
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
@@ -80,7 +109,6 @@ public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
         _stateSemaphore.Dispose();
         _processingCts?.Dispose();
         await _receiver.DisposeAsync();
-        await base.CloseAsync(cancellationToken);
     }
 
     public override async Task StartProcessingAsync(CancellationToken cancellationToken = default)
@@ -97,8 +125,6 @@ public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
                 throw new InvalidOperationException("The processor is already processing messages.");
             }
             
-            await base.StartProcessingAsync(cancellationToken);
-
             _isProcessing = true;
             _processingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _processingTask = ProcessMessagesInBackground(_processingCts.Token);
@@ -121,7 +147,6 @@ public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
                 return;
             }
 
-            // Cancel processing
             _processingCts?.Cancel();
 
    
@@ -143,7 +168,6 @@ public sealed class InMemoryServiceBusProcessor : ServiceBusProcessor
 
             _isProcessing = false;
             
-            await base.StopProcessingAsync(cancellationToken);
         }
         finally
         {
