@@ -189,19 +189,26 @@ public class InMemoryServiceBusClient : ServiceBusClient
         return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
 
     }
+    
+    #endregion
 
+    #region CreateProcessors
+
+    public override InMemoryServiceBusProcessor CreateProcessor(string queueName) 
+        => new InMemoryServiceBusProcessor(this, queueName);
+
+    public override InMemoryServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions options) 
+        => new InMemoryServiceBusProcessor(this, queueName, options);
+
+    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName) 
+        => new InMemoryServiceBusProcessor(this, topicName, subscriptionName, new  ServiceBusProcessorOptions());
+
+    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options) 
+        => new InMemoryServiceBusProcessor(this, topicName, subscriptionName, options);
 
     #endregion
 
     #region Unsupported
-
-    public override ServiceBusProcessor CreateProcessor(string queueName) => throw ServiceBusExceptionFactory.MethodNotSupported();
-
-    public override ServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions options) => throw ServiceBusExceptionFactory.MethodNotSupported();
-
-    public override ServiceBusProcessor CreateProcessor(string topicName, string subscriptionName) => throw ServiceBusExceptionFactory.MethodNotSupported();
-
-    public override ServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options) => throw ServiceBusExceptionFactory.MethodNotSupported();
 
     public override ServiceBusSessionProcessor CreateSessionProcessor(string queueName, ServiceBusSessionProcessorOptions? options = null) => throw ServiceBusExceptionFactory.MethodNotSupported();
 
