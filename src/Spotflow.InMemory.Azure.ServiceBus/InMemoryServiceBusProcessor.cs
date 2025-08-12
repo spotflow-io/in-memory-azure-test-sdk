@@ -1,4 +1,4 @@
-﻿using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus;
 
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
@@ -25,6 +25,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly int _maxConcurrentCalls;
     private readonly TimeSpan _maxAutoLockRenewalDuration;
 
+    #region Constructors
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
@@ -82,7 +83,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         var client = InMemoryServiceBusClient.FromNamespace(subscription.Topic.Namespace);
         return new InMemoryServiceBusProcessor(client, subscription.TopicName, subscription.SubscriptionName, options ?? new ServiceBusProcessorOptions());
     }
+    #endregion
     
+    #region Properties
     public override bool AutoCompleteMessages => _autoCompleteMessages;
     public override string FullyQualifiedNamespace => _fullyQualifiedNamespace;
     public override string EntityPath => _entityPath;
@@ -94,7 +97,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public InMemoryServiceBusProvider Provider { get; }
     public override bool IsClosed => _isClosed;
     public override bool IsProcessing => _isProcessing;
+    #endregion
     
+    #region Close
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
@@ -110,7 +115,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         _processingCts?.Dispose();
         await _receiver.DisposeAsync();
     }
+    #endregion
 
+    #region Start/Stop Processing
     public override async Task StartProcessingAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
@@ -156,9 +163,6 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
                 {
                     await _processingTask;
                 }
-                catch (OperationCanceledException)
-                {
-                }
                 finally
                 {
                     _processingTask?.Dispose();
@@ -185,11 +189,8 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             {
                 try
                 {
-                    var messages = await ReceiveMessagesCoreAsync(
-                        MaxConcurrentCalls,
-                        _defaultMaxWaitTime,
-                        cancellationToken);
-
+                    var messages = await _receiver.ReceiveMessagesAsync(MaxConcurrentCalls, _defaultMaxWaitTime, cancellationToken);
+                    
                     if (messages.Count == 0)
                     {
                         continue;
@@ -222,24 +223,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         {
             if (activeTasks.Count > 0)
             {
-                try
-                {
-                    await Task.WhenAll(activeTasks);
-                }
-                catch
-                {
-                    // Ignore exceptions during cleanup
-                }
+                await Task.WhenAll(activeTasks);
             }
         }
-    }
-    
-    private async Task<IReadOnlyList<ServiceBusReceivedMessage>> ReceiveMessagesCoreAsync(
-        int maxMessages, 
-        TimeSpan maxWaitTime, 
-        CancellationToken cancellationToken)
-    {
-        return await _receiver.ReceiveMessagesAsync(maxMessages, maxWaitTime, cancellationToken);
     }
     
     private async Task ProcessSingleMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken)
@@ -255,33 +241,14 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             await OnProcessMessageAsync(processMessageEventArgs);
             if (AutoCompleteMessages)
             {
-                try
-                {
-                    await _receiver.CompleteMessageAsync(message, cancellationToken);
-                }
-                catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessageLockLost)
-                {
-                    // Message was already settled by user - this is fine for auto-complete
-                }
+                await _receiver.CompleteMessageAsync(message, cancellationToken);
             }
             
         }
         catch (Exception ex)
         {
-            try
-            {
-                await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
-            }
-            catch (ServiceBusException abandonEx) when (abandonEx.Reason == ServiceBusFailureReason.MessageLockLost)
-            {
-                // Message was already settled - ignore
-            }
-            catch
-            {
-                // Ignore other abandon errors
-            }
-
-
+            await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
+            
             await HandleErrorAsync(ex, cancellationToken);
         }
         finally
@@ -302,4 +269,6 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
 
         await OnProcessErrorAsync(errorArgs);
     }
+    #endregion
+    
 }

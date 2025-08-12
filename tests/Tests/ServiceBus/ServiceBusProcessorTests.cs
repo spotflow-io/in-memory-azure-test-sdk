@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 
 using Azure.Messaging.ServiceBus;
 
@@ -379,6 +379,7 @@ public class ServiceBusProcessorTests
     
     #endregion
     
+    #region Handlers
     [TestMethod]
     public async Task ProcessMessageAsync_AddSecondHandler_ThrowsNotSupportedException()
     {
@@ -411,22 +412,7 @@ public class ServiceBusProcessorTests
         processor.ProcessMessageAsync -= handler1;  
         processor.ProcessMessageAsync += handler2;  
     }
-    
-    // [TestMethod]
-    // public async Task StartProcessingAsync_WithoutMessageHandler_ThrowsInvalidOperationException()
-    // {
-    //     var ns = new InMemoryServiceBusProvider().AddNamespace();
-    //     ns.AddQueue("test-queue");
-    //     await using var client = InMemoryServiceBusClient.FromNamespace(ns);
-    //     await using var processor = client.CreateProcessor("test-queue");
-    //
-    //     processor.ProcessErrorAsync += _ => Task.CompletedTask;
-    //
-    //     var exception = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
-    //         () => processor.StartProcessingAsync());
-    //
-    //     exception.Message.Should().Contain("ProcessMessageAsync");
-    // }
+    #endregion
     
     #region HelperMethods
     private static async Task<bool> WaitForMessageCompletion(InMemoryServiceBusClient client, string queueName, TimeSpan timeout)
