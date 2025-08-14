@@ -383,4 +383,35 @@ public class ServiceBusSessionsReceiverTests
 
     }
 
+    [TestMethod]
+    public async Task Empty_Sessions_Should_Not_Be_Returned_By_AcceptNextSession()
+    {
+        var provider = new InMemoryServiceBusProvider();
+
+        var queue = provider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, LockTime = TimeSpan.FromMinutes(2) });
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, options: new() { RetryOptions = new() { TryTimeout = TimeSpan.FromMilliseconds(100) } });
+
+        await using var sender = client.CreateSender("test-queue");
+
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("message-1")) { SessionId = "session-1" });
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("message-2")) { SessionId = "session-2" });
+
+        await using var receiver1 = await client.AcceptNextSessionAsync("test-queue");
+
+        var message1 = await receiver1.ReceiveMessageAsync();
+
+        message1.Should().NotBeNull();
+
+        await using var receiver2 = await client.AcceptNextSessionAsync("test-queue");
+
+        var message2 = await receiver2.ReceiveMessageAsync();
+
+        var act = () => client.AcceptNextSessionAsync("test-queue");
+
+        await act.Should().ThrowAsync<ServiceBusException>()
+            .Where(e => e.Reason == ServiceBusFailureReason.ServiceTimeout)
+            .WithMessage("No session available*");
+    }
+
 }
