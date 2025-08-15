@@ -83,7 +83,7 @@ internal class SessionEngine(IConsumableEntity entity) : IMessagingEngine
 
             foreach (var (_, sessionStore) in _sessions)
             {
-                if (sessionStore.TryLock(out var acquiredSession))
+                if (sessionStore.TryLock(allowEmpty: false, out var acquiredSession))
                 {
                     return acquiredSession;
                 }
@@ -104,7 +104,7 @@ internal class SessionEngine(IConsumableEntity entity) : IMessagingEngine
     {
         var sessionStore = GetOrAddSession(sessionId);
 
-        if (sessionStore.TryLock(out var acquiredSession))
+        if (sessionStore.TryLock(allowEmpty: true, out var acquiredSession))
         {
             session = acquiredSession;
             return true;

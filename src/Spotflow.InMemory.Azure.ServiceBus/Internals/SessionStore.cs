@@ -30,12 +30,19 @@ internal class SessionStore(string fullyQualifiedNamespace, string entityPath, s
         get { lock (_syncObj) { return _sessionLockedUntil; } }
     }
 
-    public bool TryLock([NotNullWhen(true)] out LockedSession? acquiredSession)
+    public bool TryLock(bool allowEmpty, [NotNullWhen(true)] out LockedSession? acquiredSession)
     {
         lock (_syncObj)
         {
             if (_sessionLockToken is not null)
             {
+                acquiredSession = null;
+                return false;
+            }
+
+            if (!allowEmpty && _messageStore.ActiveMessageCount is 0)
+            {
+                // If there are no messages, we don't lock the session.
                 acquiredSession = null;
                 return false;
             }
