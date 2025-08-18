@@ -255,7 +255,13 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         return true;
     }
 
-    public bool TryOpenWrite(RequestConditions? conditions, long? bufferSize, IDictionary<string, string>? metadata, [NotNullWhen(true)] out BlobWriteStream? stream, [NotNullWhen(false)] out OpenWriteError? error)
+    public bool TryOpenWrite(
+        RequestConditions? conditions,
+        long? bufferSize,
+        IDictionary<string, string>? metadata,
+        BlobHttpHeaders? httpHeaders,
+        [NotNullWhen(true)] out BlobWriteStream? stream,
+        [NotNullWhen(false)] out OpenWriteError? error)
     {
         if (ShouldThrowBlobAlreadyExistsError(conditions))
         {
@@ -271,7 +277,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
             return false;
         }
 
-        SetCommitedState(null, metadata, []);
+        SetCommitedState(httpHeaders, metadata, []);
 
         var client = InMemoryBlockBlobClient.FromAccount(Container.Service.Account, ContainerName, Name);
 
