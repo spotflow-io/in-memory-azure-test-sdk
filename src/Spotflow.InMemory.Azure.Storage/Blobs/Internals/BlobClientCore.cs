@@ -260,7 +260,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         using var blob = AcquireBlob(cancellationToken);
 
-        if (!blob.Value.TryOpenWrite(options?.OpenConditions, options?.BufferSize, options?.Metadata, out var stream, out var error))
+        if (!blob.Value.TryOpenWrite(options?.OpenConditions, options?.BufferSize, options?.Metadata, options?.HttpHeaders, out var stream, out var error))
         {
             throw error.GetClientException();
         }
