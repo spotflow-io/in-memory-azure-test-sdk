@@ -152,7 +152,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             
             _isProcessing = true;
             _processingCts = new CancellationTokenSource();
-            _processingTask = ProcessMessagesInBackground(_processingCts.Token);
+            _processingTask = Task.Run(() => ProcessMessagesInBackground(_processingCts.Token), cancellationToken);
         }
         finally
         {
@@ -174,7 +174,10 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _stateSemaphore.Release();
         }
     }
-
+    
+    /// <summary>
+    /// StopProcessingInternalAsync is used to avoid deadlock between <see cref="CloseAsync"/> and <see cref="StopProcessingAsync"/>
+    /// </summary>
     private async Task StopProcessingInternalAsync()
     {
         if (!_isProcessing)
@@ -220,8 +223,17 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
                     foreach (var message in messages)
                     {
                         await _concurrencySemaphore.WaitAsync(cancellationToken);
-
-                        var messageTask = ProcessSingleMessageAsync(message, cancellationToken);
+                        Task messageTask;
+                        try
+                        {
+                            messageTask = Task.Run(() => ProcessSingleMessageAsync(message, cancellationToken), cancellationToken);
+                        }
+                        catch
+                        {
+                            _concurrencySemaphore.Release();
+                            throw;
+                        }
+                        
                         activeTasks.Add(messageTask);
 
                         if (activeTasks.Count > MaxConcurrentCalls)
