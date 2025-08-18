@@ -30,23 +30,26 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
-        : this(client, queueName, options, new InMemoryServiceBusReceiver(client, queueName, CreateReceiverOptions(options))) { }
+        : this(client, queueName, options, 
+            (receiverOptions, c) 
+                => new InMemoryServiceBusReceiver(c, queueName, receiverOptions)) { }
     
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
         : this(client, topicName, subscriptionName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
         : this(client, FormatEntityPath(topicName, subscriptionName), options, 
-            new InMemoryServiceBusReceiver(client, topicName, subscriptionName, CreateReceiverOptions(options))) { }
+            (receiverOptions, c) 
+                => new InMemoryServiceBusReceiver(c, topicName, subscriptionName, receiverOptions)) { }
 
     private InMemoryServiceBusProcessor(
         InMemoryServiceBusClient client, 
         string entityPath, 
         ServiceBusProcessorOptions options,
-        InMemoryServiceBusReceiver receiver)
+        Func<ServiceBusReceiverOptions, InMemoryServiceBusClient, InMemoryServiceBusReceiver> receiverFactory)
     {
         _fullyQualifiedNamespace = client.FullyQualifiedNamespace;
-        _identifier = options.Identifier ?? GenerateIdentifier(entityPath);
+        _identifier = string.IsNullOrEmpty(options.Identifier) ? GenerateIdentifier(entityPath) : options.Identifier;
         _entityPath = entityPath;
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
         _autoCompleteMessages = options.AutoCompleteMessages;
@@ -54,7 +57,8 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         _prefetchCount = options.PrefetchCount;
         _maxConcurrentCalls = options.MaxConcurrentCalls;
         _maxAutoLockRenewalDuration = options.MaxAutoLockRenewalDuration;
-        _receiver = receiver;
+        var receiverOptions = CreateReceiverOptions(options, _identifier);
+        _receiver = receiverFactory(receiverOptions, client);
         Provider = client.Provider;
         _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
     }
@@ -68,12 +72,12 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     /// <returns></returns>
     private static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}"; 
 
-    private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options)
+    private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options, string identifier)
      => new()
         {
             ReceiveMode = options.ReceiveMode,
             PrefetchCount = options.PrefetchCount,
-            Identifier = $"{options.Identifier}-receiver"
+            Identifier = $"{identifier}-receiver"
         };
     
     
@@ -111,12 +115,18 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-
-        _isClosed = true;
-
-        if (_isProcessing)
+        await _stateSemaphore.WaitAsync(cancellationToken);
+        try
         {
-            await StopProcessingAsync(cancellationToken);
+            _isClosed = true;
+            if (_isProcessing)
+            {
+                await StopProcessingInternalAsync();
+            }
+        }
+        finally 
+        {
+            _stateSemaphore.Release();
         }
         _concurrencySemaphore.Dispose();
         _stateSemaphore.Dispose();
@@ -141,7 +151,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             }
             
             _isProcessing = true;
-            _processingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _processingCts = new CancellationTokenSource();
             _processingTask = ProcessMessagesInBackground(_processingCts.Token);
         }
         finally
@@ -157,34 +167,37 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         await _stateSemaphore.WaitAsync(cancellationToken);
         try
         {
-            if (!_isProcessing)
-            {
-                return;
-            }
-
-            _processingCts?.Cancel();
-
-   
-            if (_processingTask != null)
-            {
-                try
-                {
-                    await _processingTask;
-                }
-                finally
-                {
-                    _processingTask?.Dispose();
-                    _processingTask = null;
-                }
-            }
-
-            _isProcessing = false;
-            
+            await StopProcessingInternalAsync();
         }
         finally
         {
             _stateSemaphore.Release();
         }
+    }
+
+    private async Task StopProcessingInternalAsync()
+    {
+        if (!_isProcessing)
+        {
+            return;
+        }
+
+        _processingCts?.Cancel();
+
+        if (_processingTask != null)
+        {
+            try
+            {
+                await _processingTask;
+            }
+            finally
+            {
+                _processingTask.Dispose();
+                _processingTask = null;
+            }
+        }
+
+        _isProcessing = false;
     }
 
     private async Task ProcessMessagesInBackground(CancellationToken cancellationToken)

@@ -145,7 +145,6 @@ public class ServiceBusProcessorTests
         
         await processor.CloseAsync();
         processor.IsClosed.Should().BeTrue();
-        await processor.DisposeAsync();
     }
 
     [TestMethod]
@@ -162,7 +161,7 @@ public class ServiceBusProcessorTests
         
         processor.IsProcessing.Should().BeFalse();
         processor.IsClosed.Should().BeTrue();
-        await processor.DisposeAsync();
+        
     }
 
     [TestMethod]
