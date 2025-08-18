@@ -145,6 +145,19 @@ public class ServiceBusProcessorTests
         
         await processor.CloseAsync();
         processor.IsClosed.Should().BeTrue();
+        
+    }
+    
+    [TestMethod]
+    public async Task DisposeAsync_SetsIsClosedToTrue()
+    {
+        var ns = new InMemoryServiceBusProvider().AddNamespace();
+        await using var client = InMemoryServiceBusClient.FromNamespace(ns);
+        var processor = client.CreateProcessor("test-queue");
+        
+        await processor.DisposeAsync();
+        processor.IsClosed.Should().BeTrue();
+        
     }
 
     [TestMethod]
@@ -171,6 +184,9 @@ public class ServiceBusProcessorTests
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
 
+        processor.ProcessMessageAsync += _ => Task.CompletedTask;
+        processor.ProcessErrorAsync += _ => Task.CompletedTask;
+        
         await processor.CloseAsync();
         await Assert.ThrowsExceptionAsync<ObjectDisposedException>(
             () => processor.StartProcessingAsync());
@@ -432,5 +448,125 @@ public class ServiceBusProcessorTests
         return false;
     }
     #endregion
+    
+    [TestMethod]
+    public async Task ConcurrentStartStop_DoesNotCauseDeadlock()
+    {
+        var ns = new InMemoryServiceBusProvider().AddNamespace();
+        ns.AddQueue("test-queue");
+        var client = InMemoryServiceBusClient.FromNamespace(ns);
+        var processor = client.CreateProcessor("test-queue");
+    
+        processor.ProcessMessageAsync += _ => Task.CompletedTask;
+        processor.ProcessErrorAsync += _ => Task.CompletedTask;
+
+        try
+        {
+            var random = new Random();
+        
+            for (var i = 0; i < 5; i++)
+            {
+                await processor.StartProcessingAsync();
+                await Task.Delay(random.Next(10, 50));
+                await processor.StopProcessingAsync();
+                await Task.Delay(random.Next(10, 50));
+            }
+            
+            await processor.StartProcessingAsync();
+        
+            var concurrentStartTasks = new List<Task>();
+            for (var i = 0; i < 3; i++)
+            {
+                concurrentStartTasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await processor.StartProcessingAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Expected - already processing
+                    }
+                }));
+            }
+        
+            await Task.WhenAll(concurrentStartTasks);
+            await processor.StopProcessingAsync();
+        
+            processor.IsProcessing.Should().BeFalse();
+        }
+        finally
+        {
+            await processor.CloseAsync();
+            await client.DisposeAsync();
+        }
+    }
+    
+    [TestMethod]
+    public async Task StopProcessing_WaitsForInFlightMessages()
+    {
+        var ns = new InMemoryServiceBusProvider().AddNamespace();
+        ns.AddQueue("test-queue");
+        await using var client = InMemoryServiceBusClient.FromNamespace(ns);
+        await using var processor = client.CreateProcessor("test-queue");
+
+        var messageStarted = new TaskCompletionSource<bool>();
+        var messageCanComplete = new TaskCompletionSource<bool>();
+        var messageCompleted = new TaskCompletionSource<bool>();
+
+        processor.ProcessMessageAsync += async _ =>
+        {
+            messageStarted.SetResult(true);
+            await messageCanComplete.Task; // block here until it is ok to continue
+            messageCompleted.SetResult(true);
+        };
+        processor.ProcessErrorAsync += _ => Task.CompletedTask;
+
+        await using var sender = client.CreateSender("test-queue");
+        await sender.SendMessageAsync(new ServiceBusMessage("Test"));
+
+        await processor.StartProcessingAsync();
+        await messageStarted.Task;
+
+        // Start stopping while message is in flight
+        var stopTask = processor.StopProcessingAsync();
+    
+        // Verify stop is waiting for message completion
+        await Task.Delay(100);
+        stopTask.IsCompleted.Should().BeFalse();
+
+        messageCanComplete.SetResult(true);
+        await messageCompleted.Task;
+        await stopTask;
+        processor.IsProcessing.Should().BeFalse();
+    }
+    
+    [TestMethod]
+    public async Task ConcurrentCloseAndStart_HandlesGracefully()
+    {
+        var ns = new InMemoryServiceBusProvider().AddNamespace();
+        ns.AddQueue("test-queue");
+        await using var client = InMemoryServiceBusClient.FromNamespace(ns);
+        var processor = client.CreateProcessor("test-queue");
+    
+        processor.ProcessMessageAsync += _ => Task.CompletedTask;
+        processor.ProcessErrorAsync += _ => Task.CompletedTask;
+
+        var closeTask = Task.Run(() => processor.CloseAsync());
+        var startTask = Task.Run(async () =>
+        {
+            try
+            {
+                await processor.StartProcessingAsync();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if close operation is successful
+            }
+        });
+
+        await Task.WhenAll(closeTask, startTask);
+        processor.IsClosed.Should().BeTrue();
+    }
 }
 
