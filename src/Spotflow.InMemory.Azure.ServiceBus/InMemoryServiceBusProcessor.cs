@@ -30,24 +30,14 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
-        : this(client, queueName, options, new InMemoryServiceBusReceiver(client, queueName, new ServiceBusReceiverOptions()
-        {
-            ReceiveMode = options.ReceiveMode,
-            PrefetchCount = options.PrefetchCount,
-            Identifier = $"{options.Identifier}-receiver"
-        })) { }
+        : this(client, queueName, options, new InMemoryServiceBusReceiver(client, queueName, CreateReceiverOptions(options))) { }
     
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
-        : this(client, FormatEntityPath(topicName, subscriptionName), new ServiceBusProcessorOptions()) { }
+        : this(client, topicName, subscriptionName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
         : this(client, FormatEntityPath(topicName, subscriptionName), options, 
-            new InMemoryServiceBusReceiver(client, topicName, subscriptionName, new ServiceBusReceiverOptions 
-        { 
-            ReceiveMode = options.ReceiveMode,
-            PrefetchCount = options.PrefetchCount,
-            Identifier = $"{options.Identifier}-receiver"
-        })) { }
+            new InMemoryServiceBusReceiver(client, topicName, subscriptionName, CreateReceiverOptions(options))) { }
 
     private InMemoryServiceBusProcessor(
         InMemoryServiceBusClient client, 
@@ -68,6 +58,15 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         Provider = client.Provider;
         _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
     }
+
+    private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options)
+     => new()
+        {
+            ReceiveMode = options.ReceiveMode,
+            PrefetchCount = options.PrefetchCount,
+            Identifier = $"{options.Identifier}-receiver"
+        };
+    
     
     private static string FormatEntityPath(string topicName, string subscriptionName)
         => InMemoryServiceBusSubscription.FormatEntityPath(topicName, subscriptionName);

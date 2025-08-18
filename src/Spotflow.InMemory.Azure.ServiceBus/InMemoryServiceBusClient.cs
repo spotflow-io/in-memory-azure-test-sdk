@@ -201,7 +201,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
         => new (this, queueName, options);
 
     public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName) 
-        => new (this, topicName, subscriptionName, new  ServiceBusProcessorOptions());
+        => new (this, topicName, subscriptionName);
 
     public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options) 
         => new (this, topicName, subscriptionName, options);
