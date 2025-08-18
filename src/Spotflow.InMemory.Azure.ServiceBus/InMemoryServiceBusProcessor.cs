@@ -46,7 +46,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         InMemoryServiceBusReceiver receiver)
     {
         _fullyQualifiedNamespace = client.FullyQualifiedNamespace;
-        _identifier = options.Identifier ?? Guid.NewGuid().ToString();
+        _identifier = options.Identifier ?? GenerateIdentifier(entityPath);
         _entityPath = entityPath;
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
         _autoCompleteMessages = options.AutoCompleteMessages;
@@ -58,6 +58,15 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         Provider = client.Provider;
         _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
     }
+
+    /// <summary>
+    /// Helper method to generate identifier based on
+    /// https://github.com/Azure/azure-sdk-for-net/blob/5cb4a6d5dad39a25a1854fe4c4be6bffab745785/sdk/servicebus/Azure.Messaging.ServiceBus/src/Diagnostics/DiagnosticUtilities.cs#L10
+    /// Todo: move this to a utility helper class
+    /// </summary>
+    /// <param name="entityPath"></param>
+    /// <returns></returns>
+    private static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}"; 
 
     private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options)
      => new()
