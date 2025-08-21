@@ -147,6 +147,39 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void OpenWrite_Should_Create_Blob_With_Headers(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var headers = new BlobHttpHeaders
+        {
+            ContentType = "application/json",
+            ContentEncoding = "br"
+        };
+
+        using (var stream = OpenWrite(blobClient, true, headers: headers))
+        using (var streamWriter = new StreamWriter(stream))
+        {
+            streamWriter.Write("test-data");
+        }
+
+        blobClient.DownloadContent().Value.Content.ToString().Should().Be("test-data");
+        blobClient.GetProperties().Value.ContentType.Should().Be("application/json");
+        blobClient.GetProperties().Value.ContentEncoding.Should().Be("br");
+
+        ShouldHaveBlocks(containerClient.GetBlockBlobClient(blobName), commited: 1, uncommited: 0);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void OpenWrite_And_Dispose_Immediately_Should_Create_Empty_Blob(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -812,7 +845,7 @@ public class BlobClientTests
         }
     }
 
-    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null)
+    private static Stream OpenWrite(BlobBaseClient blobClient, bool overwrite, IDictionary<string, string>? metadata = null, BlobHttpHeaders? headers = null, BlobRequestConditions? conditions = null)
     {
         if (blobClient is BlobClient genericClient)
         {
@@ -828,6 +861,12 @@ public class BlobClientTests
             {
                 options ??= new();
                 options.OpenConditions = conditions;
+            }
+
+            if (headers is not null)
+            {
+                options ??= new();
+                options.HttpHeaders = headers;
             }
 
             return genericClient.OpenWrite(overwrite, options);
@@ -847,6 +886,12 @@ public class BlobClientTests
             {
                 options ??= new();
                 options.OpenConditions = conditions;
+            }
+
+            if (headers is not null)
+            {
+                options ??= new();
+                options.HttpHeaders = headers;
             }
 
             return blockClient.OpenWrite(overwrite, options);
