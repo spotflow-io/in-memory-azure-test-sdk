@@ -49,6 +49,7 @@ jobs:
         run: |
           echo "Pull Request labels: ${{  toJson(github.event.pull_request.labels.*.name) }}"
 
+  
   build:
     runs-on: ubuntu-latest
     needs: init
