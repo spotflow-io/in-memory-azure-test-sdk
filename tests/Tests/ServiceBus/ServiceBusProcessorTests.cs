@@ -18,10 +18,10 @@ public class ServiceBusProcessorTests
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
 
         const string queueName = "test-queue";
-        var options = new ServiceBusProcessorOptions{ MaxConcurrentCalls = 5 };
-        
+        var options = new ServiceBusProcessorOptions { MaxConcurrentCalls = 5 };
+
         await using var processor = new InMemoryServiceBusProcessor(client, queueName, options);
-        
+
         processor.EntityPath.Should().Be(queueName);
         processor.MaxConcurrentCalls.Should().Be(5);
         processor.IsProcessing.Should().BeFalse();
@@ -33,7 +33,7 @@ public class ServiceBusProcessorTests
     {
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
-            
+
         const string topicName = "test-topic";
         const string subscriptionName = "test-subscription";
         var options = new ServiceBusProcessorOptions { MaxConcurrentCalls = 3 };
@@ -45,18 +45,18 @@ public class ServiceBusProcessorTests
         processor.IsProcessing.Should().BeFalse();
         processor.IsClosed.Should().BeFalse();
     }
-    
+
     #endregion
-    
+
     #region Property Tests
     [TestMethod]
     public async Task ProcessorOptions_AreSetCorrectly()
     {
-     
+
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         ns.AddQueue("test-queue");
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
-        
+
         var options = new ServiceBusProcessorOptions
         {
             MaxConcurrentCalls = 5,
@@ -64,9 +64,9 @@ public class ServiceBusProcessorTests
             PrefetchCount = 10,
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
         };
-        
+
         await using var processor = client.CreateProcessor("test-queue", options);
-        
+
         processor.MaxConcurrentCalls.Should().Be(5);
         processor.AutoCompleteMessages.Should().BeFalse();
         processor.PrefetchCount.Should().Be(10);
@@ -76,7 +76,7 @@ public class ServiceBusProcessorTests
     }
 
     #endregion
-    
+
     #region Lifecycle Tests
 
     [TestMethod]
@@ -94,7 +94,7 @@ public class ServiceBusProcessorTests
 
         await processor.StopProcessingAsync();
     }
-    
+
     [TestMethod]
     public async Task StartProcessingAsync_WhenAlreadyProcessing_ThrowsInvalidOperationException()
     {
@@ -107,7 +107,7 @@ public class ServiceBusProcessorTests
 
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             () => processor.StartProcessingAsync());
-        
+
         await processor.StopProcessingAsync();
     }
 
@@ -120,9 +120,9 @@ public class ServiceBusProcessorTests
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
         await processor.StartProcessingAsync();
-        
+
         await processor.StopProcessingAsync();
-        
+
         processor.IsProcessing.Should().BeFalse();
     }
 
@@ -132,7 +132,7 @@ public class ServiceBusProcessorTests
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         await using var processor = client.CreateProcessor("test-queue");
-        
+
         await processor.StopProcessingAsync();
     }
 
@@ -142,22 +142,22 @@ public class ServiceBusProcessorTests
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
-        
+
         await processor.CloseAsync();
         processor.IsClosed.Should().BeTrue();
-        
+
     }
-    
+
     [TestMethod]
     public async Task DisposeAsync_SetsIsClosedToTrue()
     {
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
-        
+
         await processor.DisposeAsync();
         processor.IsClosed.Should().BeTrue();
-        
+
     }
 
     [TestMethod]
@@ -171,10 +171,10 @@ public class ServiceBusProcessorTests
         await processor.StartProcessingAsync();
 
         await processor.CloseAsync();
-        
+
         processor.IsProcessing.Should().BeFalse();
         processor.IsClosed.Should().BeTrue();
-        
+
     }
 
     [TestMethod]
@@ -186,13 +186,13 @@ public class ServiceBusProcessorTests
 
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
-        
+
         await processor.CloseAsync();
         await Assert.ThrowsExceptionAsync<ObjectDisposedException>(
             () => processor.StartProcessingAsync());
     }
     #endregion
-    
+
     #region MessageProcessing Tests
 
     [TestMethod]
@@ -202,7 +202,7 @@ public class ServiceBusProcessorTests
         ns.AddQueue("test-queue");
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         await using var processor = client.CreateProcessor("test-queue");
-        
+
         var messageReceived = new TaskCompletionSource<ServiceBusReceivedMessage>();
         processor.ProcessMessageAsync += args =>
         {
@@ -210,17 +210,17 @@ public class ServiceBusProcessorTests
             return Task.CompletedTask;
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
-        
+
         await using var sender = client.CreateSender("test-queue");
         await sender.SendMessageAsync(new ServiceBusMessage("Test Message"));
-        
+
         await processor.StartProcessingAsync();
         var receivedMessage = await messageReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        
+
         receivedMessage.Body.ToString().Should().Be("Test Message");
 
         await processor.StopProcessingAsync();
-        
+
     }
 
     [TestMethod]
@@ -240,7 +240,7 @@ public class ServiceBusProcessorTests
             return Task.CompletedTask;
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
-        
+
         var sender = client.CreateSender("test-queue");
         await sender.SendMessageAsync(new ServiceBusMessage("Test Message"));
 
@@ -251,8 +251,8 @@ public class ServiceBusProcessorTests
 
         await processor.StopProcessingAsync();
     }
-    
-    
+
+
     [TestMethod]
     public async Task ProcessMessage_WithManualComplete_DoesNotAutoComplete()
     {
@@ -283,7 +283,7 @@ public class ServiceBusProcessorTests
 
         await processor.StopProcessingAsync();
     }
-    
+
     [TestMethod]
     public async Task ProcessMessage_WithException_CallsErrorHandler()
     {
@@ -334,7 +334,7 @@ public class ServiceBusProcessorTests
         processor.ProcessMessageAsync += async args =>
         {
             processedMessages.Add(args.Message.Body.ToString());
-            
+
             if (Interlocked.Increment(ref messageCount) == 1)
             {
                 processingStarted.SetResult(true);
@@ -351,9 +351,9 @@ public class ServiceBusProcessorTests
 
         await processor.StartProcessingAsync();
         await processingStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        
+
         continueProcessing.SetResult(true);
-        
+
         await Task.Delay(1000);
 
         processedMessages.Should().HaveCount(3);
@@ -369,7 +369,7 @@ public class ServiceBusProcessorTests
     {
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         var subscription = ns.AddTopic("test-topic").AddSubscription("test-subscription");
-        
+
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         await using var processor = client.CreateProcessor(subscription.TopicName, subscription.SubscriptionName);
 
@@ -391,9 +391,9 @@ public class ServiceBusProcessorTests
 
         await processor.StopProcessingAsync();
     }
-    
+
     #endregion
-    
+
     #region Handlers
     [TestMethod]
     public async Task ProcessMessageAsync_AddSecondHandler_ThrowsNotSupportedException()
@@ -402,16 +402,16 @@ public class ServiceBusProcessorTests
         ns.AddQueue("test-queue");
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
-        
+
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
-        
+
         Assert.ThrowsException<NotSupportedException>(() =>
         {
             processor.ProcessMessageAsync += _ => Task.CompletedTask;
         });
         await processor.CloseAsync();
     }
-    
+
     [TestMethod]
     public async Task RemoveHandler_ThenAddNew_ShouldWork()
     {
@@ -424,11 +424,11 @@ public class ServiceBusProcessorTests
         Func<ProcessMessageEventArgs, Task> handler2 = _ => Task.CompletedTask;
 
         processor.ProcessMessageAsync += handler1;
-        processor.ProcessMessageAsync -= handler1;  
-        processor.ProcessMessageAsync += handler2;  
+        processor.ProcessMessageAsync -= handler1;
+        processor.ProcessMessageAsync += handler2;
     }
     #endregion
-    
+
     #region HelperMethods
     private static async Task<bool> WaitForMessageCompletion(InMemoryServiceBusClient client, string queueName, TimeSpan timeout)
     {
@@ -448,7 +448,7 @@ public class ServiceBusProcessorTests
         return false;
     }
     #endregion
-    
+
     [TestMethod]
     public async Task ConcurrentStartStop_DoesNotCauseDeadlock()
     {
@@ -456,14 +456,14 @@ public class ServiceBusProcessorTests
         ns.AddQueue("test-queue");
         var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
-    
+
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
 
         try
         {
             var random = new Random();
-        
+
             for (var i = 0; i < 5; i++)
             {
                 await processor.StartProcessingAsync();
@@ -471,9 +471,9 @@ public class ServiceBusProcessorTests
                 await processor.StopProcessingAsync();
                 await Task.Delay(random.Next(10, 50));
             }
-            
+
             await processor.StartProcessingAsync();
-        
+
             var concurrentStartTasks = new List<Task>();
             for (var i = 0; i < 3; i++)
             {
@@ -489,10 +489,10 @@ public class ServiceBusProcessorTests
                     }
                 }));
             }
-        
+
             await Task.WhenAll(concurrentStartTasks);
             await processor.StopProcessingAsync();
-        
+
             processor.IsProcessing.Should().BeFalse();
         }
         finally
@@ -501,7 +501,7 @@ public class ServiceBusProcessorTests
             await client.DisposeAsync();
         }
     }
-    
+
     [TestMethod]
     public async Task StopProcessing_WaitsForInFlightMessages()
     {
@@ -530,7 +530,7 @@ public class ServiceBusProcessorTests
 
         // Start stopping while message is in flight
         var stopTask = processor.StopProcessingAsync();
-    
+
         // Verify stop is waiting for message completion
         await Task.Delay(100);
         stopTask.IsCompleted.Should().BeFalse();
@@ -540,7 +540,7 @@ public class ServiceBusProcessorTests
         await stopTask;
         processor.IsProcessing.Should().BeFalse();
     }
-    
+
     [TestMethod]
     public async Task ConcurrentCloseAndStart_HandlesGracefully()
     {
@@ -548,7 +548,7 @@ public class ServiceBusProcessorTests
         ns.AddQueue("test-queue");
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateProcessor("test-queue");
-    
+
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
 

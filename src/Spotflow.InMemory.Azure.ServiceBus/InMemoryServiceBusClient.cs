@@ -189,22 +189,22 @@ public class InMemoryServiceBusClient : ServiceBusClient
         return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
 
     }
-    
+
     #endregion
 
     #region CreateProcessors
 
-    public override InMemoryServiceBusProcessor CreateProcessor(string queueName) 
-        => new (this, queueName);
+    public override InMemoryServiceBusProcessor CreateProcessor(string queueName)
+        => new(this, queueName);
 
-    public override InMemoryServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions options) 
-        => new (this, queueName, options);
+    public override InMemoryServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions options)
+        => new(this, queueName, options);
 
-    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName) 
-        => new (this, topicName, subscriptionName);
+    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName)
+        => new(this, topicName, subscriptionName);
 
-    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options) 
-        => new (this, topicName, subscriptionName, options);
+    public override InMemoryServiceBusProcessor CreateProcessor(string topicName, string subscriptionName, ServiceBusProcessorOptions options)
+        => new(this, topicName, subscriptionName, options);
 
     #endregion
 

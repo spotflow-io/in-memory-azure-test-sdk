@@ -12,12 +12,12 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly InMemoryServiceBusReceiver _receiver;
     private readonly bool _autoCompleteMessages;
     private readonly string _entityPath;
-    
+
     private volatile bool _isClosed;
     private volatile bool _isProcessing;
     private CancellationTokenSource? _processingCts;
     private Task? _processingTask;
-    
+
     private readonly string _identifier;
     private readonly string _fullyQualifiedNamespace;
     private readonly ServiceBusReceiveMode _receiveMode;
@@ -30,21 +30,23 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
-        : this(client, queueName, options, 
-            (receiverOptions, c) 
-                => new InMemoryServiceBusReceiver(c, queueName, receiverOptions)) { }
-    
+        : this(client, queueName, options,
+            (receiverOptions, c)
+                => new InMemoryServiceBusReceiver(c, queueName, receiverOptions))
+    { }
+
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
         : this(client, topicName, subscriptionName, new ServiceBusProcessorOptions()) { }
 
     public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
-        : this(client, FormatEntityPath(topicName, subscriptionName), options, 
-            (receiverOptions, c) 
-                => new InMemoryServiceBusReceiver(c, topicName, subscriptionName, receiverOptions)) { }
+        : this(client, FormatEntityPath(topicName, subscriptionName), options,
+            (receiverOptions, c)
+                => new InMemoryServiceBusReceiver(c, topicName, subscriptionName, receiverOptions))
+    { }
 
     private InMemoryServiceBusProcessor(
-        InMemoryServiceBusClient client, 
-        string entityPath, 
+        InMemoryServiceBusClient client,
+        string entityPath,
         ServiceBusProcessorOptions options,
         Func<ServiceBusReceiverOptions, InMemoryServiceBusClient, InMemoryServiceBusReceiver> receiverFactory)
     {
@@ -70,33 +72,33 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     /// </summary>
     /// <param name="entityPath"></param>
     /// <returns></returns>
-    private static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}"; 
+    private static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}";
 
     private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options, string identifier)
      => new()
-        {
-            ReceiveMode = options.ReceiveMode,
-            PrefetchCount = options.PrefetchCount,
-            Identifier = $"{identifier}-receiver"
-        };
-    
-    
+     {
+         ReceiveMode = options.ReceiveMode,
+         PrefetchCount = options.PrefetchCount,
+         Identifier = $"{identifier}-receiver"
+     };
+
+
     private static string FormatEntityPath(string topicName, string subscriptionName)
         => InMemoryServiceBusSubscription.FormatEntityPath(topicName, subscriptionName);
-    
+
     public static InMemoryServiceBusProcessor FromQueue(InMemoryServiceBusQueue queue, ServiceBusProcessorOptions? options = null)
     {
         var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
         return new InMemoryServiceBusProcessor(client, queue.QueueName, options ?? new ServiceBusProcessorOptions());
     }
-    
+
     public static InMemoryServiceBusProcessor FromSubscription(InMemoryServiceBusSubscription subscription, ServiceBusProcessorOptions? options = null)
     {
         var client = InMemoryServiceBusClient.FromNamespace(subscription.Topic.Namespace);
         return new InMemoryServiceBusProcessor(client, subscription.TopicName, subscription.SubscriptionName, options ?? new ServiceBusProcessorOptions());
     }
     #endregion
-    
+
     #region Properties
     public override bool AutoCompleteMessages => _autoCompleteMessages;
     public override string FullyQualifiedNamespace => _fullyQualifiedNamespace;
@@ -110,7 +112,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public override bool IsClosed => _isClosed;
     public override bool IsProcessing => _isProcessing;
     #endregion
-    
+
     #region Close
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
@@ -124,7 +126,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
                 await StopProcessingInternalAsync();
             }
         }
-        finally 
+        finally
         {
             _stateSemaphore.Release();
         }
@@ -149,7 +151,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             {
                 throw new InvalidOperationException("The processor is already processing messages.");
             }
-            
+
             _isProcessing = true;
             _processingCts = new CancellationTokenSource();
             _processingTask = Task.Run(() => ProcessMessagesInBackground(_processingCts.Token), cancellationToken);
@@ -159,7 +161,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _stateSemaphore.Release();
         }
     }
-    
+
     public override async Task StopProcessingAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
@@ -174,7 +176,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _stateSemaphore.Release();
         }
     }
-    
+
     /// <summary>
     /// StopProcessingInternalAsync is used to avoid deadlock between <see cref="CloseAsync"/> and <see cref="StopProcessingAsync"/>
     /// </summary>
@@ -214,7 +216,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
                 try
                 {
                     var messages = await _receiver.ReceiveMessagesAsync(MaxConcurrentCalls, _defaultMaxWaitTime, cancellationToken);
-                    
+
                     if (messages.Count == 0)
                     {
                         continue;
@@ -233,7 +235,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
                             _concurrencySemaphore.Release();
                             throw;
                         }
-                        
+
                         activeTasks.Add(messageTask);
 
                         if (activeTasks.Count > MaxConcurrentCalls)
@@ -260,28 +262,28 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             }
         }
     }
-    
+
     private async Task ProcessSingleMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken)
     {
         try
         {
             var processMessageEventArgs = new ProcessMessageEventArgs(
-                message, 
-                _receiver, 
-                Identifier, 
+                message,
+                _receiver,
+                Identifier,
                 cancellationToken);
-            
+
             await OnProcessMessageAsync(processMessageEventArgs);
             if (AutoCompleteMessages)
             {
                 await _receiver.CompleteMessageAsync(message, cancellationToken);
             }
-            
+
         }
         catch (Exception ex)
         {
             await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
-            
+
             await HandleErrorAsync(ex, cancellationToken);
         }
         finally
@@ -289,7 +291,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _concurrencySemaphore.Release();
         }
     }
-    
+
     private async Task HandleErrorAsync(Exception exception, CancellationToken cancellationToken)
     {
         var errorArgs = new ProcessErrorEventArgs(
@@ -303,5 +305,5 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         await OnProcessErrorAsync(errorArgs);
     }
     #endregion
-    
+
 }
