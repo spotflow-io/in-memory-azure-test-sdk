@@ -1,5 +1,6 @@
 using Azure.Messaging.ServiceBus;
 
+using Spotflow.InMemory.Azure.ServiceBus.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
@@ -51,7 +52,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         Func<ServiceBusReceiverOptions, InMemoryServiceBusClient, InMemoryServiceBusReceiver> receiverFactory)
     {
         _fullyQualifiedNamespace = client.FullyQualifiedNamespace;
-        _identifier = string.IsNullOrEmpty(options.Identifier) ? GenerateIdentifier(entityPath) : options.Identifier;
+        _identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(entityPath) : options.Identifier;
         _entityPath = entityPath;
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
         _autoCompleteMessages = options.AutoCompleteMessages;
@@ -64,15 +65,6 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         Provider = client.Provider;
         _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
     }
-
-    /// <summary>
-    /// Helper method to generate identifier based on
-    /// https://github.com/Azure/azure-sdk-for-net/blob/5cb4a6d5dad39a25a1854fe4c4be6bffab745785/sdk/servicebus/Azure.Messaging.ServiceBus/src/Diagnostics/DiagnosticUtilities.cs#L10
-    /// Todo: move this to a utility helper class
-    /// </summary>
-    /// <param name="entityPath"></param>
-    /// <returns></returns>
-    private static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}";
 
     private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options, string identifier)
      => new()
@@ -123,7 +115,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _isClosed = true;
             if (_isProcessing)
             {
-                await StopProcessingInternalAsync();
+                await StopProcessingUnsafeAsync();
             }
         }
         finally
@@ -169,7 +161,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         await _stateSemaphore.WaitAsync(cancellationToken);
         try
         {
-            await StopProcessingInternalAsync();
+            await StopProcessingUnsafeAsync();
         }
         finally
         {
@@ -178,9 +170,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     }
 
     /// <summary>
-    /// StopProcessingInternalAsync is used to avoid deadlock between <see cref="CloseAsync"/> and <see cref="StopProcessingAsync"/>
+    /// StopProcessingUnsafeAsync is used to avoid deadlock between <see cref="CloseAsync"/> and <see cref="StopProcessingAsync"/>
     /// </summary>
-    private async Task StopProcessingInternalAsync()
+    private async Task StopProcessingUnsafeAsync()
     {
         if (!_isProcessing)
         {
