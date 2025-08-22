@@ -206,7 +206,7 @@ public class ServiceBusProcessorTests
         var messageReceived = new TaskCompletionSource<ServiceBusReceivedMessage>();
         processor.ProcessMessageAsync += args =>
         {
-            messageReceived.SetResult(args.Message);
+            messageReceived.TrySetResult(args.Message);
             return Task.CompletedTask;
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
@@ -236,7 +236,7 @@ public class ServiceBusProcessorTests
         var messageProcessed = new TaskCompletionSource<bool>();
         processor.ProcessMessageAsync += _ =>
         {
-            messageProcessed.SetResult(true);
+            messageProcessed.TrySetResult(true);
             return Task.CompletedTask;
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
@@ -268,7 +268,7 @@ public class ServiceBusProcessorTests
         processor.ProcessMessageAsync += async args =>
         {
             await args.CompleteMessageAsync(args.Message);
-            messageProcessed.SetResult(true);
+            messageProcessed.TrySetResult(true);
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
 
@@ -287,7 +287,6 @@ public class ServiceBusProcessorTests
     [TestMethod]
     public async Task ProcessMessage_WithException_CallsErrorHandler()
     {
-
         var ns = new InMemoryServiceBusProvider().AddNamespace();
         ns.AddQueue("test-queue");
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
@@ -297,7 +296,7 @@ public class ServiceBusProcessorTests
         processor.ProcessMessageAsync += _ => throw new InvalidOperationException("Test exception");
         processor.ProcessErrorAsync += args =>
         {
-            errorHandled.SetResult(args);
+            errorHandled.TrySetResult(args);
             return Task.CompletedTask;
         };
 
@@ -337,7 +336,7 @@ public class ServiceBusProcessorTests
 
             if (Interlocked.Increment(ref messageCount) == 1)
             {
-                processingStarted.SetResult(true);
+                processingStarted.TrySetResult(true);
             }
             await continueProcessing.Task;
         };
@@ -352,7 +351,7 @@ public class ServiceBusProcessorTests
         await processor.StartProcessingAsync();
         await processingStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-        continueProcessing.SetResult(true);
+        continueProcessing.TrySetResult(true);
 
         await Task.Delay(1000);
 
@@ -376,7 +375,7 @@ public class ServiceBusProcessorTests
         var messageReceived = new TaskCompletionSource<ServiceBusReceivedMessage>();
         processor.ProcessMessageAsync += args =>
         {
-            messageReceived.SetResult(args.Message);
+            messageReceived.TrySetResult(args.Message);
             return Task.CompletedTask;
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
@@ -516,9 +515,9 @@ public class ServiceBusProcessorTests
 
         processor.ProcessMessageAsync += async _ =>
         {
-            messageStarted.SetResult(true);
+            messageStarted.TrySetResult(true);
             await messageCanComplete.Task; // block here until it is ok to continue
-            messageCompleted.SetResult(true);
+            messageCompleted.TrySetResult(true);
         };
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
 
@@ -535,7 +534,7 @@ public class ServiceBusProcessorTests
         await Task.Delay(100);
         stopTask.IsCompleted.Should().BeFalse();
 
-        messageCanComplete.SetResult(true);
+        messageCanComplete.TrySetResult(true);
         await messageCompleted.Task;
         await stopTask;
         processor.IsProcessing.Should().BeFalse();
