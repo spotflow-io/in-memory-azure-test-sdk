@@ -44,6 +44,11 @@ jobs:
           Write-Output "Resolved version $semVer"
           Write-Output "version=$semVer" >> $env:GITHUB_OUTPUT
           Write-Output "Version = $semVer" >> $env:GITHUB_STEP_SUMMARY
+      - name: Check PR labels
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          echo "Pull Request labels: ${{  toJson(github.event.pull_request.labels.*.name) }}"
+
   
   build:
     runs-on: ubuntu-latest
