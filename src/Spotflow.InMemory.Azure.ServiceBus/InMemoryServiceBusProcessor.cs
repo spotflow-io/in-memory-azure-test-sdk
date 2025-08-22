@@ -280,6 +280,11 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             }
 
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Suppress OperationCanceledException to prevent it from interrupting processor shutdown
+            return;
+        }
         catch (Exception ex)
         {
             await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
@@ -294,15 +299,23 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
 
     private async Task HandleErrorAsync(Exception exception, CancellationToken cancellationToken)
     {
-        var errorArgs = new ProcessErrorEventArgs(
-            exception,
-            ServiceBusErrorSource.Receive,
-            FullyQualifiedNamespace,
-            EntityPath,
-            Identifier,
-            cancellationToken);
+        try
+        {
+            var errorArgs = new ProcessErrorEventArgs(
+                exception,
+                ServiceBusErrorSource.Receive,
+                FullyQualifiedNamespace,
+                EntityPath,
+                Identifier,
+                cancellationToken);
 
-        await OnProcessErrorAsync(errorArgs);
+            await OnProcessErrorAsync(errorArgs);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Suppress OperationCanceledException to prevent it from interrupting processor shutdown
+            return;
+        }
     }
     #endregion
 
