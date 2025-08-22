@@ -259,29 +259,31 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     {
         try
         {
-            var processMessageEventArgs = new ProcessMessageEventArgs(
-                message,
-                _receiver,
-                Identifier,
-                cancellationToken);
-
-            await OnProcessMessageAsync(processMessageEventArgs);
-            if (AutoCompleteMessages)
+            try
             {
-                await _receiver.CompleteMessageAsync(message, cancellationToken);
-            }
+                var processMessageEventArgs = new ProcessMessageEventArgs(
+                    message,
+                    _receiver,
+                    Identifier,
+                    cancellationToken);
 
+                await OnProcessMessageAsync(processMessageEventArgs);
+                if (AutoCompleteMessages)
+                {
+                    await _receiver.CompleteMessageAsync(message, cancellationToken);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
+                await HandleErrorAsync(ex, cancellationToken);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Suppress OperationCanceledException to prevent it from interrupting processor shutdown
             return;
-        }
-        catch (Exception ex)
-        {
-            await _receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
-
-            await HandleErrorAsync(ex, cancellationToken);
         }
         finally
         {
