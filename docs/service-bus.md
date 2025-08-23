@@ -21,6 +21,7 @@ To get started, add `Spotflow.InMemory.Azure.ServiceBus` package to your project
 ```shell
 dotnet add Spotflow.InMemory.Azure.ServiceBus
 ```
+
 This package provides in-memory implementation of Azure Service Bus SDK clients and models.
 These in-memory implementations are inheriting the real Azure SDK types so you can use them as a drop-in replacement in your tests.
 There is nothing special about the in-memory types, so they can be injected in many ways, e.g. via DI and constructor injection as demonstrated below.
@@ -56,10 +57,9 @@ services.AddSingleton<ExampleService>();
 var service = services.BuildServiceProvider().GetRequiredService<ExampleService>();
 ```
 
-*Note:
+_Note:
 Most frequently, the `new ServiceCollection()` and `.BuildServiceProvider()` will called by ASP.NET or other frameworks.
-This is just an example of one of many ways how the in-memory clients can be used.*
-
+This is just an example of one of many ways how the in-memory clients can be used._
 
 To inject the in-memory implementation of `ServiceBusClient` to the `ExampleService` during test,
 the `InMemoryServiceBusClient` can be simply substituted for the real `ServiceBusClient` in the DI container:
@@ -111,7 +111,6 @@ However, [hooks](hooks.md) can be used to simulate custom delays. For overview o
 Following SDK clients and their method groups and properties are supported.
 
 Async versions of these methods are also supported. All supported async methods are guaranteed executed truly asynchronously by using [Task.Yield()](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task.yield).
-
 
 Other methods and properties are not supported and will throw `NotSupportedException`.
 
@@ -224,29 +223,53 @@ Clients are thread-safe.
 
 No public constructors are available.
 
+#### `InMemoryServiceBusProcessor : ServiceBusProcessor`
+
+| Property                     | Note |
+| ---------------------------- | ---- |
+| `AutoCompleteMessages`       |      |
+| `EntityPath`                 |      |
+| `FullyQualifiedNamespace`    |      |
+| `Identifier`                 |      |
+| `IsClosed`                   |      |
+| `IsProcessing`               |      |
+| `MaxAutoLockRenewalDuration` |      |
+| `MaxConcurrentCalls`         |      |
+| `PrefetchCount`              |      |
+| `ReceiveMode`                |      |
+
+| Method group           |
+| ---------------------- |
+| `CloseAsync`           |
+| `StartProcessingAsync` |
+| `StopProcessingAsync`  |
+
+No public constructors are available.
+
 ### Features
 
 For the supported methods enumerated above, not all features are fully implemented.
 
 If the given feature is not supported, than the method will just ignore any parameters related to that feature.
 
-| Feature                         | Is Supported |
-| ------------------------------- | ------------ |
-| Deferred messages               | ❌           |
-| Dead-letter queues              | ❌           |
-| Duplicate detection             | ❌           |
-| Partitioning                    | ❌           |
-| `PeekLock` receive mode         | ✅           |
-| Processors                      | ❌           |
-| Queues                          | ✅           |
-| `ReceiveAndDelete` receive mode | ✅           |
-| Rules                           | ❌           |
-| Scheduled messages              | ❌           |
-| Sessions                        | ✅           |
-| Session states                  | ✅           |
-| Sequence numbers                | ✅           |
-| Subscriptions                   | ✅           |
-| Topics                          | ✅           |
+| Feature                                 | Is Supported |
+| --------------------------------------- | ------------ |
+| Deferred messages                       | ❌           |
+| Dead-letter queues                      | ❌           |
+| Duplicate detection                     | ❌           |
+| Partitioning                            | ❌           |
+| `PeekLock` receive mode                 | ✅           |
+| Processors - ServiceBusProcessor        | ✅           |
+| Processors - ServiceBusSessionProcessor | ❌           |
+| Queues                                  | ✅           |
+| `ReceiveAndDelete` receive mode         | ✅           |
+| Rules                                   | ❌           |
+| Scheduled messages                      | ❌           |
+| Sessions                                | ✅           |
+| Session states                          | ✅           |
+| Sequence numbers                        | ✅           |
+| Subscriptions                           | ✅           |
+| Topics                                  | ✅           |
 
 ## Available Fluent Assertions
 
