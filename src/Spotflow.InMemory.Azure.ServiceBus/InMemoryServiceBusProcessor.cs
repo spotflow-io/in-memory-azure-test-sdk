@@ -27,19 +27,19 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly TimeSpan _maxAutoLockRenewalDuration;
 
     #region Constructors
-    public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
+    internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
-    public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
+    internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
         : this(client, queueName, options,
             (receiverOptions, c)
                 => new InMemoryServiceBusReceiver(c, queueName, receiverOptions))
     { }
 
-    public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
+    internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName)
         : this(client, topicName, subscriptionName, new ServiceBusProcessorOptions()) { }
 
-    public InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
+    internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string topicName, string subscriptionName, ServiceBusProcessorOptions options)
         : this(client, FormatEntityPath(topicName, subscriptionName), options,
             (receiverOptions, c)
                 => new InMemoryServiceBusReceiver(c, topicName, subscriptionName, receiverOptions))

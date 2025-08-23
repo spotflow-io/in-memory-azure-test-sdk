@@ -20,7 +20,7 @@ public class ServiceBusProcessorTests
         const string queueName = "test-queue";
         var options = new ServiceBusProcessorOptions { MaxConcurrentCalls = 5 };
 
-        await using var processor = new InMemoryServiceBusProcessor(client, queueName, options);
+        await using var processor = client.CreateProcessor(queueName, options);
 
         processor.EntityPath.Should().Be(queueName);
         processor.MaxConcurrentCalls.Should().Be(5);
@@ -38,7 +38,7 @@ public class ServiceBusProcessorTests
         const string subscriptionName = "test-subscription";
         var options = new ServiceBusProcessorOptions { MaxConcurrentCalls = 3 };
 
-        await using var processor = new InMemoryServiceBusProcessor(client, topicName, subscriptionName, options);
+        await using var processor = client.CreateProcessor(topicName, subscriptionName, options);
 
         processor.EntityPath.Should().Be($"{topicName}/subscriptions/{subscriptionName}");
         processor.MaxConcurrentCalls.Should().Be(3);
