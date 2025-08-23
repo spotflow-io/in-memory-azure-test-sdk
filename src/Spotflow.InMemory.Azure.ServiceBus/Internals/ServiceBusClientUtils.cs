@@ -134,4 +134,5 @@ internal static class ServiceBusClientUtils
         return ServiceBusConnectionStringUtils.GetFullyQualifiedNamespace(connectionString);
     }
 
+    public static string GenerateIdentifier(string entityPath) => $"{entityPath}-{Guid.NewGuid()}";
 }
