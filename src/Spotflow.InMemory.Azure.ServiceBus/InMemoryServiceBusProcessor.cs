@@ -25,7 +25,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly int _prefetchCount;
     private readonly int _maxConcurrentCalls;
     private readonly TimeSpan _maxAutoLockRenewalDuration;
-    
+
     private readonly InMemoryServiceBusSessionProcessor? _sessionProcessor;
     internal bool IsSessionProcessor { get; }
 
@@ -34,7 +34,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         : this(client, queueName, new ServiceBusProcessorOptions()) { }
 
     internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusProcessorOptions options)
-        : this(client, queueName, false, options, 
+        : this(client, queueName, false, options,
             (receiverOptions, c)
                 => new InMemoryServiceBusReceiver(c, queueName, receiverOptions))
     { }
@@ -71,13 +71,13 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         _maxAutoLockRenewalDuration = options.MaxAutoLockRenewalDuration;
         Provider = client.Provider;
         IsSessionProcessor = isSessionEntity;
-      
+
         if (isSessionEntity)
         {
             _sessionProcessor = sessionProcessor;
             _receiver = null;
-            _maxConcurrentCalls = (sessionIds is { Length: > 0 } 
-                ? Math.Min(sessionIds.Length, maxConcurrentSessions) 
+            _maxConcurrentCalls = (sessionIds is { Length: > 0 }
+                ? Math.Min(sessionIds.Length, maxConcurrentSessions)
                 : maxConcurrentSessions) * maxConcurrentCallsPerSession;
         }
         else
@@ -87,7 +87,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _receiver = receiverFactory(CreateReceiverOptions(options, _identifier), client);
         }
         _concurrencySemaphore = new SemaphoreSlim(_maxConcurrentCalls, _maxConcurrentCalls);
-        
+
     }
 
     private static ServiceBusReceiverOptions CreateReceiverOptions(ServiceBusProcessorOptions options, string identifier)
@@ -127,7 +127,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public InMemoryServiceBusProvider Provider { get; }
     public override bool IsClosed => _isClosed;
     public override bool IsProcessing => _isProcessing;
-    
+
     #endregion
 
     #region Close
@@ -155,7 +155,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             ArgumentNullException.ThrowIfNull(_receiver);
             await _receiver.DisposeAsync();
         }
-        
+
     }
     #endregion
 
@@ -163,7 +163,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public override async Task StartProcessingAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-       
+
         await _stateSemaphore.WaitAsync(cancellationToken);
         try
         {
@@ -176,8 +176,8 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
 
             _isProcessing = true;
             _processingCts = new CancellationTokenSource();
-            _processingTask = IsSessionProcessor 
-                ? Task.Run(() => _sessionProcessor?.ProcessSessionsInBackground(_processingCts.Token), cancellationToken) 
+            _processingTask = IsSessionProcessor
+                ? Task.Run(() => _sessionProcessor?.ProcessSessionsInBackground(_processingCts.Token), cancellationToken)
                 : Task.Run(() => ProcessMessagesInBackground(_processingCts.Token), cancellationToken);
         }
         finally
@@ -228,7 +228,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
 
         _isProcessing = false;
     }
-    
+
     private async Task ProcessMessagesInBackground(CancellationToken cancellationToken)
     {
         var activeTasks = new List<Task>();
@@ -286,9 +286,9 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             }
         }
     }
-    
-    
-    
+
+
+
     private async Task ProcessSingleMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_receiver);

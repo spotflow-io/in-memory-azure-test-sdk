@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+
 using Spotflow.InMemory.Azure.ServiceBus.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
@@ -6,7 +7,7 @@ namespace Spotflow.InMemory.Azure.ServiceBus;
 
 public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 {
-   
+
     private readonly int _maxConcurrentCallsPerSession;
     private readonly int _maxConcurrentSessions;
     private readonly TimeSpan? _sessionIdleTimeout;
@@ -16,7 +17,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     private readonly SemaphoreSlim _sessionConcurrencySemaphore;
     private readonly string[] _sessionIds;
     public InMemoryServiceBusProvider Provider { get; }
-    
+
     protected override ServiceBusProcessor InnerProcessor { get; }
 
     #region Constructors
@@ -27,7 +28,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             return queue.Engine as SessionEngine ?? throw ServiceBusExceptionFactory.SessionsNotEnabled(client.FullyQualifiedNamespace, queue.EntityPath);
         })
     { }
-    
+
     internal InMemoryServiceBusSessionProcessor(
         InMemoryServiceBusClient client,
         string topicName,
@@ -53,12 +54,12 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         _tryTimeout = client.TryTimeout;
         _sessionConcurrencySemaphore = new SemaphoreSlim(options.MaxConcurrentSessions, options.MaxConcurrentSessions);
         Provider = client.Provider;
-       
+
         _sessionEngine = sessionEngineFactory();
         _sessionIds = options.SessionIds.ToArray();
         var processorOptions = options.ToProcessorOptions();
         InnerProcessor = new InMemoryServiceBusProcessor(
-            client, 
+            client,
             entityPath,
             true,
             processorOptions,
@@ -110,7 +111,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
         await InnerProcessor.CloseAsync(cancellationToken);
         _sessionConcurrencySemaphore.Dispose();
-       
+
     }
     #endregion
 
@@ -124,16 +125,16 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     {
         await InnerProcessor.StopProcessingAsync(cancellationToken);
     }
-    
+
     private async Task ProcessSingleSessionAsync(InMemoryServiceBusSessionReceiver sessionReceiver, CancellationToken cancellationToken)
     {
         var messageCallbacksSemaphore = new SemaphoreSlim(MaxConcurrentCallsPerSession, MaxConcurrentCallsPerSession);
         var messageProcessingTasks = new List<Task>();
-        
+
         try
         {
             var initArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
-            
+
             await OnSessionInitializingAsync(initArgs);
 
             var sessionIdleTimeout = SessionIdleTimeout ?? _defaultMaxWaitTime;
@@ -208,7 +209,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             _sessionConcurrencySemaphore.Release();
         }
     }
-    
+
     private async Task ProcessingSingleSessionMessageAsync(
         ServiceBusReceivedMessage message,
         InMemoryServiceBusSessionReceiver sessionReceiver,
@@ -241,7 +242,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             semaphore.Release();
         }
     }
-    
+
     internal async Task ProcessSessionsInBackground(CancellationToken cancellationToken)
     {
         var sessionTasks = new List<Task>();
@@ -261,7 +262,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                             var sessionReceiver = await TryAcceptNextSessionAsync(cancellationToken);
                             if (sessionReceiver != null)
                             {
-                                
+
                                 var processingTask = Task.Run(() => ProcessSingleSessionAsync(sessionReceiver, cancellationToken), cancellationToken);
                                 sessionTasks.Add(processingTask);
                             }
@@ -316,8 +317,8 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                 return null;
             }
             session = await _sessionEngine.TryAcquireNextAvailableSessionAsync(_tryTimeout, cancellationToken);
-            return session == null 
-                ? null 
+            return session == null
+                ? null
                 : new InMemoryServiceBusSessionReceiver(session, new ServiceBusSessionReceiverOptions(), _defaultMaxWaitTime, Provider);
         }
         catch (Exception)
@@ -325,7 +326,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             return null;
         }
     }
-    
+
     private async Task HandleErrorAsync(Exception exception, CancellationToken cancellationToken)
     {
         try
