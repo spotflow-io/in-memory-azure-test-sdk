@@ -27,7 +27,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly TimeSpan _maxAutoLockRenewalDuration;
 
     private readonly InMemoryServiceBusSessionProcessor? _sessionProcessor;
-    internal bool IsSessionProcessor { get; }
+    private bool IsSessionProcessor { get; }
 
     #region Constructors
     internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
@@ -59,7 +59,6 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         int maxConcurrentCallsPerSession = 0,
         InMemoryServiceBusSessionProcessor? sessionProcessor = null)
     {
-        // Options = options;
         _fullyQualifiedNamespace = client.FullyQualifiedNamespace;
         _identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(entityPath) : options.Identifier;
         _entityPath = entityPath;
