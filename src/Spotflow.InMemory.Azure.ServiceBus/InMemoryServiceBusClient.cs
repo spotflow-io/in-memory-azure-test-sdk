@@ -208,7 +208,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
     #endregion
 
-    #region Unsupported
+    #region CreateSessionProcessor
 
     public override InMemoryServiceBusSessionProcessor CreateSessionProcessor(string queueName, ServiceBusSessionProcessorOptions? options = null)
         => new(this, queueName, options);
@@ -216,6 +216,9 @@ public class InMemoryServiceBusClient : ServiceBusClient
     public override InMemoryServiceBusSessionProcessor CreateSessionProcessor(string topicName, string subscriptionName, ServiceBusSessionProcessorOptions? options = null)
         => new(this, topicName, subscriptionName, options);
 
+    #endregion
+
+    #region Unsupported
     public override ServiceBusRuleManager CreateRuleManager(string topicName, string subscriptionName) => throw ServiceBusExceptionFactory.MethodNotSupported();
 
     #endregion
