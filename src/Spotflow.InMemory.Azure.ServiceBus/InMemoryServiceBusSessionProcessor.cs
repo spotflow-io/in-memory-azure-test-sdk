@@ -5,7 +5,7 @@ using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
 
-public class InMemoryServiceBusSessionProcessor
+public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 {
     private readonly TimeSpan _defaultMaxWaitTime;
     private readonly SemaphoreSlim _concurrencySemaphore;
@@ -30,11 +30,7 @@ public class InMemoryServiceBusSessionProcessor
     private readonly TimeSpan _maxAutoLockRenewalDuration;
     private readonly TimeSpan? _sessionIdleTimeout;
 
-    // Events similar to ServiceBusSessionProcessor
-    public event Func<ProcessSessionMessageEventArgs, Task>? ProcessMessageAsync;
-    public event Func<ProcessErrorEventArgs, Task>? ProcessErrorAsync;
-    public event Func<ProcessSessionEventArgs, Task>? SessionInitializingAsync;
-    public event Func<ProcessSessionEventArgs, Task>? SessionClosingAsync;
+    // Private fields for session processor implementation
 
     #region Constructors
     public InMemoryServiceBusSessionProcessor(InMemoryServiceBusClient client, string queueName)
@@ -89,17 +85,17 @@ public class InMemoryServiceBusSessionProcessor
     public InMemoryServiceBusProvider Provider { get; init; }
 
     #region Properties
-    public bool AutoCompleteMessages => _autoCompleteMessages;
-    public string FullyQualifiedNamespace => _fullyQualifiedNamespace;
-    public string EntityPath => _entityPath;
-    public string Identifier => _identifier;
-    public ServiceBusReceiveMode ReceiveMode => _receiveMode;
-    public int PrefetchCount => _prefetchCount;
-    public int MaxConcurrentSessions => _maxConcurrentSessions;
-    public TimeSpan MaxAutoLockRenewalDuration => _maxAutoLockRenewalDuration;
-    public TimeSpan? SessionIdleTimeout => _sessionIdleTimeout;
-    public bool IsClosed => _isClosed;
-    public bool IsProcessing => _isProcessing;
+    public override bool AutoCompleteMessages => _autoCompleteMessages;
+    public override string FullyQualifiedNamespace => _fullyQualifiedNamespace;
+    public override string EntityPath => _entityPath;
+    public override string Identifier => _identifier;
+    public override ServiceBusReceiveMode ReceiveMode => _receiveMode;
+    public override int PrefetchCount => _prefetchCount;
+    public override int MaxConcurrentSessions => _maxConcurrentSessions;
+    public override TimeSpan MaxAutoLockRenewalDuration => _maxAutoLockRenewalDuration;
+    public override TimeSpan? SessionIdleTimeout => _sessionIdleTimeout;
+    public override bool IsClosed => _isClosed;
+    public override bool IsProcessing => _isProcessing;
     #endregion
 
     #region Static Factory Methods
@@ -117,7 +113,7 @@ public class InMemoryServiceBusSessionProcessor
     #endregion
 
     #region Lifecycle Methods
-    public async Task CloseAsync(CancellationToken cancellationToken = default)
+    public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
         await _stateSemaphore.WaitAsync(cancellationToken);
@@ -138,9 +134,9 @@ public class InMemoryServiceBusSessionProcessor
         _processingCts?.Dispose();
     }
 
-    public async ValueTask DisposeAsync() => await CloseAsync();
+    public new async ValueTask DisposeAsync() => await CloseAsync();
 
-    public async Task StartProcessingAsync(CancellationToken cancellationToken = default)
+    public override async Task StartProcessingAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
@@ -164,7 +160,7 @@ public class InMemoryServiceBusSessionProcessor
         }
     }
 
-    public async Task StopProcessingAsync(CancellationToken cancellationToken = default)
+    public override async Task StopProcessingAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
@@ -280,12 +276,9 @@ public class InMemoryServiceBusSessionProcessor
     {
         try
         {
-            // Call SessionInitializingAsync if configured
-            if (SessionInitializingAsync != null)
-            {
-                var sessionEventArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
-                await SessionInitializingAsync(sessionEventArgs);
-            }
+            // Call SessionInitializingAsync
+            var sessionEventArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
+            await base.OnSessionInitializingAsync(sessionEventArgs);
 
             var sessionIdleTimer = DateTime.UtcNow;
             
@@ -330,12 +323,9 @@ public class InMemoryServiceBusSessionProcessor
         {
             try
             {
-                // Call SessionClosingAsync if configured
-                if (SessionClosingAsync != null)
-                {
-                    var sessionEventArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
-                    await SessionClosingAsync(sessionEventArgs);
-                }
+                // Call SessionClosingAsync
+                var sessionEventArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
+                await base.OnSessionClosingAsync(sessionEventArgs);
             }
             finally
             {
@@ -357,10 +347,7 @@ public class InMemoryServiceBusSessionProcessor
                     Identifier,
                     cancellationToken);
 
-                if (ProcessMessageAsync != null)
-                {
-                    await ProcessMessageAsync(processSessionMessageEventArgs);
-                }
+                await base.OnProcessSessionMessageAsync(processSessionMessageEventArgs);
                 
                 if (AutoCompleteMessages)
                 {
@@ -402,10 +389,7 @@ public class InMemoryServiceBusSessionProcessor
                 Identifier,
                 cancellationToken);
 
-            if (ProcessErrorAsync != null)
-            {
-                await ProcessErrorAsync(errorArgs);
-            }
+            await base.OnProcessErrorAsync(errorArgs);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -413,5 +397,6 @@ public class InMemoryServiceBusSessionProcessor
             return;
         }
     }
+    // Override the protected virtual methods to handle events
     #endregion
 }
