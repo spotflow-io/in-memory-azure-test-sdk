@@ -225,7 +225,7 @@ public class ServiceBusSessionProcessorTests
 
         receivedArgs.Message.Body.ToString().Should().Be("Test Message");
         receivedArgs.Message.SessionId.Should().Be("session-1");
-        receivedArgs.SessionReceiver.SessionId.Should().Be("session-1");
+        receivedArgs.SessionId.Should().Be("session-1");
 
         await processor.StopProcessingAsync();
     }
@@ -344,7 +344,7 @@ public class ServiceBusSessionProcessorTests
         processor.ProcessMessageAsync += async args =>
         {
             processedMessages.Add(args.Message.Body.ToString());
-            processedSessions.Add(args.SessionReceiver.SessionId);
+            processedSessions.Add(args.SessionId);
 
             if (Interlocked.Increment(ref messageCount) == 1)
             {

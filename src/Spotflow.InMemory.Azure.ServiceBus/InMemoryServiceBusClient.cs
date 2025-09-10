@@ -210,11 +210,11 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
     #region CreateSessionProcessors
 
-    public override InMemoryServiceBusSessionProcessor CreateSessionProcessor(string queueName, ServiceBusSessionProcessorOptions? options = null)
-        => new(this, queueName, options ?? new ServiceBusSessionProcessorOptions());
+    public override ServiceBusSessionProcessor CreateSessionProcessor(string queueName, ServiceBusSessionProcessorOptions? options = null)
+        => new InMemoryServiceBusSessionProcessor(this, queueName, options ?? new ServiceBusSessionProcessorOptions());
 
-    public override InMemoryServiceBusSessionProcessor CreateSessionProcessor(string topicName, string subscriptionName, ServiceBusSessionProcessorOptions? options = null)
-        => new(this, topicName, subscriptionName, options ?? new ServiceBusSessionProcessorOptions());
+    public override ServiceBusSessionProcessor CreateSessionProcessor(string topicName, string subscriptionName, ServiceBusSessionProcessorOptions? options = null)
+        => new InMemoryServiceBusSessionProcessor(this, topicName, subscriptionName, options ?? new ServiceBusSessionProcessorOptions());
 
     #endregion
 
