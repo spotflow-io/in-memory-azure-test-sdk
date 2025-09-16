@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 
 using Azure.Messaging.ServiceBus;
 
-using Spotflow.InMemory.Azure.ServiceBus.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
@@ -14,21 +13,24 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     private readonly int _maxConcurrentSessions;
     private readonly TimeSpan? _sessionIdleTimeout;
     private readonly TimeSpan _defaultMaxWaitTime;
-    private readonly TimeSpan _tryTimeout;
-    private readonly SessionEngine _sessionEngine;
     private readonly SemaphoreSlim _sessionConcurrencySemaphore;
     private readonly string[] _sessionIds;
+    private readonly InMemoryServiceBusClient _client;
+    private readonly bool _isQueue;
+    private readonly string? _queueName;
+    private readonly string? _topicName;
+    private readonly string? _subscriptionName;
+
     public InMemoryServiceBusProvider Provider { get; }
 
     protected override ServiceBusProcessor InnerProcessor { get; }
 
     #region Constructors
-    internal InMemoryServiceBusSessionProcessor(InMemoryServiceBusClient client, string queueName, ServiceBusSessionProcessorOptions? options)
-        : this(client, queueName, options ?? new ServiceBusSessionProcessorOptions(), () =>
-        {
-            var queue = ServiceBusClientUtils.GetQueue(client.FullyQualifiedNamespace, queueName, client.Provider);
-            return queue.Engine as SessionEngine ?? throw ServiceBusExceptionFactory.SessionsNotEnabled(client.FullyQualifiedNamespace, queue.EntityPath);
-        })
+    internal InMemoryServiceBusSessionProcessor(
+        InMemoryServiceBusClient client,
+        string queueName,
+        ServiceBusSessionProcessorOptions? options)
+        : this(client, queueName, null, null, options ?? new ServiceBusSessionProcessorOptions())
     { }
 
     internal InMemoryServiceBusSessionProcessor(
@@ -36,28 +38,42 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         string topicName,
         string subscriptionName,
         ServiceBusSessionProcessorOptions? options)
-        : this(client, FormatEntityPath(topicName, subscriptionName), options ?? new ServiceBusSessionProcessorOptions(), () =>
-        {
-            var subscription = ServiceBusClientUtils.GetSubscription(client.FullyQualifiedNamespace, topicName, subscriptionName, client.Provider);
-            return subscription.Engine as SessionEngine ?? throw ServiceBusExceptionFactory.SessionsNotEnabled(client.FullyQualifiedNamespace, subscription.EntityPath);
-        })
+        : this(client, null, topicName, subscriptionName, options ?? new ServiceBusSessionProcessorOptions())
     { }
 
     private InMemoryServiceBusSessionProcessor(
         InMemoryServiceBusClient client,
-        string entityPath,
-        ServiceBusSessionProcessorOptions options,
-        Func<SessionEngine> sessionEngineFactory)
+        string? queueName,
+        string? topicName,
+        string? subscriptionName,
+        ServiceBusSessionProcessorOptions options)
     {
+
+        _client = client;
+        _queueName = queueName;
+        _topicName = topicName;
+        _subscriptionName = subscriptionName;
+        _isQueue = _queueName != null;
+        string? entityPath;
+        if (_isQueue)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
+            entityPath = queueName;
+        }
+        else
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(topicName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(subscriptionName);
+            entityPath = FormatEntityPath(topicName, subscriptionName);
+        }
+
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
         _maxConcurrentCallsPerSession = options.MaxConcurrentCallsPerSession;
         _maxConcurrentSessions = options.MaxConcurrentSessions;
         _sessionIdleTimeout = options.SessionIdleTimeout;
-        _tryTimeout = client.TryTimeout;
         _sessionConcurrencySemaphore = new SemaphoreSlim(options.MaxConcurrentSessions, options.MaxConcurrentSessions);
         Provider = client.Provider;
 
-        _sessionEngine = sessionEngineFactory();
         _sessionIds = options.SessionIds.ToArray();
         var processorOptions = options.ToProcessorOptions();
         InnerProcessor = new InMemoryServiceBusProcessor(
@@ -71,6 +87,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             options.MaxConcurrentCallsPerSession,
             this
         );
+
     }
 
     private static string FormatEntityPath(string topicName, string subscriptionName)
@@ -210,7 +227,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
         try
         {
-            var initArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
+            var initArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
 
             await OnSessionInitializingAsync(initArgs);
 
@@ -277,7 +294,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
             }
             try
             {
-                var closeArgs = new ProcessSessionEventArgs(sessionReceiver, cancellationToken);
+                var closeArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
                 await OnSessionClosingAsync(closeArgs);
             }
             catch (Exception ex)
@@ -317,7 +334,11 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         {
             try
             {
-                var processArgs = new ProcessSessionMessageEventArgs(message, sessionReceiver, cancellationToken);
+                var processArgs = new ProcessSessionMessageEventArgs(
+                    message,
+                    sessionReceiver,
+                    Identifier,
+                    cancellationToken);
                 await OnProcessSessionMessageAsync(processArgs);
                 if (AutoCompleteMessages)
                 {
@@ -340,25 +361,49 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     {
         try
         {
-            LockedSession? session;
             if (_sessionIds.Length > 0)
             {
                 foreach (var sessionId in _sessionIds)
                 {
-                    if (_sessionEngine.TryAcquireSession(sessionId, out session))
+                    try
                     {
-                        return new InMemoryServiceBusSessionReceiver(session, new ServiceBusSessionReceiverOptions(), _defaultMaxWaitTime, Provider);
+                        // Casting is safe here as AcceptSessionAsync returns InMemoryServiceBusSessionReceiver
+                        return _isQueue
+                            ? (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
+                                _queueName!,
+                                sessionId,
+                                new ServiceBusSessionReceiverOptions(),
+                                cancellationToken)
+                            : (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
+                                _topicName!,
+                                _subscriptionName!,
+                                sessionId,
+                                new ServiceBusSessionReceiverOptions(),
+                                cancellationToken);
+
+                    }
+                    catch (ServiceBusException)
+                    {
+                        // session locked or does not exist yet, try another one
+                        continue;
                     }
                 }
-
+                // none of the specified sessions were available
                 return null;
             }
-            session = await _sessionEngine.TryAcquireNextAvailableSessionAsync(_tryTimeout, cancellationToken);
-            return session == null
-                ? null
-                : new InMemoryServiceBusSessionReceiver(session, new ServiceBusSessionReceiverOptions(), _defaultMaxWaitTime, Provider);
+
+            return _isQueue
+                ? (InMemoryServiceBusSessionReceiver) await _client.AcceptNextSessionAsync(
+                    _queueName!,
+                    new ServiceBusSessionReceiverOptions(),
+                    cancellationToken)
+                : (InMemoryServiceBusSessionReceiver) await _client.AcceptNextSessionAsync(
+                    _topicName!,
+                    _subscriptionName!,
+                    new ServiceBusSessionReceiverOptions(),
+                    cancellationToken);
         }
-        catch (Exception)
+        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceTimeout)
         {
             return null;
         }
