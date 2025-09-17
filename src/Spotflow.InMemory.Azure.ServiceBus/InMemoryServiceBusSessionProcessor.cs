@@ -375,7 +375,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                             cancellationToken);
 
                 }
-                catch (ServiceBusException ex) 
+                catch (ServiceBusException ex)
                     when (ex.Reason is ServiceBusFailureReason.SessionLockLost)
                 {
                     // session is locked by another receiver
