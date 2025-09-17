@@ -75,17 +75,17 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         Provider = client.Provider;
 
         _sessionIds = options.SessionIds.ToArray();
-        var processorOptions = options.ToProcessorOptions();
+        var processorOptions = ConvertToProcessorOptions(options);
         InnerProcessor = new InMemoryServiceBusProcessor(
-            client,
-            entityPath,
-            true,
-            processorOptions,
-            null,
-            _sessionIds,
-            options.MaxConcurrentSessions,
-            options.MaxConcurrentCallsPerSession,
-            this
+            client: client,
+            entityPath: entityPath,
+            isSessionEntity: true,
+            options: processorOptions,
+            receiverFactory: null,
+            sessionIds: _sessionIds,
+            maxConcurrentSessions: options.MaxConcurrentSessions,
+            maxConcurrentCallsPerSession: options.MaxConcurrentCallsPerSession,
+            sessionProcessor: this
         );
 
     }
@@ -131,7 +131,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     {
         await InnerProcessor.StopProcessingAsync(cancellationToken);
     }
-    internal async Task ProcessSessionsInBackground(CancellationToken cancellationToken)
+    internal async Task ProcessSessionsInBackgroundAsync(CancellationToken cancellationToken)
     {
         var activeSessions = new ConcurrentDictionary<string, Task>();
         try
@@ -415,11 +415,8 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         }
     }
     #endregion
-}
 
-internal static class InMemoryServiceBusSessionOptionsExtensions
-{
-    public static ServiceBusProcessorOptions ToProcessorOptions(this ServiceBusSessionProcessorOptions options)
+    private static ServiceBusProcessorOptions ConvertToProcessorOptions(ServiceBusSessionProcessorOptions options)
         => new()
         {
             ReceiveMode = options.ReceiveMode,
@@ -429,3 +426,4 @@ internal static class InMemoryServiceBusSessionOptionsExtensions
             Identifier = options.Identifier
         };
 }
+

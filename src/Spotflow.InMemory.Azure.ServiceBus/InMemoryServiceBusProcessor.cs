@@ -176,7 +176,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
             _isProcessing = true;
             _processingCts = new CancellationTokenSource();
             _processingTask = _isSessionProcessor
-                ? Task.Run(() => _sessionProcessor?.ProcessSessionsInBackground(_processingCts.Token), cancellationToken)
+                ? Task.Run(() => _sessionProcessor?.ProcessSessionsInBackgroundAsync(_processingCts.Token), cancellationToken)
                 : Task.Run(() => ProcessMessagesInBackground(_processingCts.Token), cancellationToken);
         }
         finally
