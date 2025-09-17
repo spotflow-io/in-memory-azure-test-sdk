@@ -27,7 +27,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private readonly TimeSpan _maxAutoLockRenewalDuration;
 
     private readonly InMemoryServiceBusSessionProcessor? _sessionProcessor;
-    private bool IsSessionProcessor { get; }
+    private readonly bool _isSessionProcessor;
 
     #region Constructors
     internal InMemoryServiceBusProcessor(InMemoryServiceBusClient client, string queueName)
@@ -69,7 +69,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         _maxConcurrentCalls = options.MaxConcurrentCalls;
         _maxAutoLockRenewalDuration = options.MaxAutoLockRenewalDuration;
         Provider = client.Provider;
-        IsSessionProcessor = isSessionEntity;
+        _isSessionProcessor = isSessionEntity;
 
         if (isSessionEntity)
         {
@@ -149,7 +149,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
         _concurrencySemaphore.Dispose();
         _stateSemaphore.Dispose();
         _processingCts?.Dispose();
-        if (!IsSessionProcessor)
+        if (!_isSessionProcessor)
         {
             ArgumentNullException.ThrowIfNull(_receiver);
             await _receiver.DisposeAsync();
@@ -175,7 +175,7 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
 
             _isProcessing = true;
             _processingCts = new CancellationTokenSource();
-            _processingTask = IsSessionProcessor
+            _processingTask = _isSessionProcessor
                 ? Task.Run(() => _sessionProcessor?.ProcessSessionsInBackground(_processingCts.Token), cancellationToken)
                 : Task.Run(() => ProcessMessagesInBackground(_processingCts.Token), cancellationToken);
         }

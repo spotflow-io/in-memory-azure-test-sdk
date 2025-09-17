@@ -94,19 +94,6 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         => InMemoryServiceBusSubscription.FormatEntityPath(topicName, subscriptionName);
     #endregion
 
-    public static InMemoryServiceBusSessionProcessor FromQueue(InMemoryServiceBusQueue queue, ServiceBusSessionProcessorOptions? options = null)
-    {
-        var sessionOptions = options ?? new ServiceBusSessionProcessorOptions();
-        var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
-        return new InMemoryServiceBusSessionProcessor(client, queue.QueueName, sessionOptions);
-    }
-
-    public static InMemoryServiceBusSessionProcessor FromSubscription(InMemoryServiceBusSubscription subscription, ServiceBusSessionProcessorOptions? options = null)
-    {
-        var sessionOptions = options ?? new ServiceBusSessionProcessorOptions();
-        var client = InMemoryServiceBusClient.FromNamespace(subscription.Topic.Namespace);
-        return new InMemoryServiceBusSessionProcessor(client, subscription.TopicName, subscription.SubscriptionName, sessionOptions);
-    }
     #region Properties
 
     public override string FullyQualifiedNamespace => InnerProcessor.FullyQualifiedNamespace;
