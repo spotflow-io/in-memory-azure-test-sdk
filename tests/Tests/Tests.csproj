@@ -42,6 +42,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="System.Text.Json" />
         <AssemblyAttribute Include="Microsoft.VisualStudio.TestTools.UnitTesting.Parallelize">
             <Workers>32</Workers>
             <Workers Condition="'$(SPOTFLOW_USE_AZURE)' == 'true'">4</Workers>

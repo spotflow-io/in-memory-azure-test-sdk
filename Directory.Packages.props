@@ -25,5 +25,6 @@
         <PackageVersion Include="coverlet.collector" Version="6.0.2" />
         <PackageVersion Include="coverlet.msbuild" Version="6.0.2" />
         <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.6.0" />
+        <PackageVersion Include="System.Text.Json" Version="8.0.5" />
     </ItemGroup>
 </Project>
