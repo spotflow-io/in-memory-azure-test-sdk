@@ -92,7 +92,6 @@ jobs:
   test-with-azure-infra:
     runs-on: ubuntu-latest
     environment: azure
-    if: ${{ github.secret_source == 'Actions' }}
     permissions: 
       contents: read
       id-token: write
@@ -102,11 +101,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
+        if: ${{ github.secret_source == 'Actions' }}
         with:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - run: dotnet test --filter TestCategory=AzureInfra
+        if: ${{ github.secret_source == 'Actions' }}
         env:
           SPOTFLOW_USE_AZURE: true
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
