@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 using Azure.Messaging.ServiceBus;
 
@@ -16,11 +17,14 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     private readonly SemaphoreSlim _sessionConcurrencySemaphore;
     private readonly string[] _sessionIds;
     private readonly InMemoryServiceBusClient _client;
-    private readonly bool _isQueue;
+
     private readonly string? _queueName;
     private readonly string? _topicName;
     private readonly string? _subscriptionName;
 
+    [MemberNotNullWhen(true, nameof(_queueName))]
+    [MemberNotNullWhen(false, nameof(_topicName), nameof(_subscriptionName))]
+    private bool _isQueue { get; }
     public InMemoryServiceBusProvider Provider { get; }
 
     protected override ServiceBusProcessor InnerProcessor { get; }
@@ -149,11 +153,10 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                     {
                         activeSessions.TryRemove(sessionId, out _);
                     }
-
-                    // accept new sessions if we have capacity
-                    if (activeSessions.Count < MaxConcurrentSessions)
+                    var waitTimeout = TimeSpan.FromMilliseconds(100);
+                    var acquired = await _sessionConcurrencySemaphore.WaitAsync(waitTimeout, cancellationToken);
+                    if (acquired)
                     {
-                        await _sessionConcurrencySemaphore.WaitAsync(cancellationToken);
                         try
                         {
                             var sessionReceiver = await TryAcceptNextSessionAsync(cancellationToken);
@@ -170,7 +173,13 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                                         _sessionConcurrencySemaphore.Release();
                                     }
                                 }, cancellationToken);
-                                activeSessions.TryAdd(sessionReceiver.SessionId, sessionTask);
+
+                                if (!activeSessions.TryAdd(sessionReceiver.SessionId, sessionTask))
+                                {
+                                    await sessionReceiver.DisposeAsync();
+                                    _sessionConcurrencySemaphore.Release();
+                                    throw new InvalidOperationException($"Failed to add session {sessionReceiver.SessionId} to active sessions.");
+                                }
                             }
                             else
                             {
@@ -182,11 +191,6 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                             _sessionConcurrencySemaphore.Release();
                             throw;
                         }
-                    }
-                    else
-                    {
-                        // give slack when at max capacity
-                        await Task.Delay(100, cancellationToken);
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -209,56 +213,83 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     }
     private async Task ProcessSingleSessionAsync(InMemoryServiceBusSessionReceiver sessionReceiver, CancellationToken cancellationToken)
     {
-        var messageCallbacksSemaphore = new SemaphoreSlim(MaxConcurrentCallsPerSession, MaxConcurrentCallsPerSession);
-        var messageProcessingTasks = new List<Task>();
-
-        try
+        using var messageCallbacksSemaphore = new SemaphoreSlim(MaxConcurrentCallsPerSession, MaxConcurrentCallsPerSession);
+        await using (sessionReceiver)
         {
-            var initArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
+            var messageProcessingTasks = new List<Task>();
 
-            await OnSessionInitializingAsync(initArgs);
-
-            var sessionIdleTimeout = SessionIdleTimeout ?? _defaultMaxWaitTime;
-            var lastActivity = DateTimeOffset.UtcNow;
-
-            while (!cancellationToken.IsCancellationRequested && !InnerProcessor.IsClosed && !sessionReceiver.IsClosed)
+            try
             {
-                try
+                var initArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
+
+                await OnSessionInitializingAsync(initArgs);
+
+                var sessionIdleTimeout = SessionIdleTimeout ?? _defaultMaxWaitTime;
+                var lastActivity = Provider.TimeProvider.GetTimestamp();
+
+                while (!cancellationToken.IsCancellationRequested && !InnerProcessor.IsClosed && !sessionReceiver.IsClosed)
                 {
-                    if (DateTimeOffset.UtcNow - lastActivity > sessionIdleTimeout)
+                    try
+                    {
+                        var elapsed = Provider.TimeProvider.GetElapsedTime(lastActivity);
+                        if (elapsed > sessionIdleTimeout)
+                        {
+                            break;
+                        }
+
+                        var messages = await sessionReceiver.ReceiveMessagesAsync(
+                            MaxConcurrentCallsPerSession, SessionIdleTimeout ?? _defaultMaxWaitTime, cancellationToken);
+
+                        if (messages.Count == 0)
+                        {
+                            continue;
+                        }
+                        lastActivity = Provider.TimeProvider.GetTimestamp();
+                        foreach (var message in messages)
+                        {
+                            await messageCallbacksSemaphore.WaitAsync(cancellationToken);
+
+                            try
+                            {
+                                var messageTask = StartMessageProcessingTask(message, sessionReceiver, messageCallbacksSemaphore, cancellationToken);
+                                messageProcessingTasks.Add(messageTask);
+                            }
+                            catch (Exception)
+                            {
+                                messageCallbacksSemaphore.Release();
+                                throw;
+                            }
+                            messageProcessingTasks.RemoveAll(t => t.IsCompleted);
+
+                        }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         break;
                     }
-
-                    var messages = await sessionReceiver.ReceiveMessagesAsync(
-                        MaxConcurrentCallsPerSession, SessionIdleTimeout ?? _defaultMaxWaitTime, cancellationToken);
-
-                    if (messages.Count == 0)
+                    catch (Exception ex)
                     {
-                        continue;
-                    }
-                    lastActivity = DateTimeOffset.UtcNow;
-                    foreach (var message in messages)
-                    {
-                        await messageCallbacksSemaphore.WaitAsync(cancellationToken);
-
-                        try
-                        {
-                            var messageTask = StartMessageProcessingTask(message, sessionReceiver, messageCallbacksSemaphore, cancellationToken);
-                            messageProcessingTasks.Add(messageTask);
-                        }
-                        catch (Exception)
-                        {
-                            messageCallbacksSemaphore.Release();
-                            throw;
-                        }
-                        messageProcessingTasks.RemoveAll(t => t.IsCompleted);
-
+                        await HandleErrorAsync(ex, cancellationToken);
                     }
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            }
+            finally
+            {
+                try
                 {
-                    break;
+                    if (messageProcessingTasks.Count > 0)
+                    {
+                        await Task.WhenAll(messageProcessingTasks);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await HandleErrorAsync(ex, cancellationToken);
+                }
+                try
+                {
+                    var closeArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
+                    await OnSessionClosingAsync(closeArgs);
                 }
                 catch (Exception ex)
                 {
@@ -266,31 +297,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                 }
             }
         }
-        finally
-        {
-            try
-            {
-                if (messageProcessingTasks.Count > 0)
-                {
-                    await Task.WhenAll(messageProcessingTasks);
-                }
-            }
-            catch (Exception ex)
-            {
-                await HandleErrorAsync(ex, cancellationToken);
-            }
-            try
-            {
-                var closeArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
-                await OnSessionClosingAsync(closeArgs);
-            }
-            catch (Exception ex)
-            {
-                await HandleErrorAsync(ex, cancellationToken);
-            }
-            await sessionReceiver.DisposeAsync();
-            messageCallbacksSemaphore.Dispose();
-        }
+
     }
 
     private Task StartMessageProcessingTask(
@@ -346,47 +353,49 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
     private async Task<InMemoryServiceBusSessionReceiver?> TryAcceptNextSessionAsync(CancellationToken cancellationToken)
     {
+
+        if (_sessionIds.Length > 0)
+        {
+            foreach (var sessionId in _sessionIds)
+            {
+                try
+                {
+                    // Casting is safe here as AcceptSessionAsync returns InMemoryServiceBusSessionReceiver
+                    return _isQueue
+                        ? (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
+                            _queueName,
+                            sessionId,
+                            new ServiceBusSessionReceiverOptions(),
+                            cancellationToken)
+                        : (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
+                            _topicName,
+                            _subscriptionName,
+                            sessionId,
+                            new ServiceBusSessionReceiverOptions(),
+                            cancellationToken);
+
+                }
+                catch (ServiceBusException ex) 
+                    when (ex.Reason is ServiceBusFailureReason.SessionLockLost)
+                {
+                    // session is locked by another receiver
+                    continue;
+                }
+            }
+            // none of the specified sessions were available
+            return null;
+        }
+
         try
         {
-            if (_sessionIds.Length > 0)
-            {
-                foreach (var sessionId in _sessionIds)
-                {
-                    try
-                    {
-                        // Casting is safe here as AcceptSessionAsync returns InMemoryServiceBusSessionReceiver
-                        return _isQueue
-                            ? (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
-                                _queueName!,
-                                sessionId,
-                                new ServiceBusSessionReceiverOptions(),
-                                cancellationToken)
-                            : (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
-                                _topicName!,
-                                _subscriptionName!,
-                                sessionId,
-                                new ServiceBusSessionReceiverOptions(),
-                                cancellationToken);
-
-                    }
-                    catch (ServiceBusException)
-                    {
-                        // session locked or does not exist yet, try another one
-                        continue;
-                    }
-                }
-                // none of the specified sessions were available
-                return null;
-            }
-
             return _isQueue
                 ? (InMemoryServiceBusSessionReceiver) await _client.AcceptNextSessionAsync(
-                    _queueName!,
+                    _queueName,
                     new ServiceBusSessionReceiverOptions(),
                     cancellationToken)
                 : (InMemoryServiceBusSessionReceiver) await _client.AcceptNextSessionAsync(
-                    _topicName!,
-                    _subscriptionName!,
+                    _topicName,
+                    _subscriptionName,
                     new ServiceBusSessionReceiverOptions(),
                     cancellationToken);
         }
@@ -394,6 +403,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         {
             return null;
         }
+
     }
 
     private async Task HandleErrorAsync(Exception exception, CancellationToken cancellationToken)
