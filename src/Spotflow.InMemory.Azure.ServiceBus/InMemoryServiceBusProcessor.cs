@@ -101,17 +101,6 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     private static string FormatEntityPath(string topicName, string subscriptionName)
         => InMemoryServiceBusSubscription.FormatEntityPath(topicName, subscriptionName);
 
-    public static InMemoryServiceBusProcessor FromQueue(InMemoryServiceBusQueue queue, ServiceBusProcessorOptions? options = null)
-    {
-        var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace);
-        return new InMemoryServiceBusProcessor(client, queue.QueueName, options ?? new ServiceBusProcessorOptions());
-    }
-
-    public static InMemoryServiceBusProcessor FromSubscription(InMemoryServiceBusSubscription subscription, ServiceBusProcessorOptions? options = null)
-    {
-        var client = InMemoryServiceBusClient.FromNamespace(subscription.Topic.Namespace);
-        return new InMemoryServiceBusProcessor(client, subscription.TopicName, subscription.SubscriptionName, options ?? new ServiceBusProcessorOptions());
-    }
     #endregion
 
     #region Properties
