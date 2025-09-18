@@ -401,9 +401,10 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
                 }
                 catch (ServiceBusException ex)
-                   when (ex.Reason is ServiceBusFailureReason.SessionLockLost)
+                   when (ex.Reason is ServiceBusFailureReason.SessionLockLost or ServiceBusFailureReason.SessionCannotBeLocked)
                 {
-                    // session lock has expired
+                    // session temporarily unavailable (lock expired or already locked)
+                    // continue to try the next session in our list rather than giving up entirely
                     continue;
                 }
             }
