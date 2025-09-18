@@ -57,6 +57,13 @@ internal static class ServiceBusExceptionFactory
         return new($"Session {sessionId} not found.", ServiceBusFailureReason.GeneralError, path);
     }
 
+    public static ServiceBusException SessionCannotBeLocked(string fullyQualifiedNamespace, string entityPath, string sessionId)
+    {
+        var message = $"The requested session '{sessionId}' cannot be accepted. It may be locked by another receiver.";
+        var path = EntityFullPath(fullyQualifiedNamespace, entityPath);
+        return new(message, ServiceBusFailureReason.SessionCannotBeLocked, path);
+    }
+
     public static ServiceBusException SessionsEnabled(string fullyQualifiedNamespace, string entityPath)
     {
         var path = EntityFullPath(fullyQualifiedNamespace, entityPath);
