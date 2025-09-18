@@ -125,6 +125,25 @@ public class ServiceBusSessionsReceiverTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
+    public async Task Accepting_Specific_Non_Empty_Session_That_Is_Already_Locked_Should_Fail()
+    {
+        await using var client = await ImplementationProvider.GetServiceBusClientAsync();
+
+        var queueName = "test-queue-with-sessions";
+
+        var sessionId = "694e4dfd-78a3-47f0-9ddf-074071713d7a";
+
+        await using var sessionReceiver = await client.AcceptSessionAsync(queueName, sessionId);
+
+        var act = () => client.AcceptSessionAsync(queueName, sessionId);
+
+        await act.Should().ThrowAsync<ServiceBusException>()
+            .Where(e => e.Reason == ServiceBusFailureReason.SessionCannotBeLocked)
+            .WithMessage($"The requested session '{sessionId}' cannot be accepted. It may be locked by another receiver.*");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public async Task Accepting_Next_Session_On_Empty_Queue_Should_Timeout()
     {
         var clientOptions = new ServiceBusClientOptions();
