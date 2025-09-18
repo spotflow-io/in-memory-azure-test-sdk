@@ -392,9 +392,10 @@ public class BlobContainerClientTests
     [DataRow(null, BlobStates.All)]
     public void GetBlobs_With_Unsupported_Flag_Should_Result_In_Not_Supported_Exception(BlobTraits traits, BlobStates states)
     {
-        var containerClient = ImplementationProvider.GetBlobContainerClient();
+        var account = new InMemoryStorageProvider().AddAccount();
 
-        containerClient.CreateIfNotExists();
+        var containerClient = InMemoryBlobContainerClient.FromAccount(account, "test");
+        containerClient.Create();
 
         var act = () => containerClient.GetBlobs(prefix: "", traits: traits, states: states).ToList();
 
