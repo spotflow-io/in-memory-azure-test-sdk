@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 using Azure.Messaging.ServiceBus;
 
@@ -28,6 +29,15 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
     public InMemoryServiceBusProvider Provider { get; }
 
     protected override ServiceBusProcessor InnerProcessor { get; }
+
+    private static readonly FieldInfo? _sessionInitializingAsyncField;
+    private static readonly FieldInfo? _sessionClosingAsyncField;
+    static InMemoryServiceBusSessionProcessor()
+    {
+        var processorType = typeof(ServiceBusProcessor);
+        _sessionInitializingAsyncField = processorType.GetField("_sessionInitializingAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        _sessionClosingAsyncField = processorType.GetField("_sessionClosingAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+    }
 
     #region Constructors
     internal InMemoryServiceBusSessionProcessor(
@@ -159,7 +169,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                     {
                         try
                         {
-                            var sessionReceiver = await TryAcceptNextSessionAsync(cancellationToken);
+                            var sessionReceiver = await TryAcceptNextSessionAsync(activeSessions, cancellationToken);
                             if (sessionReceiver != null)
                             {
                                 var sessionTask = Task.Run(async () =>
@@ -220,10 +230,13 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
             try
             {
-                var initArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
-
-                await OnSessionInitializingAsync(initArgs);
-
+                // using reflection to check if _sessionInitializingAsync is instantiated
+                var sessionInitHandler = _sessionInitializingAsyncField?.GetValue(InnerProcessor);
+                if (sessionInitHandler != null)
+                {
+                    var initArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
+                    await OnSessionInitializingAsync(initArgs);
+                }
                 var sessionIdleTimeout = SessionIdleTimeout ?? _defaultMaxWaitTime;
                 var lastActivity = Provider.TimeProvider.GetTimestamp();
 
@@ -288,8 +301,13 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                 }
                 try
                 {
-                    var closeArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
-                    await OnSessionClosingAsync(closeArgs);
+                    // using reflection to check if _sessionClosingAsync is instantiated
+                    var sessionCloseHandler = _sessionClosingAsyncField?.GetValue(InnerProcessor);
+                    if (sessionCloseHandler != null)
+                    {
+                        var closeArgs = new ProcessSessionEventArgs(sessionReceiver, Identifier, cancellationToken);
+                        await OnSessionClosingAsync(closeArgs);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -351,13 +369,20 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         }
     }
 
-    private async Task<InMemoryServiceBusSessionReceiver?> TryAcceptNextSessionAsync(CancellationToken cancellationToken)
+    private async Task<InMemoryServiceBusSessionReceiver?> TryAcceptNextSessionAsync(
+        ConcurrentDictionary<string, Task> activeSessions,
+        CancellationToken cancellationToken)
     {
 
         if (_sessionIds.Length > 0)
         {
             foreach (var sessionId in _sessionIds)
             {
+                // Skip sessions that are already being processed
+                if (activeSessions.ContainsKey(sessionId))
+                {
+                    continue;
+                }
                 try
                 {
                     // Casting is safe here as AcceptSessionAsync returns InMemoryServiceBusSessionReceiver
@@ -376,9 +401,9 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
                 }
                 catch (ServiceBusException ex)
-                    when (ex.Reason is ServiceBusFailureReason.SessionLockLost)
+                   when (ex.Reason is ServiceBusFailureReason.SessionLockLost)
                 {
-                    // session is locked by another receiver
+                    // session lock has expired
                     continue;
                 }
             }

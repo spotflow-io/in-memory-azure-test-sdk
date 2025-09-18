@@ -59,6 +59,62 @@ public class ServiceBusSessionProcessorTests
         assignSessionInit.Should().Throw<NotSupportedException>();
         assignSessionClose.Should().Throw<NotSupportedException>();
     }
+
+    [TestMethod]
+    public async Task MissingSessionRelatedEventHandlers_ShouldNotThrowNullReference()
+    {
+        var ns = new InMemoryServiceBusProvider().AddNamespace();
+        ns.AddQueue("test-queue", new InMemoryServiceBusQueueOptions
+        {
+            EnableSessions = true
+        });
+
+        await using var client = InMemoryServiceBusClient.FromNamespace(ns);
+        await using var sender = client.CreateSender("test-queue");
+
+        await sender.SendMessageAsync(new ServiceBusMessage("Test message")
+        {
+            SessionId = "session1"
+        });
+
+        var options = new ServiceBusSessionProcessorOptions
+        {
+            SessionIds =
+            {
+                "session1"
+            },
+            AutoCompleteMessages = true
+        };
+
+        await using var processor = client.CreateSessionProcessor("test-queue", options);
+        var messageProcessed = new TaskCompletionSource<bool>();
+
+        // Subscribe to ProcessMessageAsync but NOT to SessionInitializingAsync or SessionClosingAsync
+        processor.ProcessMessageAsync += _ =>
+        {
+            messageProcessed.TrySetResult(true);
+            return Task.CompletedTask;
+        };
+
+        processor.ProcessErrorAsync += args =>
+        {
+            Assert.Fail($"Error should not occur: {args.Exception}");
+            return Task.CompletedTask;
+        };
+        await processor.StartProcessingAsync();
+
+        var timeout = Task.Delay(TimeSpan.FromSeconds(5));
+        var completed = await Task.WhenAny(messageProcessed.Task, timeout);
+
+        if (completed == timeout)
+        {
+            Assert.Fail("Test timed out - message was not processed");
+        }
+        await processor.StopProcessingAsync();
+
+        messageProcessed.Task.Result.Should().BeTrue();
+    }
+
     #endregion
 
     #region Initialization Tests
