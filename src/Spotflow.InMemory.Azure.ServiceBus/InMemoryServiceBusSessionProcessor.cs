@@ -187,7 +187,6 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                                 if (!activeSessions.TryAdd(sessionReceiver.SessionId, sessionTask))
                                 {
                                     await sessionReceiver.DisposeAsync();
-                                    _sessionConcurrencySemaphore.Release();
                                     throw new InvalidOperationException($"Failed to add session {sessionReceiver.SessionId} to active sessions.");
                                 }
                             }
