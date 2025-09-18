@@ -163,7 +163,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
         if (!store.TryAcquireSession(sessionId, out var session))
         {
-            throw ServiceBusExceptionFactory.SessionNotFound(FullyQualifiedNamespace, queue.EntityPath, sessionId);
+            throw ServiceBusExceptionFactory.SessionCannotBeLocked(FullyQualifiedNamespace, queue.EntityPath, sessionId);
         }
 
         return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
@@ -183,7 +183,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
 
         if (!store.TryAcquireSession(sessionId, out var session))
         {
-            throw ServiceBusExceptionFactory.SessionNotFound(FullyQualifiedNamespace, subscription.EntityPath, sessionId);
+            throw ServiceBusExceptionFactory.SessionCannotBeLocked(FullyQualifiedNamespace, subscription.EntityPath, sessionId);
         }
 
         return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
