@@ -5,6 +5,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Messaging.ServiceBus;
+using Azure.ResourceManager.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 
@@ -128,8 +129,29 @@ internal static class ImplementationProvider
 
                 var serviceClient = new ServiceBusClient(serviceBusResources.FullyQualifiedNamespaceName, config.TokenCredential);
 
-                var entityName = missingEntity ? Guid.NewGuid().ToString() : serviceBusResources.GetEntity(withSessions, useTopics).Id.Name;
+                string entityName;
 
+                if (missingEntity)
+                {
+                    entityName = Guid.NewGuid().ToString();
+                }
+                else
+                {
+                    var entity = serviceBusResources.GetEntity(withSessions, useTopics);
+                    if (entity is ServiceBusSubscriptionResource subscription)
+                    {
+                        entityName = subscription.Id.Parent?.Name ?? throw new InvalidOperationException("Parent resource not found");
+                    }
+                    else if (entity is ServiceBusQueueResource queue)
+                    {
+                        entityName = queue.Data.Name;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unexpected entity type");
+                    }
+
+                }
                 return serviceClient.CreateSender(entityName);
             }
         }
@@ -151,7 +173,10 @@ internal static class ImplementationProvider
                 {
                     if (useTopics)
                     {
-                        ns.AddTopic(entityName).AddSubscription("test-subscription", options: new() { EnableSessions = withSessions });
+                        // Always create both subscriptions on purpose
+
+                        ns.AddTopic(entityName).AddSubscription("test-subscription-with-sessions", options: new() { EnableSessions = true });
+                        ns.AddTopic(entityName).AddSubscription("test-subscription-without-sessions", options: new() { EnableSessions = false });
                     }
                     else
                     {

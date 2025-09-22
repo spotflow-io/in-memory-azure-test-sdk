@@ -105,6 +105,19 @@ public class ServiceBusSenderTests
             .Where(ex => ex.Message.StartsWith(expectedMessagePrefix));
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    public async Task Send_To_Topic_Without_Session_Id_Should_Not_Throw_Even_If_There_Are_Sessionless_Subscriptions()
+    {
+        await using var sender = await ImplementationProvider.GetServiceBusSenderAsync(withSessions: true, useTopics: true);
+
+        var message = new ServiceBusMessage();
+
+        var act = () => sender.SendMessageAsync(message);
+
+        await act.Should().NotThrowAsync();
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
