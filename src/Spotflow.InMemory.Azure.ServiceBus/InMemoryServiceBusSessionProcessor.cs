@@ -25,7 +25,8 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
     [MemberNotNullWhen(true, nameof(_queueName))]
     [MemberNotNullWhen(false, nameof(_topicName), nameof(_subscriptionName))]
-    private bool _isQueue { get; }
+    private bool IsQueue { get; }
+
     public InMemoryServiceBusProvider Provider { get; }
 
     protected override ServiceBusProcessor InnerProcessor { get; }
@@ -67,9 +68,9 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         _queueName = queueName;
         _topicName = topicName;
         _subscriptionName = subscriptionName;
-        _isQueue = _queueName != null;
+        IsQueue = _queueName != null;
         string? entityPath;
-        if (_isQueue)
+        if (IsQueue)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
             entityPath = queueName;
@@ -125,13 +126,17 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
     #endregion
 
-    #region Close and Dispose
+    #region Close
     public override async Task CloseAsync(CancellationToken cancellationToken = new())
     {
+        if (InnerProcessor.IsClosed)
+        {
+            return;
+        }
 
         await InnerProcessor.CloseAsync(cancellationToken);
-        _sessionConcurrencySemaphore.Dispose();
 
+        _sessionConcurrencySemaphore.Dispose();
     }
     #endregion
 
@@ -385,7 +390,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                 try
                 {
                     // Casting is safe here as AcceptSessionAsync returns InMemoryServiceBusSessionReceiver
-                    return _isQueue
+                    return IsQueue
                         ? (InMemoryServiceBusSessionReceiver) await _client.AcceptSessionAsync(
                             _queueName,
                             sessionId,
@@ -413,7 +418,7 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
 
         try
         {
-            return _isQueue
+            return IsQueue
                 ? (InMemoryServiceBusSessionReceiver) await _client.AcceptNextSessionAsync(
                     _queueName,
                     new ServiceBusSessionReceiverOptions(),

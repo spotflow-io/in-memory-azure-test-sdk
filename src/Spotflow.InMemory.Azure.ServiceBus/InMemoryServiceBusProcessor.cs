@@ -122,6 +122,12 @@ public class InMemoryServiceBusProcessor : ServiceBusProcessor
     public override async Task CloseAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+
+        if (_isClosed)
+        {
+            return;
+        }
+
         await _stateSemaphore.WaitAsync(cancellationToken);
         try
         {
