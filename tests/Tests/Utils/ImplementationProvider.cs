@@ -174,9 +174,10 @@ internal static class ImplementationProvider
                     if (useTopics)
                     {
                         // Always create both subscriptions on purpose
+                        var topic = ns.AddTopic(entityName);
 
-                        ns.AddTopic(entityName).AddSubscription("test-subscription-with-sessions", options: new() { EnableSessions = true });
-                        ns.AddTopic(entityName).AddSubscription("test-subscription-without-sessions", options: new() { EnableSessions = false });
+                        topic.AddSubscription("test-subscription-with-sessions", options: new() { EnableSessions = true });
+                        topic.AddSubscription("test-subscription-without-sessions", options: new() { EnableSessions = false });
                     }
                     else
                     {
