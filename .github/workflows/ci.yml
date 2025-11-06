@@ -59,6 +59,8 @@ jobs:
       Version: ${{ needs.init.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
