@@ -8,6 +8,7 @@ using Spotflow.InMemory.Azure.ServiceBus.Internals;
 using Spotflow.InMemory.Azure.ServiceBus.Resources;
 
 namespace Spotflow.InMemory.Azure.ServiceBus;
+
 public class InMemoryServiceBusSender : ServiceBusSender
 {
     private readonly ConcurrentDictionary<ServiceBusMessageBatch, List<ServiceBusMessage>> _batches = new(ReferenceEqualityComparer.Instance);
@@ -22,7 +23,7 @@ public class InMemoryServiceBusSender : ServiceBusSender
 
     public InMemoryServiceBusSender(InMemoryServiceBusClient client, string queueOrTopicName, ServiceBusSenderOptions options)
     {
-        Identifier = options?.Identifier ?? Guid.NewGuid().ToString();
+        Identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(queueOrTopicName) : options.Identifier;
         FullyQualifiedNamespace = client.FullyQualifiedNamespace;
         EntityPath = queueOrTopicName;
         Provider = client.Provider;

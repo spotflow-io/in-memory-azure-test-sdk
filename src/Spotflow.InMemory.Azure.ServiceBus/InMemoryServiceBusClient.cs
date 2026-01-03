@@ -37,7 +37,7 @@ public class InMemoryServiceBusClient : ServiceBusClient
         DefaultMaxWaitTime = options.RetryOptions.MaxDelay;
         TryTimeout = options.RetryOptions.TryTimeout;
         FullyQualifiedNamespace = fullyQualifiedNamespace;
-        Identifier = options.Identifier ?? Guid.NewGuid().ToString();
+        Identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(fullyQualifiedNamespace) : options.Identifier;
     }
 
     public static InMemoryServiceBusClient FromNamespace(InMemoryServiceBusNamespace serviceBusNamespace, ServiceBusClientOptions? options = null)
@@ -122,7 +122,13 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.NoSessionAvailable(FullyQualifiedNamespace, queue.EntityPath);
         }
 
-        return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
+        options ??= new();
+        if (string.IsNullOrEmpty(options.Identifier))
+        {
+            options.Identifier = ServiceBusClientUtils.GenerateIdentifier(queue.EntityPath);
+        }
+
+        return new InMemoryServiceBusSessionReceiver(session, options, DefaultMaxWaitTime, Provider);
     }
 
     public override async Task<ServiceBusSessionReceiver> AcceptNextSessionAsync(string topicName, string subscriptionName, ServiceBusSessionReceiverOptions? options = null, CancellationToken cancellationToken = default)
@@ -130,7 +136,6 @@ public class InMemoryServiceBusClient : ServiceBusClient
         await Task.Yield();
 
         var subscription = ServiceBusClientUtils.GetSubscription(FullyQualifiedNamespace, topicName, subscriptionName, Provider);
-
 
         if (subscription.Engine is not SessionEngine store)
         {
@@ -144,7 +149,13 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.NoSessionAvailable(FullyQualifiedNamespace, subscription.EntityPath);
         }
 
-        return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
+        options ??= new();
+        if (string.IsNullOrEmpty(options.Identifier))
+        {
+            options.Identifier = ServiceBusClientUtils.GenerateIdentifier(subscription.EntityPath);
+        }
+
+        return new InMemoryServiceBusSessionReceiver(session, options, DefaultMaxWaitTime, Provider);
     }
 
     #endregion
@@ -166,7 +177,13 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.SessionCannotBeLocked(FullyQualifiedNamespace, queue.EntityPath, sessionId);
         }
 
-        return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
+        options ??= new();
+        if (string.IsNullOrEmpty(options.Identifier))
+        {
+            options.Identifier = ServiceBusClientUtils.GenerateIdentifier(queue.EntityPath);
+        }
+
+        return new InMemoryServiceBusSessionReceiver(session, options, DefaultMaxWaitTime, Provider);
 
     }
 
@@ -186,7 +203,13 @@ public class InMemoryServiceBusClient : ServiceBusClient
             throw ServiceBusExceptionFactory.SessionCannotBeLocked(FullyQualifiedNamespace, subscription.EntityPath, sessionId);
         }
 
-        return new InMemoryServiceBusSessionReceiver(session, options ?? new(), DefaultMaxWaitTime, Provider);
+        options ??= new();
+        if (string.IsNullOrEmpty(options.Identifier))
+        {
+            options.Identifier = ServiceBusClientUtils.GenerateIdentifier(subscription.EntityPath);
+        }
+
+        return new InMemoryServiceBusSessionReceiver(session, options, DefaultMaxWaitTime, Provider);
 
     }
 
