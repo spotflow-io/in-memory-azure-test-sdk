@@ -260,3 +260,6 @@ paket-files/
 
 .ipynb_checkpoints/
 sln/Api/Properties/launchSettings.json
+
+# Claude
+.claude/
