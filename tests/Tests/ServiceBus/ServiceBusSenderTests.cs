@@ -9,7 +9,7 @@ using Tests.Utils;
 namespace Tests.ServiceBus;
 
 [TestClass]
-public partial class ServiceBusSenderTests
+public class ServiceBusSenderTests
 {
     [TestMethod]
     public async Task Constructor_Should_Succeed()
@@ -163,9 +163,6 @@ public partial class ServiceBusSenderTests
         var sender = client.CreateSender("test-queue");
 
         sender.Identifier.Should().StartWith("test-queue-");
-        sender.Identifier.Should().MatchRegex(IdentifierRegex());
+        sender.Identifier.Should().MatchRegex(ServiceBusClientIdentifierRegex.IdentifierRegex());
     }
-
-    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
-    private static partial Regex IdentifierRegex();
 }

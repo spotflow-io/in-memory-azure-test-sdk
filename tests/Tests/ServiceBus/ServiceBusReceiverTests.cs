@@ -12,7 +12,7 @@ namespace Tests.ServiceBus;
 
 
 [TestClass]
-public partial class ServiceBusReceiverTests
+public class ServiceBusReceiverTests
 {
     [TestMethod]
     public async Task Constructor_For_Queue_Should_Succeed()
@@ -409,9 +409,7 @@ public partial class ServiceBusReceiverTests
         var receiver = client.CreateReceiver("test-queue");
 
         receiver.Identifier.Should().StartWith("test-queue-");
-        receiver.Identifier.Should().MatchRegex(IdentifierRegex());
+        receiver.Identifier.Should().MatchRegex(ServiceBusClientIdentifierRegex.IdentifierRegex());
     }
 
-    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
-    private static partial Regex IdentifierRegex();
 }

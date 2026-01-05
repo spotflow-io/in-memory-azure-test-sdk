@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 using Azure.Messaging.ServiceBus;
 
 using Microsoft.Extensions.Time.Testing;
@@ -11,7 +9,7 @@ using Tests.Utils;
 namespace Tests.ServiceBus;
 
 [TestClass]
-public partial class ServiceBusSessionsReceiverTests
+public class ServiceBusSessionsReceiverTests
 {
 
     [TestMethod]
@@ -489,9 +487,6 @@ public partial class ServiceBusSessionsReceiverTests
         var receiver = await client.AcceptNextSessionAsync("test-queue");
 
         receiver.Identifier.Should().StartWith("test-queue-");
-        receiver.Identifier.Should().MatchRegex(IdentifierRegex());
+        receiver.Identifier.Should().MatchRegex(ServiceBusClientIdentifierRegex.IdentifierRegex());
     }
-
-    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
-    private static partial Regex IdentifierRegex();
 }

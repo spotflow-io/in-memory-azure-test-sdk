@@ -8,7 +8,7 @@ namespace Tests.ServiceBus;
 
 [TestClass]
 
-public partial class ServiceBusClientTests
+public class ServiceBusClientTests
 {
     [TestMethod]
     public async Task Constructor_With_Connection_String_Should_Succeed()
@@ -48,9 +48,6 @@ public partial class ServiceBusClientTests
         await using var client = new InMemoryServiceBusClient(queue.Namespace.GetConnectionString(), serviceBusProvider);
 
         client.Identifier.Should().StartWith($"{client.FullyQualifiedNamespace}-");
-        client.Identifier.Should().MatchRegex(IdentifierRegex());
+        client.Identifier.Should().MatchRegex(ServiceBusClientIdentifierRegex.IdentifierRegex());
     }
-
-    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
-    private static partial Regex IdentifierRegex();
 }
