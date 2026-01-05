@@ -20,7 +20,7 @@ public class InMemoryServiceBusSessionReceiver : ServiceBusSessionReceiver
         _store = session.Store;
         _defaultMaxWaitTime = defaultMaxWaitTime;
         ReceiveMode = options.ReceiveMode;
-        _identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(session.FullyQualifiedNamespace) : options.Identifier;
+        _identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(session.EntityPath) : options.Identifier;
         _prefetchCount = options.PrefetchCount;
         Provider = provider;
     }
