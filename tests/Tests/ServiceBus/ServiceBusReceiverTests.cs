@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 using Azure.Messaging.ServiceBus;
 
 using FluentAssertions.Execution;
@@ -10,7 +12,7 @@ namespace Tests.ServiceBus;
 
 
 [TestClass]
-public class ServiceBusReceiverTests
+public partial class ServiceBusReceiverTests
 {
     [TestMethod]
     public async Task Constructor_For_Queue_Should_Succeed()
@@ -378,4 +380,38 @@ public class ServiceBusReceiverTests
 
     }
 
+    [TestMethod]
+    public async Task Identifier_Can_Be_Provided_Explicitly()
+    {
+        var serviceBusProvider = new InMemoryServiceBusProvider();
+        var queue = serviceBusProvider.AddNamespace().AddQueue("test-queue");
+        var options = new ServiceBusClientOptions
+        {
+            Identifier = "some-identifier",
+        };
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, options);
+
+        var receiver = client.CreateReceiver("test-queue", new ServiceBusReceiverOptions()
+        {
+            Identifier = "some-other-identifier"
+        });
+
+        receiver.Identifier.Should().Be("some-other-identifier");
+    }
+
+    [TestMethod]
+    public async Task Identifier_Is_Generated_From_Namespace()
+    {
+        var serviceBusProvider = new InMemoryServiceBusProvider();
+        var queue = serviceBusProvider.AddNamespace().AddQueue("test-queue");
+        await using var client = new InMemoryServiceBusClient(queue.Namespace.GetConnectionString(), serviceBusProvider);
+
+        var receiver = client.CreateReceiver("test-queue");
+
+        receiver.Identifier.Should().StartWith("test-queue-");
+        receiver.Identifier.Should().MatchRegex(IdentifierRegex());
+    }
+
+    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
+    private static partial Regex IdentifierRegex();
 }

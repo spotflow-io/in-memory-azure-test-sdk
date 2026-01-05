@@ -66,7 +66,7 @@ public class InMemoryServiceBusReceiver : ServiceBusReceiver
         ReceiveMode = options.ReceiveMode;
         _prefetchCount = options.PrefetchCount;
         _defaultMaxWaitTime = client.DefaultMaxWaitTime;
-        _identifier = options.Identifier ?? Guid.NewGuid().ToString();
+        _identifier = string.IsNullOrEmpty(options.Identifier) ? ServiceBusClientUtils.GenerateIdentifier(entityPath): options.Identifier;
         _getStore = getStore;
         Provider = client.Provider;
         _scope = new(Provider.GetNamespaceNameFromHostname(client.FullyQualifiedNamespace), EntityPath, isTopicSubscription);

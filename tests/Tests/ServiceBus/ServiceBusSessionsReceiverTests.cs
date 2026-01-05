@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 using Azure.Messaging.ServiceBus;
 
 using Microsoft.Extensions.Time.Testing;
@@ -9,7 +11,7 @@ using Tests.Utils;
 namespace Tests.ServiceBus;
 
 [TestClass]
-public class ServiceBusSessionsReceiverTests
+public partial class ServiceBusSessionsReceiverTests
 {
 
     [TestMethod]
@@ -433,4 +435,63 @@ public class ServiceBusSessionsReceiverTests
             .WithMessage("No session available*");
     }
 
+    [TestMethod]
+    public async Task Identifier_Is_Not_Inherited_From_Client()
+    {
+        var serviceBusProvider = new InMemoryServiceBusProvider();
+        var queue = serviceBusProvider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, });
+        var options = new ServiceBusClientOptions
+        {
+            Identifier = "some-identifier",
+        };
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, options);
+        await using var sender = client.CreateSender("test-queue");
+
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("message-1")) { SessionId = "session-1" });
+
+        var receiver = await client.AcceptNextSessionAsync("test-queue");
+
+        receiver.Identifier.Should().NotBe("some-identifier");
+    }
+
+    [TestMethod]
+    public async Task Identifier_Can_Be_Provided_Explicitly()
+    {
+        var serviceBusProvider = new InMemoryServiceBusProvider();
+        var queue = serviceBusProvider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, });
+        var options = new ServiceBusClientOptions
+        {
+            Identifier = "some-identifier",
+        };
+        await using var client = InMemoryServiceBusClient.FromNamespace(queue.Namespace, options);
+        await using var sender = client.CreateSender("test-queue");
+
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("message-1")) { SessionId = "session-1" });
+
+        var receiver = await client.AcceptNextSessionAsync("test-queue", new ServiceBusSessionReceiverOptions()
+        {
+            Identifier = "some-other-identifier"
+        });
+
+        receiver.Identifier.Should().Be("some-other-identifier");
+    }
+
+    [TestMethod]
+    public async Task Identifier_Is_Generated_From_Namespace()
+    {
+        var serviceBusProvider = new InMemoryServiceBusProvider();
+        var queue = serviceBusProvider.AddNamespace().AddQueue("test-queue", new() { EnableSessions = true, });
+        await using var client = new InMemoryServiceBusClient(queue.Namespace.GetConnectionString(), serviceBusProvider);
+        await using var sender = client.CreateSender("test-queue");
+
+        await sender.SendMessageAsync(new ServiceBusMessage(BinaryData.FromString("message-1")) { SessionId = "session-1" });
+
+        var receiver = await client.AcceptNextSessionAsync("test-queue");
+
+        receiver.Identifier.Should().StartWith("test-queue-");
+        receiver.Identifier.Should().MatchRegex(IdentifierRegex());
+    }
+
+    [GeneratedRegex("[A-Z0-9.]+-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", RegexOptions.IgnoreCase)]
+    private static partial Regex IdentifierRegex();
 }
