@@ -124,7 +124,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
     {
 
 
-        var canOverwrite = overwrite ?? conditions?.IfNoneMatch != ETag.All;
+        var canOverwrite = overwrite ?? (conditions?.IfNoneMatch != ETag.All);
 
         if (_committedBlocks is not null && !canOverwrite)
         {
