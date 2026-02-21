@@ -354,7 +354,7 @@ internal class InMemoryBlockBlob(string blobName, InMemoryBlobContainer containe
         _properties = BlobsModelFactory.BlobProperties(
             contentLength: GetContent().ToMemory().Length,
             metadata: metadata ?? _properties?.Metadata ?? new Dictionary<string, string>(),
-            eTag: new ETag(Guid.NewGuid().ToString()),
+            eTag: new ETag($"\"{Guid.NewGuid()}\""),
             lastModified: now,
             contentType: headers?.ContentType ?? _properties?.ContentType ?? "application/octet-stream",
             contentEncoding: headers?.ContentEncoding ?? _properties?.ContentEncoding,

@@ -71,7 +71,7 @@ public class BlobClientTests
         {
             Conditions = new BlobRequestConditions
             {
-                IfMatch = new ETag(Guid.NewGuid().ToString())
+                IfMatch = new ETag($"\"{Guid.NewGuid()}\"")
             }
         };
 

@@ -90,7 +90,7 @@ internal class InMemoryTableEntity
             newInner.Add(key, value);
         }
 
-        newInner.ETag = new ETag(Guid.NewGuid().ToString());
+        newInner.ETag = new ETag($"\"{Guid.NewGuid()}\"");
         newInner.Timestamp = timestamp;
 
         return new(newInner);
