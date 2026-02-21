@@ -660,6 +660,11 @@ public class BlobClientTests
         properties.ContentEncoding.Should().BeNull();
         properties.BlobType.Should().Be(BlobType.Block);
         properties.Metadata.Should().NotBeNull().And.BeEmpty();
+
+        var explicitlyQuotedETag = new ETag(properties.ETag.ToString("H"));
+
+        explicitlyQuotedETag.Should().Be(properties.ETag);
+
     }
 
     [TestMethod]
