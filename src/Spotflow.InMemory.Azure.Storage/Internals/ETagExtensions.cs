@@ -1,6 +1,6 @@
 using Azure;
 
-namespace Spotflow.InMemory.Azure.Storage.Tables.Internals;
+namespace Spotflow.InMemory.Azure.Storage.Internals;
 
 internal static class ETagExtensions
 {

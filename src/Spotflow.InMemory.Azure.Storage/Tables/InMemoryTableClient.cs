@@ -7,6 +7,7 @@ using Azure.Data.Tables.Models;
 using Azure.Data.Tables.Sas;
 
 using Spotflow.InMemory.Azure.Internals;
+using Spotflow.InMemory.Azure.Storage.Internals;
 using Spotflow.InMemory.Azure.Storage.Resources;
 using Spotflow.InMemory.Azure.Storage.Tables.Hooks;
 using Spotflow.InMemory.Azure.Storage.Tables.Hooks.Contexts;

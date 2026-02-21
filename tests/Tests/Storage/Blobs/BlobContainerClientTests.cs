@@ -111,11 +111,11 @@ public class BlobContainerClientTests
     {
         var serviceClient = ImplementationProvider.GetBlobServiceClient();
 
-        var containerName = "abc-def";
+        var containerName = "test-container-properties";
 
         var containerClient = serviceClient.GetBlobContainerClient(containerName);
 
-        containerClient.Create(metadata: new Dictionary<string, string> { { "Property1", "Value1" } });
+        containerClient.CreateIfNotExists(metadata: new Dictionary<string, string> { { "Property1", "Value1" } });
 
         var properties = containerClient.GetProperties();
 

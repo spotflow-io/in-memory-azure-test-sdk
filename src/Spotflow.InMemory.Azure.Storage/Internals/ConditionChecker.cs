@@ -2,8 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 
 using Azure;
 
-using Spotflow.InMemory.Azure.Storage.Tables.Internals;
-
 namespace Spotflow.InMemory.Azure.Storage.Internals;
 
 internal static class ConditionChecker
