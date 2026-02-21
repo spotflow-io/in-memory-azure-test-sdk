@@ -302,6 +302,35 @@ public class BlobClientTests
 
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void Download_Content_Should_Return_Metadata(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        blobClient.Exists().Value.Should().BeFalse();
+
+        var metadata = new Dictionary<string, string> { { "TestKey", "test-value" } };
+
+        using var stream = OpenWrite(blobClient, true, metadata);
+
+        stream.Dispose();
+
+        var downloadResult = blobClient.DownloadContent();
+
+        downloadResult.Value.Details.Metadata.Should().NotBeNull();
+        downloadResult.Value.Details.Metadata.Should().HaveCount(1);
+        downloadResult.Value.Details.Metadata.Should().Contain("TestKey", "test-value");
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
