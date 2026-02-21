@@ -461,7 +461,8 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
             contentLength: content.ToMemory().Length,
             eTag: properties.ETag,
             lastModified: properties.LastModified,
-            content: contentStream
+            content: contentStream,
+            metadata: properties.Metadata
             );
     }
 
