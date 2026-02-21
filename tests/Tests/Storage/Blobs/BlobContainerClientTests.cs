@@ -107,6 +107,30 @@ public class BlobContainerClientTests
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
+    public void GetProperties_For_Existing_Container_Should_Succeed()
+    {
+        var serviceClient = ImplementationProvider.GetBlobServiceClient();
+
+        var containerName = "abc-def";
+
+        var containerClient = serviceClient.GetBlobContainerClient(containerName);
+
+        containerClient.Create(metadata: new Dictionary<string, string> { { "Property1", "Value1" } });
+
+        var properties = containerClient.GetProperties();
+
+        properties.Should().NotBeNull();
+        properties.Value.ETag.Should().NotBeNull();
+        properties.Value.Metadata.Should().HaveCount(1);
+        properties.Value.Metadata.Should().ContainKey("Property1").WhoseValue.Should().Be("Value1");
+
+        var explicitlyQuotedEtag = new ETag(properties.Value.ETag.ToString("H"));
+
+        explicitlyQuotedEtag.Should().Be(properties.Value.ETag);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
     public async Task GetBlobClient_Should_Return_Working_Client()
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -348,6 +372,7 @@ public class BlobContainerClientTests
         {
             ["myProperty"] = "test"
         });
+
     }
 
     [TestMethod]

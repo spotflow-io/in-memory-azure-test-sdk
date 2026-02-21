@@ -121,6 +121,11 @@ public class TableClientTests
         var fetchedEntity = tableClient.GetEntity<TableEntity>(partitionKey, "rk").Value;
 
         fetchedEntity.GetInt32("TestProperty").Should().Be(42);
+
+        var explicitlyQuotedETag = new ETag(fetchedEntity.ETag.ToString("H"));
+
+        explicitlyQuotedETag.Should().Be(fetchedEntity.ETag);
+
     }
 
     [TestMethod]

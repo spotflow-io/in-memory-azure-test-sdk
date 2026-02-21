@@ -12,7 +12,7 @@ internal class InMemoryBlobContainer(string name, IDictionary<string, string>? m
 
     private readonly BlobContainerProperties _properties = BlobsModelFactory.BlobContainerProperties(
             lastModified: service.Account.Provider.TimeProvider.GetUtcNow(),
-            eTag: new ETag(Guid.NewGuid().ToString()),
+            eTag: new ETag($"\"{Guid.NewGuid()}\""),
             metadata: metadata);
 
     public string Name { get; } = name;

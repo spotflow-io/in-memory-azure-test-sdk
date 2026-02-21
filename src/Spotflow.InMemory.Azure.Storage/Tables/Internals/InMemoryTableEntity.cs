@@ -81,24 +81,6 @@ internal class InMemoryTableEntity
         return new(newInner);
     }
 
-    public InMemoryTableEntity WithNewETagAndTimestamp(DateTimeOffset timestamp)
-    {
-        var newInner = new TableEntity();
-
-        foreach (var (key, value) in _inner)
-        {
-            newInner.Add(key, value);
-        }
-
-        newInner.ETag = new ETag(Guid.NewGuid().ToString());
-        newInner.Timestamp = timestamp;
-
-        return new(newInner);
-    }
-
-
-
-
     public T ToAzureTableEntity<T>() where T : ITableEntity
     {
         if (typeof(T) == typeof(TableEntity))
