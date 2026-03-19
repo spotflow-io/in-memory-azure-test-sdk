@@ -384,7 +384,7 @@ public class BlobFluentAssertionsTests
 
         act.Should()
             .Throw<AssertionFailedException>()
-            .WithMessage("Expected block.Name to be the same string, but they differ at index 0*");
+            .WithMessage("Expected * to be the same string, but they differ at index 0*");
 
     }
 
