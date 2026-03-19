@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           lfs: true
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
       - name: Restore
@@ -82,7 +82,7 @@ jobs:
           Get-ChildItem ./nugets -Filter '*.nupkg' | ForEach-Object { dotnet-validate package local $_ }
         shell: pwsh
       - name: Upload Nugets as Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: ${{ needs.init.outputs.publish-nuget-org == 'true' || needs.init.outputs.publish-github == 'true'}}
         with:
           name: nugets
@@ -100,7 +100,7 @@ jobs:
       TreatWarningsAsErrors: true
     steps:
       - uses: actions/checkout@v6
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -123,7 +123,7 @@ jobs:
     environment: nuget-org
     steps:
       - name: Download Nugets
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: nugets
       - name: Push Nugets
@@ -137,7 +137,7 @@ jobs:
     if: ${{ needs.init.outputs.publish-github == 'true' }}
     steps:
       - name: Download Nugets
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: nugets
       - name: Push Nugets
