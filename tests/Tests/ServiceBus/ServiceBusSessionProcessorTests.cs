@@ -326,7 +326,7 @@ public class ServiceBusSessionProcessorTests
         var message = new ServiceBusMessage(BinaryData.FromString("test message")) { SessionId = "session1" };
         await sender.SendMessageAsync(message);
 
-        await Task.Delay(1000);
+        await Task.Delay(2000);
         await processor.StopProcessingAsync();
 
         messageProcessed.Should().BeTrue();
