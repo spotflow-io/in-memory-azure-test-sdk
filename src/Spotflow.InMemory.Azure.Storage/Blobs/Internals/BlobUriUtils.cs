@@ -59,14 +59,14 @@ internal static class BlobUriUtils
         return builder.ToUri();
     }
 
-    public static Uri GenerateBlobSasUri(Uri blobUri, string containerName, string blobName, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey)
+    public static Uri GenerateBlobSasUri(Uri blobUri, string containerName, string blobName, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey, out string stringToSign)
     {
         var sasBuilderCopy = DeepCopy(sasBuilder);
 
         sasBuilderCopy.BlobContainerName = containerName;
         sasBuilderCopy.BlobName = blobName;
 
-        var queryParameters = sasBuilderCopy.ToSasQueryParameters(sharedKey);
+        var queryParameters = sasBuilderCopy.ToSasQueryParameters(sharedKey, out stringToSign);
 
         var uriBuilder = new UriBuilder(blobUri)
         {
@@ -76,14 +76,14 @@ internal static class BlobUriUtils
         return uriBuilder.Uri;
     }
 
-    public static Uri GenerateContainerSasUri(Uri containerUri, string containerName, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey)
+    public static Uri GenerateContainerSasUri(Uri containerUri, string containerName, BlobSasBuilder sasBuilder, StorageSharedKeyCredential sharedKey, out string stringToSign)
     {
         var sasBuilderCopy = DeepCopy(sasBuilder);
 
         sasBuilderCopy.BlobContainerName = containerName;
         sasBuilderCopy.BlobName = null;
 
-        var queryParameters = sasBuilderCopy.ToSasQueryParameters(sharedKey);
+        var queryParameters = sasBuilderCopy.ToSasQueryParameters(sharedKey, out stringToSign);
 
         var uriBuilder = new UriBuilder(containerUri)
         {

@@ -476,20 +476,24 @@ public class InMemoryBlockBlobClient : BlockBlobClient
 
     #region SAS
 
-    public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn)
+    public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn) => GenerateSasUri(permissions, expiresOn, out _);
+
+    public override Uri GenerateSasUri(BlobSasBuilder builder) => GenerateSasUri(builder, out _);
+
+    public override Uri GenerateSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn, out string stringToSign)
     {
         var blobSasBuilder = new BlobSasBuilder(permissions, expiresOn);
-        return GenerateSasUri(blobSasBuilder);
+        return GenerateSasUri(blobSasBuilder, out stringToSign);
     }
 
-    public override Uri GenerateSasUri(BlobSasBuilder builder)
+    public override Uri GenerateSasUri(BlobSasBuilder builder, out string stringToSign)
     {
         if (!CanGenerateSasUri)
         {
             throw BlobExceptionFactory.SharedKeyCredentialNotSet();
         }
 
-        return BlobUriUtils.GenerateBlobSasUri(Uri, BlobContainerName, Name, builder, _sharedKey);
+        return BlobUriUtils.GenerateBlobSasUri(Uri, BlobContainerName, Name, builder, _sharedKey, out stringToSign);
     }
 
     #endregion
@@ -804,6 +808,36 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     }
 
     public override Task<Response<BlobContentInfo>> SyncUploadFromUriAsync(Uri copySource, BlobSyncUploadFromUriOptions options, CancellationToken cancellationToken = default)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Response<AccountInfo> GetAccountInfo(CancellationToken cancellationToken = default)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Task<Response<AccountInfo>> GetAccountInfoAsync(CancellationToken cancellationToken = default)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn, UserDelegationKey userDelegationKey)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasPermissions permissions, DateTimeOffset expiresOn, UserDelegationKey userDelegationKey, out string stringToSign)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasBuilder builder, UserDelegationKey userDelegationKey)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasBuilder builder, UserDelegationKey userDelegationKey, out string stringToSign)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }

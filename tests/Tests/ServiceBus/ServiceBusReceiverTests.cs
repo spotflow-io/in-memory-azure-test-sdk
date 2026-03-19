@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 using Azure.Messaging.ServiceBus;
 
 using FluentAssertions.Execution;

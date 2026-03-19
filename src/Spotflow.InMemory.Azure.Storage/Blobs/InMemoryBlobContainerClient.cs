@@ -244,7 +244,19 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix, traits, states);
+        var options = new GetBlobsOptions
+        {
+            Prefix = prefix,
+            Traits = traits,
+            States = states
+        };
+
+        return GetBlobsAsync(options, cancellationToken);
+    }
+
+    public override AsyncPageable<BlobItem> GetBlobsAsync(GetBlobsOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var blobs = GetBlobsCore(options);
         return new InMemoryPageable.YieldingAsync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
@@ -254,14 +266,29 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var blobs = GetBlobsCore(prefix, traits, states);
+        var options = new GetBlobsOptions
+        {
+            Prefix = prefix,
+            Traits = traits,
+            States = states
+        };
+
+        return GetBlobs(options, cancellationToken);
+    }
+
+    public override Pageable<BlobItem> GetBlobs(GetBlobsOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var blobs = GetBlobsCore(options);
         return new InMemoryPageable.Sync<BlobItem>(blobs, _defaultMaxPageSize);
     }
 
-
-    private IReadOnlyList<BlobItem> GetBlobsCore(string? prefix, BlobTraits traits, BlobStates states)
+    private IReadOnlyList<BlobItem> GetBlobsCore(GetBlobsOptions? options)
     {
         var container = GetContainer();
+
+        var prefix = options?.Prefix;
+        var traits = options?.Traits ?? BlobTraits.None;
+        var states = options?.States ?? BlobStates.None;
 
         if (traits != BlobTraits.Metadata && traits != BlobTraits.None)
         {
@@ -273,6 +300,11 @@ public class InMemoryBlobContainerClient : BlobContainerClient
             throw BlobExceptionFactory.FeatureNotSupported($"States flags other than {nameof(BlobStates.Uncommitted)}");
         }
 
+        if (options?.StartFrom is not null)
+        {
+            throw BlobExceptionFactory.FeatureNotSupported($"{nameof(GetBlobsOptions.StartFrom)}");
+        }
+
         return container.GetBlobs(
             prefix,
             includeMetadata: traits.HasFlag(BlobTraits.Metadata),
@@ -282,16 +314,6 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     #endregion
 
     #region Get Blobs By Hierarchy
-    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(
-        BlobTraits traits = BlobTraits.None,
-        BlobStates states = BlobStates.None,
-        string? delimiter = null,
-        string? prefix = null,
-        CancellationToken cancellationToken = default)
-    {
-        var items = GetBlobsByHierarchyCoreAsync(traits, states, delimiter, prefix, cancellationToken).EnsureCompleted();
-        return new InMemoryPageable.Sync<BlobHierarchyItem>(items, _defaultMaxPageSize);
-    }
 
     public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(
         BlobTraits traits = BlobTraits.None,
@@ -300,20 +322,67 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         string? prefix = null,
         CancellationToken cancellationToken = default)
     {
-        var items = GetBlobsByHierarchyCoreAsync(traits, states, delimiter, prefix, cancellationToken).EnsureCompleted();
+        var options = new GetBlobsByHierarchyOptions
+        {
+            Prefix = prefix,
+            Delimiter = delimiter,
+            Traits = traits,
+            States = states
+        };
+
+        return GetBlobsByHierarchyAsync(options, cancellationToken);
+    }
+
+    public override AsyncPageable<BlobHierarchyItem> GetBlobsByHierarchyAsync(GetBlobsByHierarchyOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var items = GetBlobsByHierarchyCoreAsync(options).EnsureCompleted();
         return new InMemoryPageable.YieldingAsync<BlobHierarchyItem>(items, _defaultMaxPageSize);
     }
 
-    private async Task<IReadOnlyList<BlobHierarchyItem>> GetBlobsByHierarchyCoreAsync(
-        BlobTraits traits,
-        BlobStates states,
-        string? delimiter,
-        string? prefix,
-        CancellationToken cancellationToken)
+    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(
+        BlobTraits traits = BlobTraits.None,
+        BlobStates states = BlobStates.None,
+        string? delimiter = null,
+        string? prefix = null,
+        CancellationToken cancellationToken = default)
+    {
+
+        var options = new GetBlobsByHierarchyOptions
+        {
+            Prefix = prefix,
+            Delimiter = delimiter,
+            Traits = traits,
+            States = states
+        };
+
+        return GetBlobsByHierarchy(options, cancellationToken);
+    }
+
+    public override Pageable<BlobHierarchyItem> GetBlobsByHierarchy(GetBlobsByHierarchyOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var items = GetBlobsByHierarchyCoreAsync(options).EnsureCompleted();
+        return new InMemoryPageable.Sync<BlobHierarchyItem>(items, _defaultMaxPageSize);
+    }
+
+
+    private async Task<IReadOnlyList<BlobHierarchyItem>> GetBlobsByHierarchyCoreAsync(GetBlobsByHierarchyOptions? options)
     {
         await Task.Yield();
 
-        var blobs = GetBlobsCore(prefix, traits, states);
+        var prefix = options?.Prefix;
+
+        var simpleOptions = new GetBlobsOptions
+        {
+            Prefix = prefix,
+            Traits = options?.Traits ?? BlobTraits.None,
+            States = options?.States ?? BlobStates.None,
+            StartFrom = options?.StartFrom
+        };
+
+        var blobs = GetBlobsCore(simpleOptions);
+
+        var delimiter = options?.Delimiter;
+
 
         if (delimiter is null)
         {
@@ -457,20 +526,24 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     #region SAS
 
-    public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn)
+    public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn) => GenerateSasUri(permissions, expiresOn, out _);
+
+    public override Uri GenerateSasUri(BlobSasBuilder builder) => GenerateSasUri(builder, out _);
+
+    public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn, out string stringToSign)
     {
         var blobSasBuilder = new BlobSasBuilder(permissions, expiresOn);
-        return GenerateSasUri(blobSasBuilder);
+        return GenerateSasUri(blobSasBuilder, out stringToSign);
     }
 
-    public override Uri GenerateSasUri(BlobSasBuilder builder)
+    public override Uri GenerateSasUri(BlobSasBuilder builder, out string stringToSign)
     {
         if (!CanGenerateSasUri)
         {
             throw BlobExceptionFactory.SharedKeyCredentialNotSet();
         }
 
-        return BlobUriUtils.GenerateContainerSasUri(Uri, Name, builder, _sharedKey);
+        return BlobUriUtils.GenerateContainerSasUri(Uri, Name, builder, _sharedKey, out stringToSign);
     }
 
     #endregion
@@ -509,6 +582,15 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     {
         var properties = container.GetProperties();
         return BlobsModelFactory.BlobContainerInfo(properties.ETag, properties.LastModified);
+    }
+    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ContainerBeforeHookContext
+    {
+        return Provider.ExecuteHooksAsync(context);
+    }
+
+    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ContainerAfterHookContext
+    {
+        return Provider.ExecuteHooksAsync(context);
     }
 
     #region Unsupported
@@ -588,17 +670,36 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         throw BlobExceptionFactory.MethodNotSupported();
     }
 
+    public override Response<AccountInfo> GetAccountInfo(CancellationToken cancellationToken = default)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Task<Response<AccountInfo>> GetAccountInfoAsync(CancellationToken cancellationToken = default)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn, UserDelegationKey userDelegationKey)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn, UserDelegationKey userDelegationKey, out string stringToSign)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasBuilder builder, UserDelegationKey userDelegationKey)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
+    public override Uri GenerateUserDelegationSasUri(BlobSasBuilder builder, UserDelegationKey userDelegationKey, out string stringToSign)
+    {
+        throw BlobExceptionFactory.MethodNotSupported();
+    }
+
     #endregion
-
-    private Task ExecuteBeforeHooksAsync<TContext>(TContext context) where TContext : ContainerBeforeHookContext
-    {
-        return Provider.ExecuteHooksAsync(context);
-    }
-
-    private Task ExecuteAfterHooksAsync<TContext>(TContext context) where TContext : ContainerAfterHookContext
-    {
-        return Provider.ExecuteHooksAsync(context);
-    }
-
 
 }

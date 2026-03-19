@@ -202,7 +202,7 @@ public class BlobContainerClientTests
             blockBlobClient.StageBlock(Convert.ToBase64String([1]), BinaryData.FromString("test").ToStream());
         }
 
-        containerClient.GetBlobs(prefix: blobNamePrefix, states: states)
+        containerClient.GetBlobs(traits: BlobTraits.None, prefix: blobNamePrefix, states: states, cancellationToken: default)
             .Should()
             .HaveCount(expectedTotalCount);
     }
@@ -232,7 +232,7 @@ public class BlobContainerClientTests
             .Select(i => $"{blobNamePrefix}_{i:D10}")
             .ToList();
 
-        containerClient.GetBlobs(prefix: blobNamePrefix).Select(b => b.Name).Should().Equal(blobNamesSorted);
+        containerClient.GetBlobs(states: BlobStates.None, traits: BlobTraits.None, prefix: blobNamePrefix, cancellationToken: default).Select(b => b.Name).Should().Equal(blobNamesSorted);
     }
 
 
@@ -258,7 +258,7 @@ public class BlobContainerClientTests
             blobClient.Upload(BinaryData.FromString("test"));
         }
 
-        containerClient.GetBlobs().Should().HaveCount(numberOfBlobs);
+        containerClient.GetBlobs(states: BlobStates.None, traits: BlobTraits.None).Should().HaveCount(numberOfBlobs);
 
         var expectedNumberOfPages = (int) Math.Ceiling((double) numberOfBlobs / pageSizeHint);
 
@@ -356,7 +356,7 @@ public class BlobContainerClientTests
             }
         });
 
-        var blobs = containerClient.GetBlobs(prefix: blobNamePrefix, traits: BlobTraits.Metadata).ToList();
+        var blobs = containerClient.GetBlobs(states: BlobStates.None, prefix: blobNamePrefix, traits: BlobTraits.Metadata, cancellationToken: default).ToList();
 
         blobs.Should().HaveCount(1);
         var blob = blobs[0];
@@ -389,7 +389,7 @@ public class BlobContainerClientTests
         var blockId = Convert.ToBase64String(Encoding.UTF8.GetBytes("test-block-id"));
         blobClient.StageBlock(blockId, BinaryData.FromString("test").ToStream());
 
-        var blobs = containerClient.GetBlobs(prefix: blobNamePrefix, traits: BlobTraits.Metadata, states: BlobStates.Uncommitted).ToList();
+        var blobs = containerClient.GetBlobs(prefix: blobNamePrefix, traits: BlobTraits.Metadata, states: BlobStates.Uncommitted, cancellationToken: default).ToList();
 
         blobs.Should().HaveCount(1);
         var blob = blobs[0];
@@ -454,11 +454,11 @@ public class BlobContainerClientTests
 
         containerClient.UploadBlob(blobName, BinaryData.FromString("test"));
 
-        containerClient.GetBlobs(prefix: blobName).Should().HaveCount(1);
+        containerClient.GetBlobs(states: BlobStates.None, traits: BlobTraits.None, prefix: blobName, cancellationToken: default).Should().HaveCount(1);
 
         containerClient.DeleteBlob(blobName);
 
-        containerClient.GetBlobs(prefix: blobName).Should().BeEmpty();
+        containerClient.GetBlobs(states: BlobStates.None, traits: BlobTraits.None, prefix: blobName, cancellationToken: default).Should().BeEmpty();
     }
 
     [TestMethod]
@@ -592,7 +592,7 @@ public class BlobContainerClientTests
 
         var sasUri = client.GenerateSasUri(BlobContainerSasPermissions.Read, new DateTimeOffset(2025, 01, 03, 17, 46, 00, TimeSpan.Zero));
 
-        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container?sv=2024-05-04&se=2025-01-03T17%3A46%3A00Z&sr=c&sp=r&sig=*";
+        var expectedUri = $"https://testaccount.blob.storage.in-memory.example.com/test-container?sv=2026-02-06&se=2025-01-03T17%3A46%3A00Z&sr=c&sp=r&sig=*";
 
         sasUri.ToString().Should().Match(expectedUri);
     }
@@ -624,7 +624,7 @@ public class BlobContainerClientTests
 
         var queryPrefix = $"{testPrefix}{prefix}";
 
-        var actualItems = client.GetBlobsByHierarchy(prefix: queryPrefix, delimiter: delimiter).ToList();
+        var actualItems = client.GetBlobsByHierarchy(traits: BlobTraits.None, states: BlobStates.None, prefix: queryPrefix, delimiter: delimiter).ToList();
 
         ShouldHaveBlobsHierarchy(actualItems, expectedItems, testPrefix);
     }

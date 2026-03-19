@@ -34,6 +34,23 @@ public class InMemorySecretClient(Uri vaultUri, InMemoryKeyVaultProvider provide
         return await GetSecretCoreAsync(name, version, cancellationToken);
     }
 
+    public override Response<KeyVaultSecret> GetSecret(string name, string? version = null, SecretContentType? outContentType = null, CancellationToken cancellationToken = default)
+    {
+        return GetSecretAsync(name, version, outContentType, cancellationToken).EnsureCompleted();
+    }
+
+    public override async Task<Response<KeyVaultSecret>> GetSecretAsync(string name, string? version = null, SecretContentType? outContentType = null, CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+
+        if (outContentType is not null)
+        {
+            throw KeyVaultExceptionFactory.FeatureNotSupported("Specifying SecretContentType is not supported in InMemorySecretClient.");
+        }
+
+        return await GetSecretCoreAsync(name, version, cancellationToken);
+    }
+
     private async Task<Response<KeyVaultSecret>> GetSecretCoreAsync(string name, string? version, CancellationToken cancellationToken)
     {
         var scope = new SecretScope(VaultName, name);

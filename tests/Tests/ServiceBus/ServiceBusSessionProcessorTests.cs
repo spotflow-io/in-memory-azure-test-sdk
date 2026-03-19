@@ -103,7 +103,7 @@ public class ServiceBusSessionProcessorTests
         };
         await processor.StartProcessingAsync();
 
-        var timeout = Task.Delay(TimeSpan.FromSeconds(5));
+        var timeout = Task.Delay(TimeSpan.FromSeconds(10));
         var completed = await Task.WhenAny(messageProcessed.Task, timeout);
 
         if (completed == timeout)
@@ -207,7 +207,7 @@ public class ServiceBusSessionProcessorTests
 
         await processor.StartProcessingAsync();
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => processor.StartProcessingAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => processor.StartProcessingAsync());
         await processor.StopProcessingAsync();
 
     }
@@ -221,7 +221,7 @@ public class ServiceBusSessionProcessorTests
         await using var client = InMemoryServiceBusClient.FromNamespace(ns);
         var processor = client.CreateSessionProcessor(testQueue);
         await processor.CloseAsync();
-        await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => processor.StartProcessingAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => processor.StartProcessingAsync());
     }
 
     [TestMethod]

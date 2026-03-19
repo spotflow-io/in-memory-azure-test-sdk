@@ -260,7 +260,7 @@ public class SecretClientTests
         var client = InMemorySecretClient.FromVault(vault);
 
         client.SetSecret("name", "value");
-        client.GetSecret("name");
+        client.GetSecret("name", version: null, cancellationToken: default);
 
         capturedBeforeSet.Should().NotBeNull();
         capturedAfterSet.Should().NotBeNull();
