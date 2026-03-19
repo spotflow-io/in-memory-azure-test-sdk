@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.OData.Edm;
@@ -12,6 +13,11 @@ internal class TextQueryFilterMatcher
     private static readonly Uri _baseUri;
     private static readonly IEdmModel _edmModel;
     private static readonly string _defaultEntitySetName;
+
+    // Azure Table Storage uses OData v3-style typed literals: guid'...' and datetime'...'
+    // The OData v4 parser (Microsoft.OData.UriParser) expects raw UUID and ISO 8601 literals instead.
+    private static readonly Regex _guidLiteralPattern = new(@"\bguid'([^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex _dateTimeLiteralPattern = new(@"\bdatetime'([^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly SingleValueNode? _filterExpression;
     private readonly ILoggerFactory _loggerFactory;
@@ -29,6 +35,15 @@ internal class TextQueryFilterMatcher
         _edmModel = builder.GetEdmModel();
     }
 
+    private static string NormalizeFilter(string filter)
+    {
+        // Convert guid'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' → xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        filter = _guidLiteralPattern.Replace(filter, "$1");
+        // Convert datetime'2024-06-15T12:00:00Z' → 2024-06-15T12:00:00Z
+        filter = _dateTimeLiteralPattern.Replace(filter, "$1");
+        return filter;
+    }
+
     public TextQueryFilterMatcher(string? filter, ILoggerFactory loggerFactory)
     {
         if (filter is null)
@@ -37,6 +52,8 @@ internal class TextQueryFilterMatcher
         }
         else
         {
+            filter = NormalizeFilter(filter);
+
             var path = $"{_defaultEntitySetName}?{Uri.EscapeDataString("$filter")}={Uri.EscapeDataString(filter)}";
 
             var uri = new Uri(_baseUri, path);
@@ -181,8 +198,6 @@ internal class TextQueryFilterMatcher
 
     private abstract record InMemoryTableEntityPropertyValue
     {
-
-
         public virtual bool IsEqual(InMemoryTableEntityPropertyValue other) => this == other;
         public abstract bool IsLessThan(InMemoryTableEntityPropertyValue other);
         public abstract bool IsLessThanOrEqual(InMemoryTableEntityPropertyValue other);
@@ -236,6 +251,60 @@ internal class TextQueryFilterMatcher
             }
         }
 
+        public record Boolean(bool Value) : InMemoryTableEntityPropertyValue
+        {
+            public override bool IsGreaterThan(InMemoryTableEntityPropertyValue other) => Compare(other) > 0;
+            public override bool IsGreaterThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) >= 0;
+            public override bool IsLessThan(InMemoryTableEntityPropertyValue other) => Compare(other) < 0;
+            public override bool IsLessThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) <= 0;
+
+            private int? Compare(InMemoryTableEntityPropertyValue other)
+            {
+                if (other is not Boolean otherBoolean)
+                {
+                    return null;
+                }
+
+                return Value.CompareTo(otherBoolean.Value);
+            }
+        }
+
+        public record GuidValue(Guid Value) : InMemoryTableEntityPropertyValue
+        {
+            public override bool IsGreaterThan(InMemoryTableEntityPropertyValue other) => Compare(other) > 0;
+            public override bool IsGreaterThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) >= 0;
+            public override bool IsLessThan(InMemoryTableEntityPropertyValue other) => Compare(other) < 0;
+            public override bool IsLessThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) <= 0;
+
+            private int? Compare(InMemoryTableEntityPropertyValue other)
+            {
+                if (other is not GuidValue otherGuid)
+                {
+                    return null;
+                }
+
+                return Value.CompareTo(otherGuid.Value);
+            }
+        }
+
+        public record DateTimeOffsetValue(DateTimeOffset Value) : InMemoryTableEntityPropertyValue
+        {
+            public override bool IsGreaterThan(InMemoryTableEntityPropertyValue other) => Compare(other) > 0;
+            public override bool IsGreaterThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) >= 0;
+            public override bool IsLessThan(InMemoryTableEntityPropertyValue other) => Compare(other) < 0;
+            public override bool IsLessThanOrEqual(InMemoryTableEntityPropertyValue other) => Compare(other) <= 0;
+
+            private int? Compare(InMemoryTableEntityPropertyValue other)
+            {
+                if (other is not DateTimeOffsetValue otherDto)
+                {
+                    return null;
+                }
+
+                return Value.CompareTo(otherDto.Value);
+            }
+        }
+
         public record Double(double Value) : InMemoryTableEntityPropertyValue
         {
 
@@ -275,6 +344,9 @@ internal class TextQueryFilterMatcher
                 long v => new Integer(v),
                 double v => new Double(v),
                 float v => new Double(v),
+                bool v => new Boolean(v),
+                Guid v => new GuidValue(v),
+                DateTimeOffset v => new DateTimeOffsetValue(v),
                 _ => null
             };
 

@@ -44,6 +44,8 @@ public class TableClientTests_Query
     [DataRow("PartitionKey eq '{prefix}_A' and customProperty2 eq 42", 1, DisplayName = "Range query on custom integer property.")]
     [DataRow("PartitionKey eq '{prefix}_B' and customProperty3 eq 42.42d", 1, DisplayName = "Range query on custom double property.")]
     [DataRow("PartitionKey eq '{prefix}_A' and RowKey ge 'rk1' and RowKey lt 'rk3'", 2, DisplayName = "Range query with RowKey range condition.")]
+    [DataRow("PartitionKey eq '{prefix}_B' and customProperty4 eq guid'7d8a1f3e-4b2c-4d5e-8f6a-9b0c1d2e3f4a'", 1, DisplayName = "Range query on custom guid property.")]
+    [DataRow("PartitionKey eq '{prefix}_A' and customProperty5 eq datetime'2024-06-15T12:00:00Z'", 1, DisplayName = "Range query on custom datetime property.")]
     public void Query_Entities_With_String_Should_Succeed(string query, int numberOfResults)
     {
         var tableClient = ImplementationProvider.GetTableClient();
@@ -52,9 +54,9 @@ public class TableClientTests_Query
 
         var partitionKeyPrefix = Guid.NewGuid().ToString();
 
-        tableClient.AddEntity(new TableEntity($"{partitionKeyPrefix}_A", "rk1") { ["customProperty1"] = "test" });
+        tableClient.AddEntity(new TableEntity($"{partitionKeyPrefix}_A", "rk1") { ["customProperty1"] = "test", ["customProperty5"] = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.Zero) });
         tableClient.AddEntity(new TableEntity($"{partitionKeyPrefix}_A", "rk2") { ["customProperty2"] = 42 });
-        tableClient.AddEntity(new TableEntity($"{partitionKeyPrefix}_B", "rk1") { ["customProperty3"] = 42.42d });
+        tableClient.AddEntity(new TableEntity($"{partitionKeyPrefix}_B", "rk1") { ["customProperty3"] = 42.42d, ["customProperty4"] = new Guid("7d8a1f3e-4b2c-4d5e-8f6a-9b0c1d2e3f4a") });
 
         var prefixedQuery = query.Replace("{prefix}", partitionKeyPrefix);
 
@@ -167,6 +169,79 @@ public class TableClientTests_Query
         var equal_success = matcher("customProperty eq 3.141");
         var equal_fail = matcher("customProperty eq 3.15");
         var equal_undefined = matcher("customProperty eq '3.141'");
+
+        lessThan_success.IsMatch(entity).Should().BeTrue();
+        lessThan_fail.IsMatch(entity).Should().BeFalse();
+        lessThan_undefined.IsMatch(entity).Should().BeFalse();
+        lessThanOrEqual_success.IsMatch(entity).Should().BeTrue();
+        lessThanOrEqual_fail.IsMatch(entity).Should().BeFalse();
+        lessThanOrEqual_undefined.IsMatch(entity).Should().BeFalse();
+        greaterThan_success.IsMatch(entity).Should().BeTrue();
+        greaterThan_fail.IsMatch(entity).Should().BeFalse();
+        greaterThan_undefined.IsMatch(entity).Should().BeFalse();
+        greaterThanOrEqual_success.IsMatch(entity).Should().BeTrue();
+        greaterThanOrEqual_fail.IsMatch(entity).Should().BeFalse();
+        greaterThanOrEqual_undefined.IsMatch(entity).Should().BeFalse();
+        equal_success.IsMatch(entity).Should().BeTrue();
+        equal_fail.IsMatch(entity).Should().BeFalse();
+        equal_undefined.IsMatch(entity).Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Query_Matcher_Operators_For_Booleans_Should_Be_Correct()
+    {
+        var entity = InMemoryTableEntity.CreateNew(new TableEntity("pk", "rk") { ["customProperty"] = true }, TimeProvider.System);
+
+        static TextQueryFilterMatcher matcher(string query) => new(query, NullLoggerFactory.Instance);
+        var equal_success = matcher("customProperty eq true");
+        var equal_fail = matcher("customProperty eq false");
+        var equal_undefined = matcher("customProperty eq '42'");
+
+        equal_success.IsMatch(entity).Should().BeTrue();
+        equal_fail.IsMatch(entity).Should().BeFalse();
+        equal_undefined.IsMatch(entity).Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Query_Matcher_Operators_For_Guids_Should_Be_Correct()
+    {
+        var guid = new Guid("7d8a1f3e-4b2c-4d5e-8f6a-9b0c1d2e3f4a");
+        var entity = InMemoryTableEntity.CreateNew(new TableEntity("pk", "rk") { ["customProperty"] = guid }, TimeProvider.System);
+
+        static TextQueryFilterMatcher matcher(string query) => new(query, NullLoggerFactory.Instance);
+
+        var equal_success = matcher("customProperty eq guid'7d8a1f3e-4b2c-4d5e-8f6a-9b0c1d2e3f4a'");
+        var equal_fail = matcher("customProperty eq guid'00000000-0000-0000-0000-000000000000'");
+        var equal_undefined = matcher("customProperty eq '7d8a1f3e-4b2c-4d5e-8f6a-9b0c1d2e3f4a'");
+
+        equal_success.IsMatch(entity).Should().BeTrue();
+        equal_fail.IsMatch(entity).Should().BeFalse();
+        equal_undefined.IsMatch(entity).Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Query_Matcher_Operators_For_DateTimeOffsets_Should_Be_Correct()
+    {
+        var value = new DateTimeOffset(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
+        var entity = InMemoryTableEntity.CreateNew(new TableEntity("pk", "rk") { ["customProperty"] = value }, TimeProvider.System);
+
+        static TextQueryFilterMatcher matcher(string query) => new(query, NullLoggerFactory.Instance);
+
+        var lessThan_success = matcher("customProperty lt datetime'2024-06-16T00:00:00Z'");
+        var lessThan_fail = matcher("customProperty lt datetime'2024-06-15T12:00:00Z'");
+        var lessThan_undefined = matcher("customProperty lt '2024-06-16T00:00:00Z'");
+        var lessThanOrEqual_success = matcher("customProperty le datetime'2024-06-15T12:00:00Z'");
+        var lessThanOrEqual_fail = matcher("customProperty le datetime'2024-06-15T11:00:00Z'");
+        var lessThanOrEqual_undefined = matcher("customProperty le '2024-06-15T12:00:00Z'");
+        var greaterThan_success = matcher("customProperty gt datetime'2024-06-15T11:00:00Z'");
+        var greaterThan_fail = matcher("customProperty gt datetime'2024-06-15T12:00:00Z'");
+        var greaterThan_undefined = matcher("customProperty gt '2024-06-15T11:00:00Z'");
+        var greaterThanOrEqual_success = matcher("customProperty ge datetime'2024-06-15T12:00:00Z'");
+        var greaterThanOrEqual_fail = matcher("customProperty ge datetime'2024-06-16T00:00:00Z'");
+        var greaterThanOrEqual_undefined = matcher("customProperty ge '2024-06-15T12:00:00Z'");
+        var equal_success = matcher("customProperty eq datetime'2024-06-15T12:00:00Z'");
+        var equal_fail = matcher("customProperty eq datetime'2024-06-16T00:00:00Z'");
+        var equal_undefined = matcher("customProperty eq '2024-06-15T12:00:00Z'");
 
         lessThan_success.IsMatch(entity).Should().BeTrue();
         lessThan_fail.IsMatch(entity).Should().BeFalse();
