@@ -1,5 +1,7 @@
 using Azure.Storage.Blobs.Specialized;
 
+using FluentAssertions.Execution;
+
 using Spotflow.InMemory.Azure.Storage;
 using Spotflow.InMemory.Azure.Storage.Blobs;
 using Spotflow.InMemory.Azure.Storage.FluentAssertions;
@@ -35,7 +37,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().Exist();
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
                 "Expected blob to exist but it does not." +
                 "With Blob:https://*/test-container/test-blob");
@@ -87,7 +89,7 @@ public class BlobFluentAssertionsTests
         var act = () => existTask;
 
         await act.Should()
-            .ThrowAsync<AssertFailedException>()
+            .ThrowAsync<AssertionFailedException>()
             .WithMessage("" +
                 "Expected blob to exist eventually but it does not exist event after 1.0 seconds.*" +
                 "With Blob:*https://*/test-container/test-blob");
@@ -113,7 +115,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().MatchName("test-bloc*");
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
                 "Expected name of the blob to match \"test-bloc*\", but \"test-blob\" does not." +
                 "With Blob:https://*/test-container/test-blob");
@@ -148,7 +150,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().HaveSize(9);
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
                 "Expected size of the blob to be 9L, but found 10L (difference of 1)." +
                 "With Blob:https://*/test-container/test-blob");
@@ -183,7 +185,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().BeEmpty();
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
             "Expected size of the blob to be 0L, but found 9L (difference of 9)." +
             "With Blob:*https://*/test-container/test-blob");
@@ -217,7 +219,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().HaveContent("test-data-x");
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
             "Expected content of the blob to be \"test-data-x\" with a length of 11, but \"test-data\" has a length of 9, differs near \"a\" (index 8)." +
             "With Blob:*https://*/test-container/test-blob");
@@ -261,24 +263,24 @@ public class BlobFluentAssertionsTests
 
         var actNoUncommittedBlocks = () => blob.Should().HaveNoUncommittedBlocks();
         actNoUncommittedBlocks.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of uncommitted blocks in the blob '*/test-container/test-blob' to contain 0 item(s), but found 1:*");
 
         var actUncommittedBlocks = () => blob.Should().HaveUncommittedBlocks(2);
         actUncommittedBlocks.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of uncommitted blocks in the blob '*/test-container/test-blob' to contain 2 item(s), but found 1:*");
 
         var actCommittedBlocks = () => blob.Should().HaveCommittedBlocks(1);
         actCommittedBlocks.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of committed blocks in the blob '*/test-container/test-blob' to contain 1 item(s), but found 0:*");
 
         blob.CommitBlockList(["dGVzdC1ibG9jay0x"]);
 
         var actNoCommittedBlocks = () => blob.Should().HaveNoCommittedBlocks();
         actNoCommittedBlocks.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of committed blocks in the blob '*/test-container/test-blob' to contain 0 item(s), but found 1:*");
 
     }
@@ -315,12 +317,12 @@ public class BlobFluentAssertionsTests
         var actOneLess = () => blob.Should().HaveCommittedBlocksWithSizes([11]);
 
         actOneLess.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of committed blocks in the blob '*/test-container/test-blob' to contain 1 item(s), but found 2:*");
 
         var actOneMore = () => blob.Should().HaveCommittedBlocksWithSizes([11, 12, 13]);
         actOneMore.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("Expected number of committed blocks in the blob '*/test-container/test-blob' to contain 3 item(s), but found 2:*");
 
     }
@@ -341,7 +343,7 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().HaveCommittedBlocksWithSizes([24, 41]);
 
         act.Should()
-            .Throw<AssertFailedException>()
+            .Throw<AssertionFailedException>()
             .WithMessage("" +
             "Expected block #0 size to be 24, but found 11 (difference of -13).\n" +
             "Expected block #1 size to be 41, but found 12 (difference of -29).*" +
@@ -381,11 +383,8 @@ public class BlobFluentAssertionsTests
         var act = () => blob.Should().HaveCommittedBlock(0, block => block.Name.Should().Be("XdGVzdC1ibG9jay0x"));
 
         act.Should()
-            .Throw<AssertFailedException>()
-            .WithMessage("" +
-            "Expected * to be \"XdGVzdC1ibG9jay0x\" with a length of 17, but \"dGVzdC1ibG9jay0x\" has a length of 16, differs near \"dGV\" (index 0).*" +
-            "With Blob:*https://*/test-container/test-blob*" +
-            "With Block:*#0");
+            .Throw<AssertionFailedException>()
+            .WithMessage("Expected * to be the same string, but they differ at index 0*");
 
     }
 

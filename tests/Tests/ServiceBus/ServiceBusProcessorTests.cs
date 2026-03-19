@@ -105,7 +105,7 @@ public class ServiceBusProcessorTests
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
         await processor.StartProcessingAsync();
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<InvalidOperationException>(
             () => processor.StartProcessingAsync());
 
         await processor.StopProcessingAsync();
@@ -188,7 +188,7 @@ public class ServiceBusProcessorTests
         processor.ProcessErrorAsync += _ => Task.CompletedTask;
 
         await processor.CloseAsync();
-        await Assert.ThrowsExceptionAsync<ObjectDisposedException>(
+        await Assert.ThrowsAsync<ObjectDisposedException>(
             () => processor.StartProcessingAsync());
     }
     #endregion
@@ -404,7 +404,7 @@ public class ServiceBusProcessorTests
 
         processor.ProcessMessageAsync += _ => Task.CompletedTask;
 
-        Assert.ThrowsException<NotSupportedException>(() =>
+        Assert.Throws<NotSupportedException>(() =>
         {
             processor.ProcessMessageAsync += _ => Task.CompletedTask;
         });

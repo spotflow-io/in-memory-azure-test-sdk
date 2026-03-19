@@ -202,7 +202,6 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
                         }
                         catch (Exception)
                         {
-                            _sessionConcurrencySemaphore.Release();
                             throw;
                         }
                     }
@@ -221,7 +220,16 @@ public class InMemoryServiceBusSessionProcessor : ServiceBusSessionProcessor
         {
             if (!activeSessions.IsEmpty)
             {
-                await Task.WhenAll(activeSessions.Values);
+                try
+                {
+                    await Task.WhenAll(activeSessions.Values);
+
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Suppress cancellation exceptions during shutdown
+                }
+
             }
         }
     }

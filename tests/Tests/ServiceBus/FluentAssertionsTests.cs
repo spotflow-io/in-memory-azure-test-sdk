@@ -50,9 +50,9 @@ public class FluentAssertionsTests
         {
             await queue.Should().BeEmptyAsync(maxWaitTime: TimeSpan.FromMilliseconds(100));
 
-            throw new AssertionFailedException("Should have thrown an exception");
+            throw new InvalidOperationException("Should have thrown an exception");
         }
-        catch (AssertFailedException ex)
+        catch (AssertionFailedException ex)
         {
             ex.Message.Should().Be("Entity \"test-queue\" should be empty but 1L messages found after 0.1 seconds.");
         }
@@ -61,7 +61,7 @@ public class FluentAssertionsTests
 
         message.Should().NotBeNull();
 
-        await consumerClient.CompleteMessageAsync(message!);
+        await consumerClient.CompleteMessageAsync(message);
 
         await queue.Should().BeEmptyAsync(maxWaitTime: TimeSpan.FromMilliseconds(100));
     }
@@ -84,9 +84,9 @@ public class FluentAssertionsTests
         {
             await subscription.Should().BeEmptyAsync(maxWaitTime: TimeSpan.FromMilliseconds(100));
 
-            throw new AssertionFailedException("Should have thrown an exception");
+            throw new InvalidOperationException("Should have thrown an exception");
         }
-        catch (AssertFailedException ex)
+        catch (AssertionFailedException ex)
         {
             ex.Message.Should().Be("Entity \"test-topic/test\" should be empty but 1L messages found after 0.1 seconds.");
         }
