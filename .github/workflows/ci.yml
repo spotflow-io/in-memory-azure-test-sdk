@@ -78,7 +78,7 @@ jobs:
       - name: Validate NuGets
         run: |
           echo ':/github/home/.dotnet/tools' >> $env:GITHUB_PATH
-          dotnet tool install -g dotnet-validate --version '0.0.1-preview.304' --ignore-failed-sources
+          dotnet tool install -g dotnet-validate --version '0.0.1-preview.582' --ignore-failed-sources
           Get-ChildItem ./nugets -Filter '*.nupkg' | ForEach-Object { dotnet-validate package local $_ }
         shell: pwsh
       - name: Upload Nugets as Artifacts
