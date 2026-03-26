@@ -213,14 +213,14 @@ public class InMemoryTableClient : TableClient
 
     public override Response UpsertEntity<T>(T entity, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
     {
-        return UpsertCoreAsync(entity, ETag.All, mode, cancellationToken).EnsureCompleted();
+        return UpsertCoreAsync(entity, mode, cancellationToken).EnsureCompleted();
     }
 
     public override async Task<Response> UpsertEntityAsync<T>(T entity, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
-        return await UpsertCoreAsync(entity, ETag.All, mode, cancellationToken);
+        return await UpsertCoreAsync(entity, mode, cancellationToken);
     }
 
     public override Response UpdateEntity<T>(T entity, ETag ifMatch, TableUpdateMode mode = TableUpdateMode.Merge, CancellationToken cancellationToken = default)
@@ -252,7 +252,7 @@ public class InMemoryTableClient : TableClient
         return new(204, eTag: eTag.Value);
     }
 
-    private async Task<InMemoryResponse> UpsertCoreAsync<T>(T entity, ETag ifMatch, TableUpdateMode mode, CancellationToken cancellationToken) where T : ITableEntity
+    private async Task<InMemoryResponse> UpsertCoreAsync<T>(T entity, TableUpdateMode mode, CancellationToken cancellationToken) where T : ITableEntity
     {
         var beforeContext = new EntityUpsertBeforeHookContext(_scope.ForEntity(entity), Provider, cancellationToken)
         {
@@ -261,14 +261,9 @@ public class InMemoryTableClient : TableClient
 
         await ExecuteBeforeHooksAsync(beforeContext);
 
-        if (ifMatch.IsEmpty())
-        {
-            ifMatch = ETag.All;
-        }
-
         var table = GetTable();
 
-        if (!table.TryUpsertEntity(entity, ifMatch, mode, mustExist: false, out var eTag, out var error))
+        if (!table.TryUpsertEntity(entity, incomingETag: ETag.All, mode, mustExist: false, out var eTag, out var error))
         {
             throw error.GetClientException();
         }

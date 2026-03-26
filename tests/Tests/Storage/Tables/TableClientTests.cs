@@ -392,6 +392,8 @@ public class TableClientTests
 
         var partitionKey = Guid.NewGuid().ToString();
 
+
+
         var eTag = new ETag("W/\"datetime'2024-06-19T14%3A29%3A09.5839429Z'\"");
 
         var entity1 = new TableEntity(partitionKey, "rk");
@@ -401,7 +403,10 @@ public class TableClientTests
 
         act1.Should().NotThrow();
 
-        var act2 = () => tableClient.UpsertEntity(entity2, updateMode);  // ETag should be ignored by the service.
+        // ETag should be ignored by the service
+        // https://learn.microsoft.com/en-us/rest/api/storageservices/insert-or-replace-entity#remarks
+
+        var act2 = () => tableClient.UpsertEntity(entity2, updateMode);
 
         act2.Should().NotThrow();
 

@@ -103,4 +103,13 @@ internal static class TableExceptionFactory
             "ServerBusy",
             null);
     }
+
+    public static InvalidOperationException TestTimeCheck(string message)
+    {
+        return new($"" +
+            $"TEST-TIME CHECK: " +
+            $"{message} " +
+            $"You can disable this check by setting '{nameof(InMemoryStorageProvider)}.{nameof(InMemoryStorageProvider.DisableTestTimeChecks)}' to true.");
+    }
 }
+

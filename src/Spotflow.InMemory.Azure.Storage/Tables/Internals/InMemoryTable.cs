@@ -264,6 +264,18 @@ internal class InMemoryTable(string name, InMemoryTableService service)
             else if (action.ActionType is TableTransactionActionType.UpdateMerge or TableTransactionActionType.UpdateReplace or TableTransactionActionType.UpsertMerge or TableTransactionActionType.UpsertReplace)
             {
                 var mustExist = action.ActionType is TableTransactionActionType.UpdateMerge or TableTransactionActionType.UpdateReplace;
+                var isUpsert = action.ActionType is TableTransactionActionType.UpsertMerge or TableTransactionActionType.UpsertReplace;
+
+                if (!Service.Account.Provider.DisableTestTimeChecks && isUpsert && !action.ETag.IsEmpty())
+                {
+                    throw TableExceptionFactory.TestTimeCheck("ETag for Upsert transaction action is ignored by the table service so explicitly specified ETag is a probable bug.");
+                }
+
+                if (isUpsert)
+                {
+                    eTag = ETag.All;
+                }
+
 
                 if (!CanUpsertEntityUnsafe(e.PartitionKey, e.RowKey, eTag, mustExist: mustExist, out var entityError))
                 {
@@ -295,11 +307,6 @@ internal class InMemoryTable(string name, InMemoryTableService service)
         if (!action.ETag.IsEmpty())
         {
             return action.ETag;
-        }
-
-        if (!action.Entity.ETag.IsEmpty())
-        {
-            return action.Entity.ETag;
         }
 
         return ETag.All;
