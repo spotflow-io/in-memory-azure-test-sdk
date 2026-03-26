@@ -103,4 +103,7 @@ internal static class TableExceptionFactory
             "ServerBusy",
             null);
     }
+
+    public static InvalidOperationException TestTimeCheck(string message) => new($"TEST-TIME CHECK: {message}");
 }
+

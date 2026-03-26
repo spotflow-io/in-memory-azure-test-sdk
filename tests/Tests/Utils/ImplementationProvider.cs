@@ -75,7 +75,7 @@ internal static class ImplementationProvider
         }
         else
         {
-            var account = new InMemoryStorageProvider().AddAccount();
+            var account = new InMemoryStorageProvider(disableTestTimeChecks: true).AddAccount();
             return InMemoryTableClient.FromAccount(account, tableName);
         }
     }

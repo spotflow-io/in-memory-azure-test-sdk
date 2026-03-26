@@ -13,11 +13,13 @@ using Spotflow.InMemory.Azure.Storage.Resources;
 
 namespace Spotflow.InMemory.Azure.Storage;
 
-public class InMemoryStorageProvider(string? hostnameSuffix = null, TimeProvider? timeProvider = null, ILoggerFactory? loggerFactory = null)
+public class InMemoryStorageProvider(string? hostnameSuffix = null, TimeProvider? timeProvider = null, ILoggerFactory? loggerFactory = null, bool disableTestTimeChecks = false)
 {
     private readonly ConcurrentDictionary<string, InMemoryStorageAccount> _storageAccounts = new();
 
     private readonly HooksExecutor<StorageHookFilter, StorageHookContext> _hooksExecutor = new();
+
+    internal bool DisableTestTimeChecks { get; } = disableTestTimeChecks;
 
     internal TimeProvider TimeProvider { get; } = timeProvider ?? TimeProvider.System;
     internal ILoggerFactory LoggerFactory { get; } = loggerFactory ?? NullLoggerFactory.Instance;

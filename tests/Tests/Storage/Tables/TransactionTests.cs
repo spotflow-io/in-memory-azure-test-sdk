@@ -49,10 +49,19 @@ public class TransactionTests
 
         tableClient.CreateIfNotExists();
 
+        var tableClientWithTestTimeChecks = InMemoryTableClient.FromAccount(new InMemoryStorageProvider(disableTestTimeChecks: false).AddAccount(), "test");
+
+        tableClientWithTestTimeChecks.Create();
+
         var primaryKey = Guid.NewGuid().ToString();
 
+        var entity1 = new TableEntity(primaryKey, "rk") { ["value"] = 1 };
+
         // Add an entity so the upsert targets an existing row with a known ETag.
-        tableClient.AddEntity(new TableEntity(primaryKey, "rk") { ["value"] = 1 });
+
+        tableClient.AddEntity(entity1);
+        tableClientWithTestTimeChecks.AddEntity(entity1);
+
 
         // Use a deliberately wrong ETag - Upsert should ignore it.
         // ETag should be ignored by the service
@@ -60,16 +69,22 @@ public class TransactionTests
 
         var staleETag = new ETag("W/\"datetime'2000-01-01T00%3A00%3A00.0000000Z'\"");
 
-        var entity = new TableEntity(primaryKey, "rk") { ETag = staleETag, ["value"] = 2 };
+        var entity2 = new TableEntity(primaryKey, "rk") { ETag = staleETag, ["value"] = 2 };
 
         var transaction = new TableTransactionAction[]
         {
-            new(actionType, entity, staleETag),
+            new(actionType, entity2, staleETag),
         };
 
         tableClient.SubmitTransaction(transaction);
-
         tableClient.GetEntity<TableEntity>(primaryKey, "rk").Value.GetInt32("value").Should().Be(2);
+
+        var action = () => tableClientWithTestTimeChecks.SubmitTransaction(transaction);
+
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("TEST-TIME CHECK: ETag for Upsert transaction action is ignored by the table service so explicitly specified ETag is a probable bug.");
+
     }
 
     [TestMethod]
