@@ -19,19 +19,21 @@ public class TransactionTests
 
         tableClient.CreateIfNotExists();
 
-        tableClient.AddEntity(new TableEntity("pk", "rk-1"));
-        tableClient.AddEntity(new TableEntity("pk", "rk-2"));
-        tableClient.AddEntity(new TableEntity("pk", "rk-3"));
+        var primaryKey = Guid.NewGuid().ToString();
+
+        tableClient.AddEntity(new TableEntity(primaryKey, "rk-1"));
+        tableClient.AddEntity(new TableEntity(primaryKey, "rk-2"));
+        tableClient.AddEntity(new TableEntity(primaryKey, "rk-3"));
 
 
         var transaction = new TableTransactionAction[]
         {
-            new(TableTransactionActionType.Add, new TableEntity("pk", "rk-4")),
-            new(TableTransactionActionType.Delete, new TableEntity("pk", "rk-1")),
-            new(TableTransactionActionType.UpsertReplace, new TableEntity("pk", "rk-5")),
-            new(TableTransactionActionType.UpsertMerge, new TableEntity("pk", "rk-6")),
-            new(TableTransactionActionType.UpdateReplace, new TableEntity("pk", "rk-2")) ,
-            new(TableTransactionActionType.UpdateMerge, new TableEntity("pk", "rk-3")),
+            new(TableTransactionActionType.Add, new TableEntity(primaryKey, "rk-4")),
+            new(TableTransactionActionType.Delete, new TableEntity(primaryKey, "rk-1")),
+            new(TableTransactionActionType.UpsertReplace, new TableEntity(primaryKey, "rk-5")),
+            new(TableTransactionActionType.UpsertMerge, new TableEntity(primaryKey, "rk-6")),
+            new(TableTransactionActionType.UpdateReplace, new TableEntity(primaryKey, "rk-2")) ,
+            new(TableTransactionActionType.UpdateMerge, new TableEntity(primaryKey, "rk-3")),
         };
 
         tableClient.SubmitTransaction(transaction);
@@ -47,8 +49,10 @@ public class TransactionTests
 
         tableClient.CreateIfNotExists();
 
+        var primaryKey = Guid.NewGuid().ToString();
+
         // Add an entity so the upsert targets an existing row with a known ETag.
-        tableClient.AddEntity(new TableEntity("pk", "rk") { ["value"] = 1 });
+        tableClient.AddEntity(new TableEntity(primaryKey, "rk") { ["value"] = 1 });
 
         // Use a deliberately wrong ETag - Upsert should ignore it.
         // ETag should be ignored by the service
@@ -56,7 +60,7 @@ public class TransactionTests
 
         var staleETag = new ETag("W/\"datetime'2000-01-01T00%3A00%3A00.0000000Z'\"");
 
-        var entity = new TableEntity("pk", "rk") { ETag = staleETag, ["value"] = 2 };
+        var entity = new TableEntity(primaryKey, "rk") { ETag = staleETag, ["value"] = 2 };
 
         var transaction = new TableTransactionAction[]
         {
@@ -65,7 +69,7 @@ public class TransactionTests
 
         tableClient.SubmitTransaction(transaction);
 
-        tableClient.GetEntity<TableEntity>("pk", "rk").Value.GetInt32("value").Should().Be(2);
+        tableClient.GetEntity<TableEntity>(primaryKey, "rk").Value.GetInt32("value").Should().Be(2);
     }
 
     [TestMethod]
