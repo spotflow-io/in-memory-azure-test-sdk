@@ -83,7 +83,10 @@ public class TransactionTests
 
         action.Should()
             .Throw<InvalidOperationException>()
-            .WithMessage("TEST-TIME CHECK: ETag for Upsert transaction action is ignored by the table service so explicitly specified ETag is a probable bug.");
+            .WithMessage("" +
+                "TEST-TIME CHECK: " +
+                "ETag for Upsert transaction action is ignored by the table service so explicitly specified ETag is a probable bug. " +
+                "You can disable this check by setting 'InMemoryStorageProvider.DisableTestTimeChecks' to true.");
 
     }
 

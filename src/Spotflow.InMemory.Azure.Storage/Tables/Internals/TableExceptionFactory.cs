@@ -104,6 +104,12 @@ internal static class TableExceptionFactory
             null);
     }
 
-    public static InvalidOperationException TestTimeCheck(string message) => new($"TEST-TIME CHECK: {message}");
+    public static InvalidOperationException TestTimeCheck(string message)
+    {
+        return new($"" +
+            $"TEST-TIME CHECK: " +
+            $"{message} " +
+            $"You can disable this check by setting '{nameof(InMemoryStorageProvider)}.{nameof(InMemoryStorageProvider.DisableTestTimeChecks)}' to true.");
+    }
 }
 
