@@ -331,6 +331,62 @@ public class BlobClientTests
         downloadResult.Value.Details.Metadata.Should().Contain("TestKey", "test-value");
     }
 
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadContent_Should_Return_ContentType_And_ContentEncoding(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var headers = new BlobHttpHeaders
+        {
+            ContentType = "application/json",
+            ContentEncoding = "gzip"
+        };
+
+        Upload(blobClient, "test-data", new BlobUploadOptions { HttpHeaders = headers });
+
+        var downloadResult = blobClient.DownloadContent();
+
+        downloadResult.Value.Details.ContentType.Should().Be("application/json");
+        downloadResult.Value.Details.ContentEncoding.Should().Be("gzip");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_Should_Return_ContentType_And_ContentEncoding(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        var headers = new BlobHttpHeaders
+        {
+            ContentType = "text/plain",
+            ContentEncoding = "br"
+        };
+
+        Upload(blobClient, "test-data", new BlobUploadOptions { HttpHeaders = headers });
+
+        var response = blobClient.DownloadStreaming();
+
+        response.Value.Details.ContentType.Should().Be("text/plain");
+        response.Value.Details.ContentEncoding.Should().Be("br");
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]
