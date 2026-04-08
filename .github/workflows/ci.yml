@@ -123,7 +123,7 @@ jobs:
     environment: nuget-org
     steps:
       - name: Download Nugets
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: nugets
       - name: Push Nugets
@@ -137,7 +137,7 @@ jobs:
     if: ${{ needs.init.outputs.publish-github == 'true' }}
     steps:
       - name: Download Nugets
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: nugets
       - name: Push Nugets
