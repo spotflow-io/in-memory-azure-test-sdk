@@ -77,19 +77,19 @@ public class InMemoryBlobClient : BlobClient
     #region Upload
 
     public override Response<BlobContentInfo> Upload(Stream content, BlobUploadOptions options, CancellationToken cancellationToken = default)
-        => UploadCore(BinaryData.FromStream(content), options, null, cancellationToken);
+        => UploadCore(content, options, null, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(BinaryData content, BlobUploadOptions options, CancellationToken cancellationToken = default)
         => UploadCore(content, options, null, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(Stream content)
-        => UploadCore(BinaryData.FromStream(content), null, null, CancellationToken.None);
+        => UploadCore(content, null, null, CancellationToken.None);
 
     public override Response<BlobContentInfo> Upload(BinaryData content)
         => UploadCore(content, null, null, CancellationToken.None);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(Stream content)
-        => UploadCoreAsync(BinaryData.FromStream(content), null, null, CancellationToken.None);
+        => UploadCoreAsync(content, null, null, CancellationToken.None);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(BinaryData content)
         => UploadCoreAsync(content, null, null, CancellationToken.None);
@@ -98,28 +98,28 @@ public class InMemoryBlobClient : BlobClient
         => UploadCoreAsync(content, options, null, cancellationToken);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(Stream content, BlobUploadOptions options, CancellationToken cancellationToken = default)
-        => UploadCoreAsync(BinaryData.FromStream(content), options, null, cancellationToken);
+        => UploadCoreAsync(content, options, null, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(Stream content, CancellationToken cancellationToken)
-        => UploadCore(BinaryData.FromStream(content), null, null, cancellationToken);
+        => UploadCore(content, null, null, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(BinaryData content, CancellationToken cancellationToken)
         => UploadCore(content, null, null, cancellationToken);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(Stream content, CancellationToken cancellationToken)
-        => UploadCoreAsync(BinaryData.FromStream(content), null, null, cancellationToken);
+        => UploadCoreAsync(content, null, null, cancellationToken);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(BinaryData content, CancellationToken cancellationToken)
         => UploadCoreAsync(content, null, null, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(Stream content, bool overwrite = false, CancellationToken cancellationToken = default)
-        => UploadCore(BinaryData.FromStream(content), null, overwrite, cancellationToken);
+        => UploadCore(content, null, overwrite, cancellationToken);
 
     public override Response<BlobContentInfo> Upload(BinaryData content, bool overwrite = false, CancellationToken cancellationToken = default)
         => UploadCore(content, null, overwrite, cancellationToken);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(Stream content, bool overwrite = false, CancellationToken cancellationToken = default)
-        => UploadCoreAsync(BinaryData.FromStream(content), null, overwrite, cancellationToken);
+        => UploadCoreAsync(content, null, overwrite, cancellationToken);
 
     public override Task<Response<BlobContentInfo>> UploadAsync(BinaryData content, bool overwrite = false, CancellationToken cancellationToken = default)
         => UploadCoreAsync(content, null, overwrite, cancellationToken);
@@ -136,20 +136,42 @@ public class InMemoryBlobClient : BlobClient
             TransferOptions = transferOptions
         };
 
-        return UploadCore(BinaryData.FromStream(content), options, null, cancellationToken);
+        return UploadCore(content, options, null, cancellationToken);
     }
 
     public override async Task<Response<BlobContentInfo>> UploadAsync(Stream content, BlobHttpHeaders? httpHeaders = null, IDictionary<string, string>? metadata = null, BlobRequestConditions? conditions = null, IProgress<long>? progressHandler = null, AccessTier? accessTier = null, StorageTransferOptions transferOptions = default, CancellationToken cancellationToken = default)
     {
         await Task.Yield();
 
-        return Upload(content, httpHeaders, metadata, conditions, progressHandler, accessTier, transferOptions, cancellationToken);
+        var options = new BlobUploadOptions
+        {
+            HttpHeaders = httpHeaders,
+            Metadata = metadata,
+            Conditions = conditions,
+            ProgressHandler = progressHandler,
+            AccessTier = accessTier,
+            TransferOptions = transferOptions
+        };
+
+        return await UploadCoreAsync(content, options, null, cancellationToken);
+    }
+
+    private Response<BlobContentInfo> UploadCore(Stream content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)
+    {
+        var binaryData = BinaryData.FromStream(content);
+        return UploadCore(binaryData, options, overwrite, cancellationToken);
     }
 
     private Response<BlobContentInfo> UploadCore(BinaryData content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)
     {
         var info = _core.UploadAsync(content, options, overwrite, cancellationToken).EnsureCompleted();
         return InMemoryResponse.FromValue(info, 201);
+    }
+
+    private async Task<Response<BlobContentInfo>> UploadCoreAsync(Stream content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)
+    {
+        var binaryData = await BinaryData.FromStreamAsync(content, cancellationToken);
+        return await UploadCoreAsync(binaryData, options, overwrite, cancellationToken);
     }
 
     private async Task<Response<BlobContentInfo>> UploadCoreAsync(BinaryData content, BlobUploadOptions? options, bool? overwrite, CancellationToken cancellationToken)

@@ -202,7 +202,9 @@ public class InMemoryBlockBlobClient : BlockBlobClient
     {
         await Task.Yield();
 
-        var info = await _core.UploadAsync(BinaryData.FromStream(content), options, null, cancellationToken);
+        var binaryContent = await BinaryData.FromStreamAsync(content, cancellationToken);
+
+        var info = await _core.UploadAsync(binaryContent, options, null, cancellationToken);
         return InMemoryResponse.FromValue(info, 201);
     }
 
