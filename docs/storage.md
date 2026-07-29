@@ -220,9 +220,10 @@ Clients are thread-safe.
 | `Name`                     |                         |
 | `Uri`                      |                         |
 
-| Method group             |
-| ------------------------ |
-| `GetBlobContainerClient` |
+| Method group             | Note                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `GetBlobBatchClient`     | Hides the `SpecializedBlobExtensions.GetBlobBatchClient` extension method.     |
+| `GetBlobContainerClient` |                                                                               |
 
 | Constructors & factory methods                | Note                          |
 | --------------------------------------------- | ----------------------------- |
@@ -247,6 +248,7 @@ Clients are thread-safe.
 | `DeleteBlobIfExists`         |                                                                                                                                    |
 | `Exists`                     |                                                                                                                                    |
 | `GenerateSasUri`             |                                                                                                                                    |
+| `GetBlobBatchClient`         | Hides the `SpecializedBlobExtensions.GetBlobBatchClient` extension method.                                                          |
 | `GetBlobClient`              |                                                                                                                                    |
 | `GetBlockBlobClient`         |                                                                                                                                    |
 | `GetBlobs`                   | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
@@ -331,6 +333,28 @@ Clients are thread-safe.
 | `(string connectionString, string blobContainerName, string blobName)`                   | No credentials are validated  |
 | `(Uri blobUri)`                                                                          | No credentials are validated. |
 | `FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName)` |                               |
+
+#### `InMemoryBlobBatchClient: BlobBatchClient`
+
+The `GetBlobBatchClient()` method available on `InMemoryBlobServiceClient` and `InMemoryBlobContainerClient` hides
+the `SpecializedBlobExtensions.GetBlobBatchClient(...)` extension method from the official SDK
+(extension methods cannot be overriden). If the client is accessed via the `BlobServiceClient` or `BlobContainerClient`
+static type, the original extension method is used instead and the resulting `BlobBatchClient` will not work.
+Inject the `BlobBatchClient` directly in such cases.
+
+| Property | Note                                                       |
+| -------- | ---------------------------------------------------------- |
+| `Uri`    | Blob service URI, resp. container URI for container-scoped. |
+
+| Method group    | Note                                                                                                                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DeleteBlobs`   | Only supported for `DeleteSnapshotsOption.None`. At most 256 blobs per batch, empty batch is rejected. All blobs must be in the same storage account, resp. in the same container for container-scoped client. Individual sub-request failures are wrapped in an `AggregateException`. |
+
+| Constructors & factory methods                       | Note |
+| ---------------------------------------------------- | ---- |
+| `(InMemoryBlobServiceClient client)`                 |      |
+| `(InMemoryBlobContainerClient client)`               |      |
+| `FromAccount(InMemoryStorageAccount account)`        |      |
 
 ### Features
 

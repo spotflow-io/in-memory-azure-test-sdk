@@ -57,6 +57,13 @@ public class InMemoryBlobServiceClient : BlobServiceClient
         return new InMemoryBlobContainerClient(blobContainerUri, Provider);
     }
 
+    /// <remarks>
+    /// Hides the <c>SpecializedBlobExtensions.GetBlobBatchClient(BlobServiceClient)</c> extension method
+    /// which cannot be overriden. The extension method is used instead when this client is accessed
+    /// via the <see cref="BlobServiceClient"/> static type.
+    /// </remarks>
+    public InMemoryBlobBatchClient GetBlobBatchClient() => new(this);
+
     #region Unsupported
 
     public override Pageable<BlobContainerItem> GetBlobContainers(BlobContainerTraits traits = BlobContainerTraits.None, BlobContainerStates states = BlobContainerStates.None, string? prefix = null, CancellationToken cancellationToken = default)
