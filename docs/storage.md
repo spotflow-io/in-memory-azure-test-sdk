@@ -220,10 +220,9 @@ Clients are thread-safe.
 | `Name`                     |                         |
 | `Uri`                      |                         |
 
-| Method group             | Note                                                                          |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `GetBlobBatchClient`     | Hides the `SpecializedBlobExtensions.GetBlobBatchClient` extension method.     |
-| `GetBlobContainerClient` |                                                                               |
+| Method group             |
+| ------------------------ |
+| `GetBlobContainerClient` |
 
 | Constructors & factory methods                | Note                          |
 | --------------------------------------------- | ----------------------------- |
@@ -248,7 +247,6 @@ Clients are thread-safe.
 | `DeleteBlobIfExists`         |                                                                                                                                    |
 | `Exists`                     |                                                                                                                                    |
 | `GenerateSasUri`             |                                                                                                                                    |
-| `GetBlobBatchClient`         | Hides the `SpecializedBlobExtensions.GetBlobBatchClient` extension method.                                                          |
 | `GetBlobClient`              |                                                                                                                                    |
 | `GetBlockBlobClient`         |                                                                                                                                    |
 | `GetBlobs`                   | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
@@ -336,11 +334,14 @@ Clients are thread-safe.
 
 #### `InMemoryBlobBatchClient: BlobBatchClient`
 
-The `GetBlobBatchClient()` method available on `InMemoryBlobServiceClient` and `InMemoryBlobContainerClient` hides
-the `SpecializedBlobExtensions.GetBlobBatchClient(...)` extension method from the official SDK
-(extension methods cannot be overriden). If the client is accessed via the `BlobServiceClient` or `BlobContainerClient`
-static type, the original extension method is used instead and the resulting `BlobBatchClient` will not work.
-Inject the `BlobBatchClient` directly in such cases.
+The official SDK exposes `GetBlobBatchClient(...)` only as an extension method (`SpecializedBlobExtensions`)
+which cannot be overriden. The in-memory clients therefore provide their own `GetBlobBatchClient()` instance method,
+which is used only when the client is accessed via the `InMemoryBlobServiceClient` or `InMemoryBlobContainerClient`
+static type.
+
+Production code should obtain the `BlobBatchClient` from a factory abstraction: the production implementation of that
+factory calls `SpecializedBlobExtensions.GetBlobBatchClient(...)` on the real client, while the test implementation
+calls `GetBlobBatchClient()` on the in-memory client.
 
 | Property | Note                                                       |
 | -------- | ---------------------------------------------------------- |
