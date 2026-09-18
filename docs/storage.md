@@ -282,7 +282,7 @@ Clients are thread-safe.
 | `GenerateSasUri`               |                                                             |
 | `GetParentBlobContainerClient` |                                                             |
 | `GetProperties`                |                                                             |
-| `OpenRead`                     | Seeking on the returned stream is not supported.            |
+| `OpenRead`                     |                                                             |
 | `OpenWrite`                    |                                                             |
 | `Upload`                       | Overloads accepting path to a local file are not supported. |
 
@@ -320,7 +320,7 @@ Clients are thread-safe.
 | `GetBlockList`                 |                                                               |
 | `GetParentBlobContainerClient` |                                                               |
 | `GetProperties`                |                                                               |
-| `OpenRead`                     | Seeking on the returned stream is not supported.              |
+| `OpenRead`                     |                                                               |
 | `OpenWrite`                    |                                                               |
 | `StageBlock`                   |                                                               |
 | `StageBlockFromUri`            |                                                               |

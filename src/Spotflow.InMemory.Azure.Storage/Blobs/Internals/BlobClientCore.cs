@@ -55,7 +55,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
             return streamContent;
         };
-        var stream = new BlobReadStream(options?.Conditions, 0, content, properties, getContent, allowModifications: false);
+        var stream = new BlobReadStream(options?.Conditions, 0, content, properties, getContent, allowModifications: false, canSeek: false);
         var info = GetDownloadInfo(content, properties, stream);
 
         return (info, partialContent);
@@ -345,7 +345,7 @@ internal class BlobClientCore(BlobUriBuilder uriBuilder, InMemoryStorageProvider
 
         var allowModifications = ReflectionUtils.ReadInternalValueProperty<bool>(options, "AllowModifications");
 
-        var stream = new BlobReadStream(options.Conditions, options.Position, content, properties, GetContent, allowModifications, options.BufferSize);
+        var stream = new BlobReadStream(options.Conditions, options.Position, content, properties, GetContent, allowModifications, canSeek: true, options.BufferSize);
 
         var afterContext = new BlobOpenReadAfterHookContext(beforeContext)
         {

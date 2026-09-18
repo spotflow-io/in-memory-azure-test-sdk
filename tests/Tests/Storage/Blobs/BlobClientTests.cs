@@ -512,6 +512,31 @@ public class BlobClientTests
     [TestCategory(TestCategory.AzureInfra)]
     [DataRow(BlobClientType.Generic)]
     [DataRow(BlobClientType.Block)]
+    public void DownloadStreaming_Should_Return_Non_Seekable_Stream(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.DownloadStreaming().Value.Content;
+
+        stream.CanSeek.Should().BeFalse();
+
+        var act = () => stream.Seek(0, SeekOrigin.Begin);
+
+        act.Should().Throw<NotSupportedException>();
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
     public void DownloadStreaming_For_Empty_Blob_Should_Succeed(BlobClientType clientType)
     {
         var containerClient = ImplementationProvider.GetBlobContainerClient();
@@ -884,6 +909,172 @@ public class BlobClientTests
         using var stream = blobClient.OpenRead(position: 4);
 
         new StreamReader(stream).ReadToEnd().Should().Be("");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_For_Existing_Blob_Should_Return_Seekable_Stream(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        stream.CanSeek.Should().BeTrue();
+        stream.Length.Should().Be(13);
+        stream.Position.Should().Be(0);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_With_Position_Should_Report_Absolute_Position(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead(position: 7);
+
+        stream.Length.Should().Be(13);
+        stream.Position.Should().Be(7);
+
+        new StreamReader(stream).ReadToEnd().Should().Be("World!");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_Seek_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        var buffer = new byte[5];
+
+        stream.Seek(7, SeekOrigin.Begin).Should().Be(7);
+        stream.Read(buffer, 0, 5).Should().Be(5);
+        Encoding.UTF8.GetString(buffer).Should().Be("World");
+        stream.Position.Should().Be(12);
+
+        stream.Seek(-5, SeekOrigin.Current).Should().Be(7);
+        stream.Read(buffer, 0, 5).Should().Be(5);
+        Encoding.UTF8.GetString(buffer).Should().Be("World");
+
+        stream.Seek(-6, SeekOrigin.End).Should().Be(7);
+        stream.Read(buffer, 0, 5).Should().Be(5);
+        Encoding.UTF8.GetString(buffer).Should().Be("World");
+
+        stream.Seek(0, SeekOrigin.Begin).Should().Be(0);
+        stream.Read(buffer, 0, 5).Should().Be(5);
+        Encoding.UTF8.GetString(buffer).Should().Be("Hello");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_Set_Position_Should_Succeed(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        stream.Position = 7;
+
+        stream.Position.Should().Be(7);
+
+        new StreamReader(stream).ReadToEnd().Should().Be("World!");
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_Seek_Out_Of_Range_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead();
+
+        var seekBeforeStart = () => stream.Seek(-1, SeekOrigin.Begin);
+
+        seekBeforeStart.Should().Throw<ArgumentException>();
+
+        var seekPastEnd = () => stream.Seek(14, SeekOrigin.Begin);
+
+        seekPastEnd.Should().Throw<ArgumentException>();
+
+        // Seeking exactly to the end of the blob is allowed.
+
+        stream.Seek(13, SeekOrigin.Begin).Should().Be(13);
+
+        stream.Read(new byte[5], 0, 5).Should().Be(0);
+    }
+
+    [TestMethod]
+    [TestCategory(TestCategory.AzureInfra)]
+    [DataRow(BlobClientType.Generic)]
+    [DataRow(BlobClientType.Block)]
+    public void OpenRead_Seek_From_End_With_AllowBlobModifications_Should_Fail(BlobClientType clientType)
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        containerClient.CreateIfNotExists();
+
+        var blobName = Guid.NewGuid().ToString();
+
+        var blobClient = containerClient.GetBlobBaseClient(blobName, clientType);
+
+        Upload(blobClient, "Hello, World!");
+
+        using var stream = blobClient.OpenRead(new BlobOpenReadOptions(allowModifications: true));
+
+        var act = () => stream.Seek(0, SeekOrigin.End);
+
+        act.Should().Throw<ArgumentException>();
     }
 
     [TestMethod]
