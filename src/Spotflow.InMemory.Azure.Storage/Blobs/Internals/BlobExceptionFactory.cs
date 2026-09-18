@@ -184,6 +184,24 @@ internal static class BlobExceptionFactory
             null);
     }
 
+    public static RequestFailedException BatchTooLarge(int limit, int actualCount)
+    {
+        return new(
+            400,
+            $"Number of sub-requests in a batch ({actualCount}) exceeded the limit ({limit}).",
+            BlobErrorCode.InvalidInput.ToString(),
+            null);
+    }
+
+    public static RequestFailedException BatchSubRequestOutOfScope(Uri blobUri, string expectedScope)
+    {
+        return new(
+            400,
+            $"Blob '{blobUri}' is out of scope of the batch which is scoped to {expectedScope}.",
+            BlobErrorCode.InvalidInput.ToString(),
+            null);
+    }
+
     public static NotSupportedException MethodNotSupported([CallerMemberName] string? callerMemberName = null)
     {
         return new($"In-memory blob storage client does not support method '{callerMemberName}'.");

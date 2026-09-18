@@ -17,6 +17,7 @@ internal class InMemoryBlobService(InMemoryStorageAccount account)
     public static int MaxBlockCount { get; } = 50_000;
     public static int MaxUncommitedBlocks { get; } = 100_000;
     public static int MaxBlockSize { get; } = 2000 * 1024 * 1024;
+    public static int MaxBatchSubRequestCount { get; } = 256;
 
     public InMemoryStorageAccount Account { get; } = account;
 
