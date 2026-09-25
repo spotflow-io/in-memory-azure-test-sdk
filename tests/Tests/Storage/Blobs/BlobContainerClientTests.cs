@@ -177,6 +177,61 @@ public class BlobContainerClientTests
         containerClient.Exists().Value.Should().BeTrue();
     }
 
+    [TestMethod]
+    public void Delete_For_Existing_Container_Should_Succeed()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+        containerClient.Create();
+        containerClient.UploadBlob("blob", BinaryData.FromString("content"));
+
+        containerClient.Delete().Status.Should().Be(202);
+
+        containerClient.Exists().Value.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Delete_For_Missing_Container_Should_Fail()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+
+        var delete = () => containerClient.Delete();
+
+        delete.Should().Throw<RequestFailedException>()
+            .Where(e => e.Status == 404 && e.ErrorCode == "ContainerNotFound");
+    }
+
+    [TestMethod]
+    public async Task DeleteIfExists_Should_Report_Whether_Container_Was_Deleted()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+        containerClient.Create();
+
+        var deleted = await containerClient.DeleteIfExistsAsync();
+        var missing = await containerClient.DeleteIfExistsAsync();
+
+        deleted.Value.Should().BeTrue();
+        deleted.GetRawResponse().Status.Should().Be(202);
+        missing.Value.Should().BeFalse();
+        missing.GetRawResponse().Status.Should().Be(404);
+    }
+
+    [TestMethod]
+    public void Delete_Should_Respect_ETag_Conditions()
+    {
+        var containerClient = ImplementationProvider.GetBlobContainerClient();
+        containerClient.Create();
+        var eTag = containerClient.GetProperties().Value.ETag;
+
+        var deleteWithWrongETag = () => containerClient.Delete(
+            new BlobRequestConditions { IfMatch = new ETag($"\"{Guid.NewGuid()}\"") });
+
+        deleteWithWrongETag.Should().Throw<RequestFailedException>()
+            .Where(e => e.Status == 412 && e.ErrorCode == "ConditionNotMet");
+
+        containerClient.Delete(new BlobRequestConditions { IfMatch = eTag });
+        containerClient.Exists().Value.Should().BeFalse();
+    }
+
 
     [TestMethod]
     [TestCategory(TestCategory.AzureInfra)]

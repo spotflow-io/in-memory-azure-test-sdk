@@ -184,6 +184,76 @@ internal static class BlobExceptionFactory
             null);
     }
 
+    public static RequestFailedException InvalidLeaseId()
+    {
+        return new(400, "The lease ID is not in a valid format.", "InvalidHeaderValue", null);
+    }
+
+    public static RequestFailedException InvalidLeaseDuration()
+    {
+        return new(400, "The lease duration must be between 15 and 60 seconds, or infinite.", "InvalidHeaderValue", null);
+    }
+
+    public static RequestFailedException InvalidLeaseBreakPeriod()
+    {
+        return new(400, "The lease break period must be between 0 and 60 seconds.", "InvalidHeaderValue", null);
+    }
+
+    public static RequestFailedException LeaseAlreadyPresent()
+    {
+        return new(409, "There is already a lease present.", "LeaseAlreadyPresent", null);
+    }
+
+    public static RequestFailedException LeaseNotPresent()
+    {
+        return new(409, "There is currently no lease on the container.", "LeaseNotPresentWithLeaseOperation", null);
+    }
+
+    public static RequestFailedException LeaseIdMismatch()
+    {
+        return new(409, "The lease ID specified did not match the lease ID for the container.", "LeaseIdMismatchWithLeaseOperation", null);
+    }
+
+    public static RequestFailedException LeaseIsBreakingAndCannotBeAcquired()
+    {
+        return new(409, "The lease is breaking and cannot be acquired.", "LeaseIsBreakingAndCannotBeAcquired", null);
+    }
+
+    public static RequestFailedException LeaseIsBreakingAndCannotBeRenewed()
+    {
+        return new(409, "The lease is breaking and cannot be renewed.", "LeaseIsBreakingAndCannotBeRenewed", null);
+    }
+
+    public static RequestFailedException LeaseIsBreakingAndCannotBeChanged()
+    {
+        return new(409, "The lease is breaking and cannot be changed.", "LeaseIsBreakingAndCannotBeChanged", null);
+    }
+
+    public static RequestFailedException LeaseIsBrokenAndCannotBeRenewed()
+    {
+        return new(409, "The lease is broken and cannot be renewed.", "LeaseIsBrokenAndCannotBeRenewed", null);
+    }
+
+    public static RequestFailedException LeaseIdMismatchWithContainerOperation()
+    {
+        return new(412, "The lease ID specified did not match the lease ID for the container.", "LeaseIdMismatchWithContainerOperation", null);
+    }
+
+    public static RequestFailedException LeaseIdMissing()
+    {
+        return new(412, "There is currently a lease on the container and no lease ID was specified.", BlobErrorCode.LeaseIdMissing.ToString(), null);
+    }
+
+    public static RequestFailedException LeaseNotPresentWithContainerOperation()
+    {
+        return new(412, "There is currently no lease on the container.", "LeaseNotPresentWithContainerOperation", null);
+    }
+
+    public static RequestFailedException LeaseLost()
+    {
+        return new(412, "A lease ID was specified, but the lease for the container has expired.", "LeaseLost", null);
+    }
+
     public static NotSupportedException MethodNotSupported([CallerMemberName] string? callerMemberName = null)
     {
         return new($"In-memory blob storage client does not support method '{callerMemberName}'.");

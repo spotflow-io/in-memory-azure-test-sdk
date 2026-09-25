@@ -449,9 +449,14 @@ public class InMemoryBlobContainerClient : BlobContainerClient
     {
         var container = GetContainer();
 
-        CheckConditions(container.GetProperties().ETag, conditions);
+        if (!container.TryGetProperties(conditions?.LeaseId, out var properties, out var error))
+        {
+            throw error.GetClientException();
+        }
 
-        return InMemoryResponse.FromValue(container.GetProperties(), 200);
+        CheckConditions(properties.ETag, conditions);
+
+        return InMemoryResponse.FromValue(properties, 200);
     }
 
     public override async Task<Response<BlobContainerProperties>> GetPropertiesAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
@@ -524,6 +529,65 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     #endregion
 
+    #region Delete
+
+    public override Response Delete(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        DeleteCoreAsync(deleteIfExists: false, conditions, cancellationToken).EnsureCompleted();
+        return new InMemoryResponse(202);
+    }
+
+    public override async Task<Response> DeleteAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        await DeleteCoreAsync(deleteIfExists: false, conditions, cancellationToken);
+        return new InMemoryResponse(202);
+    }
+
+    public override Response<bool> DeleteIfExists(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        var deleted = DeleteCoreAsync(deleteIfExists: true, conditions, cancellationToken).EnsureCompleted();
+        return InMemoryResponse.FromValue(deleted, deleted ? 202 : 404);
+    }
+
+    public override async Task<Response<bool>> DeleteIfExistsAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        var deleted = await DeleteCoreAsync(deleteIfExists: true, conditions, cancellationToken);
+        return InMemoryResponse.FromValue(deleted, deleted ? 202 : 404);
+    }
+
+    private async Task<bool> DeleteCoreAsync(bool deleteIfExists, BlobRequestConditions? conditions, CancellationToken cancellationToken)
+    {
+        var beforeContext = new ContainerDeleteBeforeHookContext(_scope, Provider, cancellationToken)
+        {
+            DeleteIfExists = deleteIfExists,
+            Conditions = conditions
+        };
+
+        await ExecuteBeforeHooksAsync(beforeContext);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var blobService = GetBlobService();
+        if (!blobService.TryDeleteBlobContainerIfExists(Name, conditions, out var deleted, out var error))
+        {
+            throw error.GetClientException();
+        }
+
+        if (!deleted.Value)
+        {
+            if (deleteIfExists)
+            {
+                return false;
+            }
+
+            throw BlobExceptionFactory.ContainerNotFound(Name, blobService);
+        }
+
+        await ExecuteAfterHooksAsync(new ContainerDeleteAfterHookContext(beforeContext));
+        return true;
+    }
+
+    #endregion
+
     #region SAS
 
     public override Uri GenerateSasUri(BlobContainerSasPermissions permissions, DateTimeOffset expiresOn) => GenerateSasUri(permissions, expiresOn, out _);
@@ -566,7 +630,7 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         }
     }
 
-    private InMemoryBlobContainer GetContainer()
+    internal InMemoryBlobContainer GetContainerCore()
     {
         var blobService = GetBlobService();
 
@@ -577,6 +641,8 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
         return container;
     }
+
+    private InMemoryBlobContainer GetContainer() => GetContainerCore();
 
     private static BlobContainerInfo GetInfo(InMemoryBlobContainer container)
     {
@@ -605,29 +671,9 @@ public class InMemoryBlobContainerClient : BlobContainerClient
         throw BlobExceptionFactory.MethodNotSupported();
     }
 
-    protected override BlobLeaseClient GetBlobLeaseClientCore(string leaseId)
+    protected override InMemoryBlobLeaseClient GetBlobLeaseClientCore(string leaseId)
     {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response Delete(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response> DeleteAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response<bool> DeleteIfExists(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response<bool>> DeleteIfExistsAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
+        return new(this, leaseId);
     }
 
     public override Response<BlobContainerInfo> SetMetadata(IDictionary<string, string> metadata, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)

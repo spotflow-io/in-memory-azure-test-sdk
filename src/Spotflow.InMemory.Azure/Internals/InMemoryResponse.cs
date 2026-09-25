@@ -10,10 +10,11 @@ public class InMemoryResponse : Response
 {
     private readonly Dictionary<string, List<string>> _headers = [];
 
-    public static Response<T> FromValue<T>(T value, int status, ETag? eTag = null) => FromValue(value, new InMemoryResponse(status, eTag: eTag));
+    public static Response<T> FromValue<T>(T value, int status, ETag? eTag = null, IReadOnlyDictionary<string, string>? headers = null)
+        => FromValue(value, new InMemoryResponse(status, eTag, headers));
 
 
-    public InMemoryResponse(int status, ETag? eTag = null)
+    public InMemoryResponse(int status, ETag? eTag = null, IReadOnlyDictionary<string, string>? headers = null)
     {
         Status = status;
         ClientRequestId = Guid.NewGuid().ToString();
@@ -21,6 +22,14 @@ public class InMemoryResponse : Response
         if (eTag != null)
         {
             AddHeaderValue("ETag", eTag.Value.ToString());
+        }
+
+        if (headers is not null)
+        {
+            foreach (var header in headers)
+            {
+                AddHeaderValue(header.Key, header.Value);
+            }
         }
 
     }

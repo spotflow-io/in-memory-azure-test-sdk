@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
 using Azure;
+using Azure.Storage.Blobs.Models;
 
 using Spotflow.InMemory.Azure.Storage.Resources;
 
@@ -59,6 +60,32 @@ internal class InMemoryBlobService(InMemoryStorageAccount account)
         lock (_syncObj)
         {
             return _containers.TryGetValue(blobContainerName, out container);
+        }
+    }
+
+    public bool TryDeleteBlobContainerIfExists(
+        string blobContainerName,
+        BlobRequestConditions? conditions,
+        [NotNullWhen(true)] out bool? deleted,
+        [NotNullWhen(false)] out InMemoryBlobContainer.ContainerOperationError? error)
+    {
+        lock (_syncObj)
+        {
+            if (!_containers.TryGetValue(blobContainerName, out var container))
+            {
+                deleted = false;
+                error = null;
+                return true;
+            }
+
+            if (!container.TryValidateDelete(conditions, out error))
+            {
+                deleted = null;
+                return false;
+            }
+
+            deleted = _containers.Remove(blobContainerName);
+            return true;
         }
     }
 
