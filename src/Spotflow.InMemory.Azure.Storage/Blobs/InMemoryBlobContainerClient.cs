@@ -101,6 +101,13 @@ public class InMemoryBlobContainerClient : BlobContainerClient
 
     protected override InMemoryBlobClient GetBlobBaseClientCore(string blobName) => GetBlobClient(blobName);
 
+    /// <remarks>
+    /// Hides the <c>SpecializedBlobExtensions.GetBlobBatchClient(BlobContainerClient)</c> extension method
+    /// which cannot be overriden. The extension method is used instead when this client is accessed
+    /// via the <see cref="BlobContainerClient"/> static type.
+    /// </remarks>
+    public InMemoryBlobBatchClient GetBlobBatchClient() => new(this);
+
     protected override InMemoryBlockBlobClient GetBlockBlobClientCore(string blobName)
     {
         if (_connectionString is not null)

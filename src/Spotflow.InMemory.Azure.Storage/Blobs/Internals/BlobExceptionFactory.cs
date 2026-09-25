@@ -184,6 +184,22 @@ internal static class BlobExceptionFactory
             null);
     }
 
+    public static RequestFailedException BatchTooLarge(int limit, int actualCount)
+    {
+        return new(
+            400,
+            $"Number of sub-requests in a batch ({actualCount}) exceeded the limit ({limit}).",
+            BlobErrorCode.InvalidInput.ToString(),
+            null);
+    }
+
+    public static RequestFailedException BatchSubRequestOutOfScope(Uri blobUri, string expectedScope)
+    {
+        return new(
+            400,
+            $"Blob '{blobUri}' is out of scope of the batch which is scoped to {expectedScope}.",
+            BlobErrorCode.InvalidInput.ToString(),
+            null);
     public static RequestFailedException InvalidLeaseId()
     {
         return new(400, "The lease ID is not in a valid format.", "InvalidHeaderValue", null);

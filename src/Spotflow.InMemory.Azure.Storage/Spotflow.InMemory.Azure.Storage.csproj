@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Azure.Storage.Blobs" />
+        <PackageReference Include="Azure.Storage.Blobs.Batch" />
         <PackageReference Include="Azure.Data.Tables" />
         <PackageReference Include="Microsoft.AspNetCore.OData" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

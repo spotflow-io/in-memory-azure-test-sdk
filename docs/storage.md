@@ -348,6 +348,31 @@ Container lease clients support the following method groups. Calling `GetBlobLea
 | `(Uri blobUri)`                                                                          | No credentials are validated. |
 | `FromAccount(InMemoryStorageAccount account, string blobContainerName, string blobName)` |                               |
 
+#### `InMemoryBlobBatchClient: BlobBatchClient`
+
+The official SDK exposes `GetBlobBatchClient(...)` only as an extension method (`SpecializedBlobExtensions`)
+which cannot be overriden. The in-memory clients therefore provide their own `GetBlobBatchClient()` instance method,
+which is used only when the client is accessed via the `InMemoryBlobServiceClient` or `InMemoryBlobContainerClient`
+static type.
+
+Production code should obtain the `BlobBatchClient` from a factory abstraction: the production implementation of that
+factory calls `SpecializedBlobExtensions.GetBlobBatchClient(...)` on the real client, while the test implementation
+calls `GetBlobBatchClient()` on the in-memory client.
+
+| Property | Note                                                       |
+| -------- | ---------------------------------------------------------- |
+| `Uri`    | Blob service URI, resp. container URI for container-scoped. |
+
+| Method group    | Note                                                                                                                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DeleteBlobs`   | Only supported for `DeleteSnapshotsOption.None`. At most 256 blobs per batch, empty batch is rejected. All blobs must be in the same storage account, resp. in the same container for container-scoped client. Individual sub-request failures are wrapped in an `AggregateException`. |
+
+| Constructors & factory methods                       | Note |
+| ---------------------------------------------------- | ---- |
+| `(InMemoryBlobServiceClient client)`                 |      |
+| `(InMemoryBlobContainerClient client)`               |      |
+| `FromAccount(InMemoryStorageAccount account)`        |      |
+
 ### Features
 
 For the supported methods enumerated above, not all features are fully implemented.
