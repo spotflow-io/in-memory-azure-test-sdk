@@ -59,6 +59,20 @@ public class BlobServiceClientTests
 
     }
 
+    [TestMethod]
+    public async Task DeleteBlobContainer_Should_Delete_Container()
+    {
+        var account = new InMemoryStorageProvider().AddAccount();
+        var serviceClient = InMemoryBlobServiceClient.FromAccount(account);
+        var containerClient = serviceClient.GetBlobContainerClient("test-container");
+        containerClient.Create();
+
+        var response = await serviceClient.DeleteBlobContainerAsync(containerClient.Name);
+
+        response.Status.Should().Be(202);
+        containerClient.Exists().Value.Should().BeFalse();
+    }
+
 
     private static void AssertClientProperties(InMemoryBlobServiceClient client, InMemoryStorageAccount account)
     {

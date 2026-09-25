@@ -222,6 +222,7 @@ Clients are thread-safe.
 
 | Method group             |
 | ------------------------ |
+| `DeleteBlobContainer`    |
 | `GetBlobContainerClient` |
 
 | Constructors & factory methods                | Note                          |
@@ -243,17 +244,32 @@ Clients are thread-safe.
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `Create`                     |                                                                                                                                    |
 | `CreateIfNotExists`          |                                                                                                                                    |
+| `Delete`                     |                                                                                                                                    |
 | `DeleteBlob`                 |                                                                                                                                    |
 | `DeleteBlobIfExists`         |                                                                                                                                    |
+| `DeleteIfExists`             |                                                                                                                                    |
 | `Exists`                     |                                                                                                                                    |
 | `GenerateSasUri`             |                                                                                                                                    |
 | `GetBlobClient`              |                                                                                                                                    |
+| `GetBlobLeaseClient`         | Container leases only; blob leases are not supported.                                                                              |
 | `GetBlockBlobClient`         |                                                                                                                                    |
 | `GetBlobs`                   | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
 | `GetBlobsByHierarchy`        | Only `BlobTraits.Metadata` and `BlobStates.Uncommitted` flags are supported. Using other flags will throw `NotSupportedException`. |
 | `GetParentBlobServiceClient` |                                                                                                                                    |
 | `GetProperties`              |                                                                                                                                    |
 | `UploadBlob`                 |                                                                                                                                    |
+
+#### `InMemoryBlobLeaseClient: BlobLeaseClient`
+
+Container lease clients support the following method groups. Calling `GetBlobLeaseClient` on a blob client remains unsupported.
+
+| Method group |
+| ------------ |
+| `Acquire`    |
+| `Break`      |
+| `Change`     |
+| `Release`    |
+| `Renew`      |
 
 | Constructors & factory methods                                          | Note                          |
 | ----------------------------------------------------------------------- | ----------------------------- |
@@ -353,7 +369,8 @@ If the given feature is not supported, than the method will just ignore any para
 | Header - `Content-Type`                                   | ✅           |
 | Header - Others                                           | ❌           |
 | Immutability policies                                     | ❌           |
-| Leases                                                    | ❌           |
+| Leases (blobs)                                            | ❌           |
+| Leases (containers)                                       | ✅           |
 | Legal holds                                               | ❌           |
 | Metadata (blob)                                           | ✅           |
 | Metadata (container)                                      | ✅           |
