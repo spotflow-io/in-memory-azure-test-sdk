@@ -200,6 +200,8 @@ internal static class BlobExceptionFactory
             $"Blob '{blobUri}' is out of scope of the batch which is scoped to {expectedScope}.",
             BlobErrorCode.InvalidInput.ToString(),
             null);
+    }
+
     public static RequestFailedException InvalidLeaseId()
     {
         return new(400, "The lease ID is not in a valid format.", "InvalidHeaderValue", null);
