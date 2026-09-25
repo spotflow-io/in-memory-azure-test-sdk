@@ -5,5 +5,6 @@ public enum ContainerOperations
 {
     None = 0,
     Create = 1,
-    All = Create
+    Delete = 2,
+    All = Create | Delete
 }

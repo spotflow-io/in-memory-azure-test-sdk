@@ -63,6 +63,15 @@ public class InMemoryBlobServiceClient : BlobServiceClient
     /// via the <see cref="BlobServiceClient"/> static type.
     /// </remarks>
     public InMemoryBlobBatchClient GetBlobBatchClient() => new(this);
+    public override Response DeleteBlobContainer(string blobContainerName, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        return GetBlobContainerClient(blobContainerName).Delete(conditions, cancellationToken);
+    }
+
+    public override Task<Response> DeleteBlobContainerAsync(string blobContainerName, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+    {
+        return GetBlobContainerClient(blobContainerName).DeleteAsync(conditions, cancellationToken);
+    }
 
     #region Unsupported
 
@@ -142,16 +151,6 @@ public class InMemoryBlobServiceClient : BlobServiceClient
     }
 
     public override Task<Response<BlobContainerClient>> CreateBlobContainerAsync(string blobContainerName, PublicAccessType publicAccessType = PublicAccessType.None, IDictionary<string, string>? metadata = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Response DeleteBlobContainer(string blobContainerName, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
-    {
-        throw BlobExceptionFactory.MethodNotSupported();
-    }
-
-    public override Task<Response> DeleteBlobContainerAsync(string blobContainerName, BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
     {
         throw BlobExceptionFactory.MethodNotSupported();
     }
