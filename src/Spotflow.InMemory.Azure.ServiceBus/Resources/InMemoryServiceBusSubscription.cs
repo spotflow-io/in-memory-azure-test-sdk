@@ -58,12 +58,7 @@ public class InMemoryServiceBusSubscription : InMemoryServiceBusEntity, IConsuma
 
     internal override bool TryAddMessages(IReadOnlyList<ServiceBusMessage> messages, [NotNullWhen(false)] out AddMessageError? error)
     {
-        if (Filter is null)
-        {
-            return Engine.TryAddMessages(messages, out error);
-        }
-
-        var matchingMessages = messages.Where(Filter).ToList();
+        var matchingMessages = messages.Where(MatchesFilter).ToList();
 
         if (matchingMessages.Count == 0)
         {
