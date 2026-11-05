@@ -263,13 +263,31 @@ If the given feature is not supported, than the method will just ignore any para
 | Processors - ServiceBusSessionProcessor | ❌           |
 | Queues                                  | ✅           |
 | `ReceiveAndDelete` receive mode         | ✅           |
-| Rules                                   | ❌           |
+| Rules                                   | ❌ (see [Subscription filters](#subscription-filters)) |
 | Scheduled messages                      | ❌           |
 | Sessions                                | ✅           |
 | Session states                          | ✅           |
 | Sequence numbers                        | ✅           |
 | Subscriptions                           | ✅           |
 | Topics                                  | ✅           |
+
+### Subscription filters
+
+Subscription rules (SQL filters, correlation filters, actions) are not supported. Filtering can be emulated
+by passing a predicate via `InMemoryServiceBusSubscriptionOptions.Filter`. The predicate is evaluated for every message
+sent to the parent topic and only matching messages are added to the subscription. When no filter is set, all messages are accepted
+(equivalent to the default `TrueFilter` rule).
+
+```cs
+var topic = inMemoryProvider.AddNamespace().AddTopic("test-topic");
+
+// Equivalent of SQL filter: CommandType = 'orders.created'
+topic.AddSubscription("orders-created", new()
+{
+    EnableSessions = true,
+    Filter = message => message.ApplicationProperties.TryGetValue("CommandType", out var type) && Equals(type, "orders.created")
+});
+```
 
 ## Available Fluent Assertions
 

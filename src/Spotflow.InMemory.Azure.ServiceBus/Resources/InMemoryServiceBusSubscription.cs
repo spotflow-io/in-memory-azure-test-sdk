@@ -14,6 +14,7 @@ public class InMemoryServiceBusSubscription : InMemoryServiceBusEntity, IConsuma
         Topic = parentTopic;
         EnableSessions = options.EnableSessions;
         LockTime = options.LockTime ?? DefaultLockTime;
+        Filter = options.Filter;
         EntityPath = FormatEntityPath(parentTopic.TopicName, subscriptionName);
 
         Engine = EnableSessions switch
@@ -36,6 +37,8 @@ public class InMemoryServiceBusSubscription : InMemoryServiceBusEntity, IConsuma
 
     public TimeSpan LockTime { get; }
 
+    public Func<ServiceBusMessage, bool>? Filter { get; }
+
     internal IMessagingEngine Engine { get; }
 
     IMessagingEngine IConsumableEntity.Engine => Engine;
@@ -44,13 +47,34 @@ public class InMemoryServiceBusSubscription : InMemoryServiceBusEntity, IConsuma
 
     internal override bool TryAddMessage(ServiceBusMessage message, [NotNullWhen(false)] out AddMessageError? error)
     {
+        if (!MatchesFilter(message))
+        {
+            error = null;
+            return true;
+        }
+
         return Engine.TryAddMessage(message, out error);
     }
 
     internal override bool TryAddMessages(IReadOnlyList<ServiceBusMessage> messages, [NotNullWhen(false)] out AddMessageError? error)
     {
-        return Engine.TryAddMessages(messages, out error);
+        if (Filter is null)
+        {
+            return Engine.TryAddMessages(messages, out error);
+        }
+
+        var matchingMessages = messages.Where(Filter).ToList();
+
+        if (matchingMessages.Count == 0)
+        {
+            error = null;
+            return true;
+        }
+
+        return Engine.TryAddMessages(matchingMessages, out error);
     }
+
+    private bool MatchesFilter(ServiceBusMessage message) => Filter is null || Filter(message);
 }
 
 
